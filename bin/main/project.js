@@ -1,5 +1,7 @@
-define(["require", "exports", './utils/fileUtils'], function(require, exports, __fileUtils__) {
+define(["require", "exports", './utils/fileUtils', './typescript/coreService', './typescript/script'], function(require, exports, __fileUtils__, __coreService__, __script__) {
     var fileUtils = __fileUtils__;
+    var coreService = __coreService__;
+    var script = __script__;
 
     var BRACKETS_TYPESCRIPT_FILE_NAME = '.brackets-typescript';
 
@@ -79,7 +81,11 @@ define(["require", "exports", './utils/fileUtils'], function(require, exports, _
         };
 
         TypeScriptProjectManager.prototype.createProjectFromConfig = function (config, path) {
-            this.projectMap[path] = config && this.typeScriptProjectFactory(PathUtils.directory(path), config);
+            if (config) {
+                this.projectMap[path] = this.typeScriptProjectFactory(PathUtils.directory(path), config, this.fileInfosResolver, this.fileSystemObserver, this.reader);
+            } else {
+                this.projectMap[path] = null;
+            }
         };
 
         TypeScriptProjectManager.prototype.retrieveConfig = function (fileInfo) {
@@ -140,19 +146,125 @@ define(["require", "exports", './utils/fileUtils'], function(require, exports, _
     };
 
     var TypeScriptProject = (function () {
-        function TypeScriptProject() {
+        function TypeScriptProject(baseDirectory, config, fileInfosResolver, fileSystemObserver, reader) {
+            var _this = this;
+            this.filesChangeHandler = function (changeRecords) {
+                changeRecords.forEach(function (record) {
+                    switch (record.kind) {
+                        case fileUtils.FileChangeKind.ADD:
+                            if (_this.isProjectSourceFile(record.file.fullPath) || _this.missingFiles[record.file.fullPath]) {
+                                _this.addFile(record.file.fullPath);
+                            }
+                            break;
+                        case fileUtils.FileChangeKind.DELETE:
+                            if (_this.files.hasOwnProperty(record.file.fullPath)) {
+                                _this.removeFile(record.file.fullPath);
+                            }
+                            break;
+                    }
+                });
+            };
+            this.baseDirectory = baseDirectory;
+            this.config = config;
+            this.fileSystemObserver = fileSystemObserver;
+            this.reader = reader;
+            this.fileInfosResolver = fileInfosResolver;
+            this.collectFiles();
+            this.fileSystemObserver.add(this.filesChangeHandler);
         }
+        TypeScriptProject.prototype.getFiles = function () {
+            return $.extend({}, this.files);
+        };
+
         TypeScriptProject.prototype.dispose = function () {
+            this.fileSystemObserver.remove(this.filesChangeHandler);
         };
 
         TypeScriptProject.prototype.update = function (config) {
+            this.config = config;
+            this.collectFiles();
+        };
+
+        TypeScriptProject.prototype.collectFiles = function () {
+            var _this = this;
+            this.files = {};
+            this.missingFiles = {};
+            this.references = {};
+            this.fileInfosResolver().then(function (fileInfos) {
+                fileInfos.filter(function (fileInfo) {
+                    return _this.isProjectSourceFile(fileInfo.fullPath);
+                }).forEach(function (fileInfo) {
+                    return _this.addFile(fileInfo.fullPath);
+                });
+            });
+        };
+
+        TypeScriptProject.prototype.getReferencedOrImportedFiles = function (path) {
+            if (!this.files[path]) {
+                return [];
+            }
+            var preProcessedFileInfo = coreService.getPreProcessedFileInfo(path, script.getScriptSnapShot(path, this.files[path]));
+            return preProcessedFileInfo.referencedFiles.concat(preProcessedFileInfo.importedFiles).map(function (fileRefence) {
+                return PathUtils.makePathAbsolute(fileRefence.path, path);
+            });
+        };
+
+        TypeScriptProject.prototype.addFile = function (path) {
+            var _this = this;
+            if (!this.files.hasOwnProperty(path)) {
+                this.files[path] = null;
+                this.reader(path).then(function (content) {
+                    if (content === null || content === undefined) {
+                        _this.missingFiles[path] = true;
+                        delete _this.files[path];
+                        return;
+                    }
+                    delete _this.missingFiles[path];
+                    _this.files[path] = content;
+                    _this.getReferencedOrImportedFiles(path).forEach(function (referencedPath) {
+                        _this.addFile(referencedPath);
+                        if (!_this.references[referencedPath]) {
+                            _this.references[referencedPath] = {};
+                        }
+                        _this.references[referencedPath][path] = true;
+                    });
+                });
+            }
+        };
+
+        TypeScriptProject.prototype.removeFile = function (path) {
+            var _this = this;
+            if (this.files.hasOwnProperty(path)) {
+                this.getReferencedOrImportedFiles(path).forEach(function (referencedPath) {
+                    var fileRefs = _this.references[referencedPath];
+                    if (!fileRefs) {
+                        _this.removeFile(referencedPath);
+                    }
+                    delete fileRefs[path];
+                    if (Object.keys(fileRefs).length === 0) {
+                        delete _this.references[referencedPath];
+                        _this.removeFile(referencedPath);
+                    }
+                });
+                if (this.references[path] && Object.keys(this.references[path])) {
+                    this.missingFiles[path] = true;
+                }
+                delete this.files[path];
+            }
+        };
+
+        TypeScriptProject.prototype.isProjectSourceFile = function (path) {
+            path = PathUtils.makePathRelative(path, this.baseDirectory);
+            return this.config.sources.some(function (pattern) {
+                return minimatch(path, pattern);
+            });
         };
         return TypeScriptProject;
     })();
     exports.TypeScriptProject = TypeScriptProject;
 
-    function newTypeScriptProject(config) {
-        return null;
+    function newTypeScriptProject(baseDirectory, config, fileInfosResolver, fileSystemObserver, reader) {
+        return new TypeScriptProject(baseDirectory, config, fileInfosResolver, fileSystemObserver, reader);
     }
     exports.newTypeScriptProject = newTypeScriptProject;
 });

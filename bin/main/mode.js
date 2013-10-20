@@ -87,7 +87,7 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
         };
 
         TypeScriptMode.prototype.getSyntaxTree = function (text) {
-            return TypeScript.Parser.parse("script", TypeScript.SimpleText.fromString(text), false, new TypeScript.ParseOptions(TypeScript.LanguageVersion.EcmaScript5, true));
+            return TypeScript.Parser.parse("script", TypeScript.SimpleText.fromString(text), false, new TypeScript.ParseOptions(TypeScript.LanguageVersion.EcmaScript5, true, true));
         };
         return TypeScriptMode;
     })();

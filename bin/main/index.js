@@ -3,7 +3,7 @@ define(["require", "exports", './mode'], function(require, exports, __typeScript
 
     var typeScriptModeFactory = __typeScriptModeFactory__;
 
-    function init(debug) {
+    function init() {
         CodeMirror.defineMode('typescript', typeScriptModeFactory);
 
         var LanguageManager = brackets.getModule('language/LanguageManager');

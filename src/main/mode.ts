@@ -114,7 +114,7 @@ class TypeScriptMode implements CodeMirrorMode<LineDescriptor> {
             "script", 
             TypeScript.SimpleText.fromString(text), 
             false, 
-            new TypeScript.ParseOptions(TypeScript.LanguageVersion.EcmaScript5, true)
+            new TypeScript.ParseOptions(TypeScript.LanguageVersion.EcmaScript5, true, true)
         );
     }
 }

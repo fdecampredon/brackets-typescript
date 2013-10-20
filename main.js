@@ -3,10 +3,9 @@
 
 define(function (require, exports, module) {
  	"use strict";
- 	var debug = true;
-	require(["third_party/typescriptServices"],  function (){
+	require(["third_party/typescriptServices", "third_party/minimatch"],  function (){
 		require(["bin/main/index"],  function (init){
-			init(debug);
+			init();
 		})
 	})
 });
