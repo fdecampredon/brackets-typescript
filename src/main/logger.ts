@@ -1,6 +1,6 @@
 'use strict';
 
-var debug:boolean;
+var debug: boolean;
 
 class Logger {
     information(): boolean { 

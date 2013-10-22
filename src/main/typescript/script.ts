@@ -5,7 +5,7 @@
     public fileName: string;
     public content: string;
     public isOpen: boolean;
-    public byteOrderMark
+    public byteOrderMark: ByteOrderMark;
     
 
     constructor(fileName: string, content: string, isOpen = true, byteOrderMark: ByteOrderMark = ByteOrderMark.None) {
@@ -56,6 +56,11 @@
 
         var entries = this.editRanges.slice(initialEditRangeIndex, lastEditRangeIndex);
         return TypeScript.TextChangeRange.collapseChangesAcrossMultipleVersions(entries.map(e => e.textChangeRange));
+    }
+     
+     
+    public getPositionFromLine(line :number, col:number) {
+        return this.lineMap.getPosition(line, col);
     }
 }
 

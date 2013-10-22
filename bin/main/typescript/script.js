@@ -50,6 +50,10 @@ define(["require", "exports"], function(require, exports) {
                 return e.textChangeRange;
             }));
         };
+
+        ScriptInfo.prototype.getPositionFromLine = function (line, col) {
+            return this.lineMap.getPosition(line, col);
+        };
         return ScriptInfo;
     })();
     exports.ScriptInfo = ScriptInfo;
