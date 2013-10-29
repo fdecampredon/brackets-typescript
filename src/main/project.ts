@@ -1,4 +1,5 @@
-import fileUtils = require('./utils/fileUtils');
+import fileSystem = require('./fileSystem');
+import ws = require('./workingSet');
 import coreService = require('./typescript/coreService');
 import script = require('./typescript/script');
 import language = require('./typescript/language');
@@ -9,46 +10,60 @@ export interface TypeScriptProjectFactory {
     (   
         baseDirectory: string,
         config: TypeScriptProjectConfig, 
-        fileInfosResolver:() => JQueryPromise<brackets.FileInfo[]>,
-        fileSystemObserver: fileUtils.IFileSystemObserver, 
-        reader: (path:String) => JQueryPromise<string>
+        fileSystemService: fileSystem.IFileSystemService,
+        workingSet: ws.IWorkingSet
     ): TypeScriptProject
 }
 
 
 export class TypeScriptProjectManager {
-    private fileSystemObserver: fileUtils.IFileSystemObserver;
-    private fileInfosResolver:() => JQueryPromise<brackets.FileInfo[]>;
+    private fileSystemService: fileSystem.IFileSystemService;
     private typeScriptProjectFactory: TypeScriptProjectFactory;
-    private reader: (path:String) => JQueryPromise<string>;
     private projectMap: { [path:string]: TypeScriptProject };
+    private workingSet: ws.IWorkingSet;
     
-    constructor(fileSystemObserver: fileUtils.IFileSystemObserver, 
-                fileInfosResolver:() => JQueryPromise<brackets.FileInfo[]>, 
-                typeScriptProjectFactory: (directory:string,config: TypeScriptProjectConfig) => TypeScriptProject,
-                reader: (path:String) => JQueryPromise<string> ) {
-        
-        this.fileSystemObserver = fileSystemObserver;
-        this.fileInfosResolver = fileInfosResolver;
+    constructor(fileSystemService: fileSystem.IFileSystemService, 
+                workingSet: ws.IWorkingSet,
+                typeScriptProjectFactory: TypeScriptProjectFactory) {
+        this.fileSystemService = fileSystemService;
         this.typeScriptProjectFactory = typeScriptProjectFactory;
-        this.reader = reader;
+        this.workingSet = workingSet;
     }
     
     init(): void {
         this.createProjects();
-        this.fileSystemObserver.add(this.filesChangeHandler);
+        this.fileSystemService.projectFilesChanged.add(this.filesChangeHandler);
     }
     
     
     dispose(): void {
-        this.fileSystemObserver.remove(this.filesChangeHandler);
+        this.fileSystemService.projectFilesChanged.remove(this.filesChangeHandler);
         this.disposeProjects();
+    }
+    
+    
+    getProjectForFile(path: string): TypeScriptProject {
+        for (var configPath in this.projectMap) {
+            if (this.projectMap[configPath].getProjectFileKind(path) === ProjectFileKind.SOURCE) {
+                return this.projectMap[configPath];
+            }
+        }
+        
+        for (var configPath in this.projectMap) {
+            if (this.projectMap[configPath].getProjectFileKind(path) === ProjectFileKind.REFERENCE) {
+                return this.projectMap[configPath];
+            }
+        }
+        
+        return null;
     }
     
     private createProjects():void {
         this.projectMap = {}; 
-        this.fileInfosResolver().then((fileInfos: brackets.FileInfo[]) => {
-            fileInfos.filter(fileInfo => fileInfo.name === BRACKETS_TYPESCRIPT_FILE_NAME).forEach(this.createProjectFromFile, this);     
+        this.fileSystemService.getProjectFiles().then((paths: string[]) => {
+            paths
+                .filter(isTypeScriptProjectConfigFile)
+                .forEach(this.createProjectFromFile, this);     
         });
     }
     
@@ -62,27 +77,27 @@ export class TypeScriptProjectManager {
         this.projectMap = {};
     }
     
-    private createProjectFromFile(fileInfo: brackets.FileInfo) {
-        this.retrieveConfig(fileInfo).then( config => this.createProjectFromConfig(config, fileInfo.fullPath));
+    private createProjectFromFile(configFilePath: string) {
+        this.retrieveConfig(configFilePath).then( config => this.createProjectFromConfig(configFilePath, config));
     }
     
-    private createProjectFromConfig(config : TypeScriptProjectConfig, path: string) {
+    private createProjectFromConfig(configFilePath: string, config : TypeScriptProjectConfig) {
         if (config) {
-            this.projectMap[path] = this.typeScriptProjectFactory(PathUtils.directory(path), config, 
-                                                                        this.fileInfosResolver, this.fileSystemObserver, this.reader);
+            this.projectMap[configFilePath] = this.typeScriptProjectFactory(PathUtils.directory(configFilePath), 
+                                                                                config, this.fileSystemService, this.workingSet);
         } else {
-            this.projectMap[path] = null;
+            this.projectMap[configFilePath] = null;
         }
     }
     
-    private retrieveConfig(fileInfo: brackets.FileInfo): JQueryPromise<TypeScriptProjectConfig> {
-        return this.reader(fileInfo.fullPath).then((content: string) => {
+    private retrieveConfig(configFilePath: string): JQueryPromise<TypeScriptProjectConfig> {
+        return this.fileSystemService.readFile(configFilePath).then((content: string) => {
             var config : TypeScriptProjectConfig;
             try {
                 config =  JSON.parse(content);
             } catch(e) {
                 //TODO logging strategy
-                console.log('invalid json for brackets-typescript config file: ' + fileInfo.fullPath);
+                console.log('invalid json for brackets-typescript config file: ' + configFilePath);
             }
             
             if(config) {
@@ -99,36 +114,43 @@ export class TypeScriptProjectManager {
         });
     }
     
-    private filesChangeHandler = (changeRecords: fileUtils.ChangeRecord[]) => {
+    private filesChangeHandler = (changeRecords: fileSystem.ChangeRecord[]) => {
         changeRecords.forEach(record => {
-            switch (record.kind) { 
-                case fileUtils.FileChangeKind.DELETE:
-                    if (this.projectMap[record.file.fullPath]) {
-                        this.projectMap[record.file.fullPath].dispose();
-                        delete this.projectMap[record.file.fullPath];
-                    }
-                    break;
-                case fileUtils.FileChangeKind.ADD:
-                    this.createProjectFromFile(record.file);
-                    break;
-                case fileUtils.FileChangeKind.UPDATE:
-                    this.retrieveConfig(record.file).then((config : TypeScriptProjectConfig) => {
-                        if (config) {
-                            if(this.projectMap[record.file.fullPath]) {
-                                this.projectMap[record.file.fullPath].update(config);
-                            } else {
-                                this.createProjectFromConfig(config, record.file.fullPath);
-                            }
+            if (record.kind === fileSystem.FileChangeKind.REFRESH) {
+                this.disposeProjects();
+                this.createProjects();
+            } else if (isTypeScriptProjectConfigFile(record.path)) {
+                switch (record.kind) { 
+                    case fileSystem.FileChangeKind.DELETE:
+                        if (this.projectMap[record.path]) {
+                            this.projectMap[record.path].dispose();
+                            delete this.projectMap[record.path];
                         }
-                    });
-                    break;
-                case fileUtils.FileChangeKind.REFRESH:
-                    this.disposeProjects();
-                    this.createProjects();
-                    break;
+                        break;
+                    case fileSystem.FileChangeKind.ADD:
+                        this.createProjectFromFile(record.path);
+                        break;
+                    case fileSystem.FileChangeKind.UPDATE:
+                        this.retrieveConfig(record.path).then((config : TypeScriptProjectConfig) => {
+                            if (config) {
+                                if(this.projectMap[record.path]) {
+                                    this.projectMap[record.path].update(config);
+                                } else {
+                                    this.createProjectFromConfig(record.path, config);
+                                }
+                            }
+                        });
+                        break;
+                }
             }
+            
         }); 
     }
+}
+
+
+function isTypeScriptProjectConfigFile(path: string): boolean {
+    return path && path.substr(path.lastIndexOf('/') + 1, path.length) === BRACKETS_TYPESCRIPT_FILE_NAME;
 }
 
 
@@ -191,33 +213,51 @@ export interface LanguageServiceHostFactory {
 }
 
 
+export enum ProjectFileKind {
+    NONE,
+    SOURCE,
+    REFERENCE
+}
+
 export class TypeScriptProject {
     
     private baseDirectory: string;
     private config: TypeScriptProjectConfig; 
-    private fileSystemObserver: fileUtils.IFileSystemObserver;
-    private reader: (path:String) => JQueryPromise<string>;
-    private fileInfosResolver:() => JQueryPromise<brackets.FileInfo[]>;
+    private fileSystemService: fileSystem.IFileSystemService;
+    private workingSet: ws.IWorkingSet;
     private languageServiceHostFactory: LanguageServiceHostFactory
     
     private files: { [path: string]: string };
     private references: { [path: string]:  { [path: string]: boolean } };
     private missingFiles: { [path: string]: boolean };
+    private languageServiceHost: language.ILanguageServiceHost;
+    private languageService: Services.ILanguageService;
     
     constructor(baseDirectory: string,
                 config: TypeScriptProjectConfig, 
-                fileInfosResolver:() => JQueryPromise<brackets.FileInfo[]>,
-                fileSystemObserver: fileUtils.IFileSystemObserver, 
-                reader: (path:String) => JQueryPromise<string>,
+                fileSystemService: fileSystem.IFileSystemService,
+                workingSet: ws.IWorkingSet,
                 languageServiceHostFactory: LanguageServiceHostFactory) {
         this.baseDirectory = baseDirectory;
         this.config = config;
-        this.fileSystemObserver = fileSystemObserver;
-        this.reader = reader;
-        this.fileInfosResolver = fileInfosResolver;
+        this.fileSystemService = fileSystemService;
+        this.workingSet = workingSet;
         this.languageServiceHostFactory = languageServiceHostFactory;
-        this.collectFiles().then(() => this.createLanguageServiceHost());
-        this.fileSystemObserver.add(this.filesChangeHandler);
+        this.collectFiles().then(() => this.createLanguageServiceHost(), function() {
+            console.log("fuck");
+                    });
+        
+        this.fileSystemService.projectFilesChanged.add(this.filesChangeHandler);
+        this.workingSet.workingSetChanged.add(this.workingSetChangedHandler);
+        this.workingSet.documentEdited.add(this.documentEditedHandler);
+    }
+    
+    getLanguageService(): Services.ILanguageService {
+        return this.languageService;
+    }
+    
+    getLanguageServiceHost(): language.ILanguageServiceHost {
+        return this.languageServiceHost;
     }
     
     getFiles() {
@@ -225,7 +265,9 @@ export class TypeScriptProject {
     }
     
     dispose(): void {
-        this.fileSystemObserver.remove(this.filesChangeHandler);
+        this.fileSystemService.projectFilesChanged.remove(this.filesChangeHandler);
+        this.workingSet.workingSetChanged.remove(this.workingSetChangedHandler);
+        this.workingSet.documentEdited.remove(this.documentEditedHandler);
     }
     
     update(config: TypeScriptProjectConfig): void {
@@ -233,16 +275,24 @@ export class TypeScriptProject {
         this.collectFiles();
     }
     
+    getProjectFileKind(path: string): ProjectFileKind {
+        if (this.files.hasOwnProperty(path)) {
+            return this.isProjectSourceFile(path) ? ProjectFileKind.SOURCE :  ProjectFileKind.REFERENCE;
+        } else {
+            return ProjectFileKind.NONE
+        }
+    }
+    
     private collectFiles(): JQueryPromise<void> {
         this.files = {};
         this.missingFiles = {};
         this.references = {}
-        return this.fileInfosResolver().then((fileInfos: brackets.FileInfo[]) => {
+        return this.fileSystemService.getProjectFiles().then((paths: string[]) => {
             var promises = [];
-            fileInfos
-                .filter((fileInfo) => this.isProjectSourceFile(fileInfo.fullPath))
-                .forEach(fileInfo => promises.push(this.addFile(fileInfo.fullPath)));
-            return $.when.apply(promises);
+            paths
+                .filter(path => this.isProjectSourceFile(path))
+                .forEach(path => promises.push(this.addFile(path)));
+            return $.when.apply($,promises);
         });
     }
     
@@ -251,15 +301,17 @@ export class TypeScriptProject {
             return []
         }
         var preProcessedFileInfo = coreService.getPreProcessedFileInfo(path, script.getScriptSnapShot(path, this.files[path]));
-        return preProcessedFileInfo.referencedFiles.concat(preProcessedFileInfo.importedFiles).map(fileRefence => {
+        return preProcessedFileInfo.referencedFiles.map(fileRefence => {
             return PathUtils.makePathAbsolute(fileRefence.path, path);
-        });
+        }).concat(preProcessedFileInfo.importedFiles.map(fileRefence => {
+            return PathUtils.makePathAbsolute(fileRefence.path + '.ts', path);
+        }));
     }
     
     private addFile(path: string): JQueryPromise<void>  {
         if (!this.files.hasOwnProperty(path)) {
             this.files[path] = null;
-            return this.reader(path).then((content: string) => {
+            return this.fileSystemService.readFile(path).then((content: string) => {
                 var promises = [];
                 if (content === null || content === undefined) {
                     this.missingFiles[path] = true;
@@ -272,7 +324,10 @@ export class TypeScriptProject {
                     promises.push(this.addFile(referencedPath));
                     this.addReference(path, referencedPath);
                 });
-                return $.when.apply(promises);
+                if (this.languageServiceHost) {
+                    this.languageServiceHost.addScript(path, content);
+                }
+                return $.when.apply($,promises);
             });
         }
         return null;
@@ -283,15 +338,18 @@ export class TypeScriptProject {
             this.getReferencedOrImportedFiles(path).forEach((referencedPath: string) => {
                 this.removeReference(path, referencedPath);
             });
-            if (this.references[path] && Object.keys(this.references[path])) {
+            if (this.references[path] && Object.keys(this.references[path]).length > 0) {
                 this.missingFiles[path] = true;
             }   
+            if (this.languageServiceHost) {
+                this.languageServiceHost.removeScript(path);
+            }
             delete this.files[path];
         }
     }
     
     private updateFile(path: string) {
-        this.reader(path).then((content: string) => {
+        this.fileSystemService.readFile(path).then((content: string) => {
             var oldPathMap: { [path: string]: boolean } = {};
             this.getReferencedOrImportedFiles(path).forEach(path => oldPathMap[path] = true);
             this.files[path] = content;
@@ -306,6 +364,10 @@ export class TypeScriptProject {
             Object.keys(oldPathMap).forEach((referencedPath: string) => {
                 this.removeReference(path, referencedPath);
             });
+            
+            if (this.languageServiceHost) {
+                this.languageServiceHost.updateScript(path, content);
+            }
         });
     }
     
@@ -335,28 +397,61 @@ export class TypeScriptProject {
     }
     
     
-    private filesChangeHandler = (changeRecords: fileUtils.ChangeRecord[]) => {
+    private filesChangeHandler = (changeRecords: fileSystem.ChangeRecord[]) => {
         changeRecords.forEach(record => {
             switch (record.kind) { 
-                case fileUtils.FileChangeKind.ADD:
-                    if (this.isProjectSourceFile(record.file.fullPath) || this.missingFiles[record.file.fullPath]) {
-                        this.addFile(record.file.fullPath);
+                case fileSystem.FileChangeKind.ADD:
+                    if (this.isProjectSourceFile(record.path) || this.missingFiles[record.path]) {
+                        this.addFile(record.path);
                     }
                     break;
-                case fileUtils.FileChangeKind.DELETE:
-                    if (this.files.hasOwnProperty(record.file.fullPath)) {
-                        this.removeFile(record.file.fullPath);
+                case fileSystem.FileChangeKind.DELETE:
+                    if (this.files.hasOwnProperty(record.path)) {
+                        this.removeFile(record.path);
                     }
                     break;
-                case fileUtils.FileChangeKind.UPDATE:
-                    if (this.files.hasOwnProperty(record.file.fullPath)) {
-                        this.updateFile(record.file.fullPath);
+                case fileSystem.FileChangeKind.UPDATE:
+                    if (this.files.hasOwnProperty(record.path)) {
+                        this.updateFile(record.path);
                     }
                     break;
             }
         });
     }
     
+    private workingSetChangedHandler = (changeRecord:  ws.ChangeRecord) => {
+        switch (changeRecord.kind) { 
+            case ws.WorkingSetChangeKind.ADD:
+                changeRecord.paths.forEach((path: string) => {
+                    if (this.files.hasOwnProperty(path)) {
+                        this.languageServiceHost.setScriptIsOpen(path, true);
+                    }
+                });
+                break;
+            case ws.WorkingSetChangeKind.REMOVE:
+                changeRecord.paths.forEach((path: string) => {
+                    if (this.files.hasOwnProperty(path)) {
+                        this.languageServiceHost.setScriptIsOpen(path, false);
+                        this.updateFile(path);
+                    }
+                });
+                break;
+        }
+    }
+    
+    private documentEditedHandler = (records: ws.DocumentChangeDescriptor[]) => {
+        records.forEach((record: ws.DocumentChangeDescriptor) => {
+            if (this.files.hasOwnProperty(record.path)) {
+                var minChar = this.getIndexFromPos(record.path, record.from),
+                    limChar = this.getIndexFromPos(record.path, record.to)
+                this.languageServiceHost.editScript(record.path, minChar, limChar, record.text)
+            }
+        });
+    }
+    
+    private getIndexFromPos(path: string, position: ws.Position) {
+        return this.languageServiceHost.lineColToPosition(path, position.line, position.ch);
+    }
     
     private createLanguageServiceHost(): void {
         var compilationSettings = new TypeScript.CompilationSettings(),
@@ -386,16 +481,28 @@ export class TypeScriptProject {
                                                         TypeScript.ModuleGenTarget.Asynchronous:
                                                         TypeScript.ModuleGenTarget.Synchronous );
    
-        this.languageServiceHostFactory(compilationSettings, this.getFiles());
-   
+        this.languageServiceHost = this.languageServiceHostFactory(compilationSettings, this.getFiles());
+        this.languageService = new Services.TypeScriptServicesFactory().createPullLanguageService(this.languageServiceHost);
+        
+        this.workingSet.files.forEach((path: string) => {
+            if (this.files.hasOwnProperty(path)) {
+                this.languageServiceHost.setScriptIsOpen(path, true);
+            }
+        });
     }
 }
 
 
-export function newTypeScriptProject(baseDirectory: string,
-                                    config: TypeScriptProjectConfig, 
-                                    fileInfosResolver:() => JQueryPromise<brackets.FileInfo[]>,
-                                    fileSystemObserver: fileUtils.IFileSystemObserver, 
-                                    reader: (path:String) => JQueryPromise<string>): TypeScriptProject {
-    return new TypeScriptProject(baseDirectory, config, fileInfosResolver, fileSystemObserver, reader, null);
+export function typeScriptProjectFactory (   
+                                        baseDirectory: string,
+                                        config: TypeScriptProjectConfig, 
+                                        fileSystemService: fileSystem.IFileSystemService,
+                                        workingSet: ws.IWorkingSet
+                                    ): TypeScriptProject {
+    return new TypeScriptProject(baseDirectory, config, fileSystemService, workingSet, 
+                                            (settings: TypeScript.CompilationSettings, files:  { [path: string]: string }) => {
+                                                return new language.LanguageServiceHost(settings, files);
+                                            });
 }
+
+

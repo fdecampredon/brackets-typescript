@@ -1,12 +1,7 @@
 import project = require('../main/project');
-import fileUtils = require('../main/utils/fileUtils');
-import signal = require('../main/utils/signal');
-import bracketsMock = require('./bracketsMock');
+import fileSystem = require('../main/fileSystem');
+import FileSystemServiceMock = require('./fileSystemMock');
 
-class FileSystemObserverMock extends signal.Signal<fileUtils.ChangeRecord[]> {
-    dispose() {
-    }
-}
 
 describe('TypeScriptProjectManager', function () {
     
@@ -20,30 +15,19 @@ describe('TypeScriptProjectManager', function () {
             };
             return result;
         }),
-        fileIndexManagerMock = new bracketsMock.FileIndexManagerMock(),
-        fileInfosResolver = () => {
-            return fileIndexManagerMock.getFileInfoList('all');
-        },
-        fileSystemObserver = new FileSystemObserverMock(),
-        content: { [path: string] : string},
-        reader=  (path: string) => {
-            var deferred = $.Deferred();
-            deferred.resolve(content[path]);
-            return deferred.promise();
-        };
+        fileSystemServiceMock = new FileSystemServiceMock();
     
     beforeEach(function () {
         typeScriptProjectManager = new project.TypeScriptProjectManager(
-            fileSystemObserver, 
-            fileInfosResolver, 
-            <{ (directory:string, config: project.TypeScriptProjectConfig) : project.TypeScriptProject }> typeScriptProjectFactory, 
-            reader
+            fileSystemServiceMock, 
+            null,
+            <project.TypeScriptProjectFactory> typeScriptProjectFactory
         );
     });
     
     afterEach(function () {
-        typeScriptProjectFactory.reset();
         typeScriptProjectManager.dispose();
+        typeScriptProjectFactory.reset();
         disposeSpy.reset();
         updateSpy.reset();
     });
@@ -67,33 +51,18 @@ describe('TypeScriptProjectManager', function () {
             outFile: 'index.js'
         };
         
-        fileIndexManagerMock.fileInfos = [
-            {
-                fullPath : 'dir1/file1',
-                name : 'file1'
-            },{
-                fullPath : 'dir2/.brackets-typescript',
-                name : '.brackets-typescript'
-            }, {
-                fullPath : 'dir2/file1',
-                name : 'file1'
-            }, {
-                fullPath : 'dir2/file2',
-                name : 'file2'
-            }, {
-                fullPath : 'dir3/dir4/.brackets-typescript',
-                name : '.brackets-typescript'
-            }, {
-                fullPath : 'dir3/dir4/file1',
-                name : 'file1'
-            }, {
-                fullPath : 'dir3/dir4/file2',
-                name : 'file2'
-            }
+        fileSystemServiceMock.files = [
+            'dir1/file1', 
+            'dir2/.brackets-typescript', 
+            'dir2/file1', 
+            'dir2/file2', 
+            'dir3/dir4/.brackets-typescript',
+            'dir3/dir4/file1',
+            'dir3/dir4/file2'
         ];
         
         
-        content = {
+        fileSystemServiceMock.content = {
             'dir2/.brackets-typescript': JSON.stringify(dir2Config),
             'dir3/dir4/.brackets-typescript': JSON.stringify(dir4Config)
         };
@@ -105,14 +74,9 @@ describe('TypeScriptProjectManager', function () {
     it('should not create a project if the config file is invalid JSON',  function () {
          
         
-        fileIndexManagerMock.fileInfos = [
-            {
-                fullPath : 'dir1/.brackets-typescript',
-                name : '.brackets-typescript'
-            }
-        ];
+        fileSystemServiceMock.files = ['dir1/.brackets-typescript'];
        
-        content = {
+        fileSystemServiceMock.content = {
             'dir1/.brackets-typescript': '{',
         };
         typeScriptProjectManager.init();
@@ -122,14 +86,9 @@ describe('TypeScriptProjectManager', function () {
     it('should not create a project if the config file is not valid',  function () {
          
         
-        fileIndexManagerMock.fileInfos = [
-            {
-                fullPath : 'dir1/.brackets-typescript',
-                name : '.brackets-typescript'
-            }
-        ];
+        fileSystemServiceMock.files = ['dir1/.brackets-typescript'];
        
-        content = {
+        fileSystemServiceMock.content = {
             'dir1/.brackets-typescript': JSON.stringify({
                 module: 'commonjs'
             })
@@ -140,13 +99,8 @@ describe('TypeScriptProjectManager', function () {
     
     
     it('should dispose project if the config file as been deleted', function () {
-        fileIndexManagerMock.fileInfos = [
-            {
-                fullPath : 'dir1/.brackets-typescript',
-                name : '.brackets-typescript'
-            }
-        ];
-        content = {
+        fileSystemServiceMock.files = ['dir1/.brackets-typescript'];
+        fileSystemServiceMock.content = {
             'dir1/.brackets-typescript': JSON.stringify({
                 module: 'commonjs',
                 sources: [
@@ -157,23 +111,20 @@ describe('TypeScriptProjectManager', function () {
             })
         };
         typeScriptProjectManager.init();
-        fileSystemObserver.dispatch([{
-            kind: fileUtils.FileChangeKind.DELETE,
-            file: {
-                fullPath : 'dir1/.brackets-typescript',
-                name : '.brackets-typescript'
-            }
+        fileSystemServiceMock.projectFilesChanged.dispatch([{
+            kind: fileSystem.FileChangeKind.DELETE,
+            path :'dir1/.brackets-typescript'
         }]);
         expect(disposeSpy.called).toBe(true);
     });
     
-    
+   
     it('should create a new Project when a config file is added', function () {
         
-        fileIndexManagerMock.fileInfos = [];
+        fileSystemServiceMock.files = [];
         typeScriptProjectManager.init();
         
-        content = {
+        fileSystemServiceMock.content = {
             'dir/.brackets-typescript': JSON.stringify({
                 module: 'amd',
                 sources: [
@@ -181,16 +132,12 @@ describe('TypeScriptProjectManager', function () {
                     './file2.ts'
                 ],
                 outDir: 'bin'
-            
             })
         };
         
-        fileSystemObserver.dispatch([{
-            kind: fileUtils.FileChangeKind.ADD,
-            file: {
-                fullPath : 'dir/.brackets-typescript',
-                name : '.brackets-typescript'
-            }
+        fileSystemServiceMock.projectFilesChanged.dispatch([{
+            kind: fileSystem.FileChangeKind.ADD,
+            path: 'dir/.brackets-typescript'
         }]);
         
         expect(typeScriptProjectFactory.called).toBe(true);
@@ -198,11 +145,8 @@ describe('TypeScriptProjectManager', function () {
     
     
     it('should update a project when a config file as been updated', function () {
-        fileIndexManagerMock.fileInfos = [{
-            fullPath : 'dir/.brackets-typescript',
-            name : '.brackets-typescript'
-        }];
-        content = {
+        fileSystemServiceMock.files = ['dir/.brackets-typescript'];
+        fileSystemServiceMock.content = {
             'dir/.brackets-typescript': JSON.stringify({
                 module: 'amd',
                 sources: [
@@ -215,7 +159,7 @@ describe('TypeScriptProjectManager', function () {
     
         typeScriptProjectManager.init();
         
-        content = {
+        fileSystemServiceMock.content = {
             'dir/.brackets-typescript': JSON.stringify({
                 module: 'amd',
                 sources: [
@@ -226,23 +170,17 @@ describe('TypeScriptProjectManager', function () {
             })
         };
         
-        fileSystemObserver.dispatch([{
-            kind: fileUtils.FileChangeKind.UPDATE,
-            file: {
-                fullPath : 'dir/.brackets-typescript',
-                name : '.brackets-typescript'
-            }
+        fileSystemServiceMock.projectFilesChanged.dispatch([{
+            kind: fileSystem.FileChangeKind.UPDATE,
+            path: 'dir/.brackets-typescript'
         }]);
         
         expect(updateSpy.called).toBe(true);
     });
     
     it('should not update a project when a config file as been updated, and when the new version is incorrect', function () {
-        fileIndexManagerMock.fileInfos = [{
-            fullPath : 'dir/.brackets-typescript',
-            name : '.brackets-typescript'
-        }];
-        content = {
+        fileSystemServiceMock.files = ['dir/.brackets-typescript'];
+        fileSystemServiceMock.content = {
             'dir/.brackets-typescript': JSON.stringify({
                 module: 'amd',
                 sources: [
@@ -255,16 +193,13 @@ describe('TypeScriptProjectManager', function () {
     
         typeScriptProjectManager.init();
         
-        content = {
+        fileSystemServiceMock.content = {
             'dir/.brackets-typescript': '{}'
         };
         
-        fileSystemObserver.dispatch([{
-            kind: fileUtils.FileChangeKind.UPDATE,
-            file: {
-                fullPath : 'dir/.brackets-typescript',
-                name : '.brackets-typescript'
-            }
+        fileSystemServiceMock.projectFilesChanged.dispatch([{
+            kind: fileSystem.FileChangeKind.UPDATE,
+            path:  'dir/.brackets-typescript'
         }]);
         
         expect(updateSpy.called).toBe(false);
@@ -272,13 +207,10 @@ describe('TypeScriptProjectManager', function () {
     
     it('should create a new Project when a config file is updated, and when the previous version was an incorrect config file', function () {
         
-        fileIndexManagerMock.fileInfos = [ {
-            fullPath : 'dir/.brackets-typescript',
-            name : '.brackets-typescript'
-        }];
+        fileSystemServiceMock.files = ['dir/.brackets-typescript'];
      
         
-        content = {
+        fileSystemServiceMock.content = {
             'dir/.brackets-typescript': '{}'
         };
         
@@ -286,7 +218,7 @@ describe('TypeScriptProjectManager', function () {
         
         expect(typeScriptProjectFactory.called).toBe(false);
         
-        content = {
+        fileSystemServiceMock.content = {
             'dir/.brackets-typescript': JSON.stringify({
                 module: 'amd',
                 sources: [
@@ -298,12 +230,9 @@ describe('TypeScriptProjectManager', function () {
             })
         };
         
-        fileSystemObserver.dispatch([{
-            kind: fileUtils.FileChangeKind.UPDATE,
-            file: {
-                fullPath : 'dir/.brackets-typescript',
-                name : '.brackets-typescript'
-            }
+        fileSystemServiceMock.projectFilesChanged.dispatch([{
+            kind: fileSystem.FileChangeKind.UPDATE,
+            path: 'dir/.brackets-typescript'
         }]);
         
         expect(typeScriptProjectFactory.called).toBe(true);
@@ -312,13 +241,9 @@ describe('TypeScriptProjectManager', function () {
     
     it('should dispose all registred project when disposed', function () {
         
-        fileIndexManagerMock.fileInfos = [ {
-            fullPath : 'dir/.brackets-typescript',
-            name : '.brackets-typescript'
-        }];
-     
+        fileSystemServiceMock.files = ['dir/.brackets-typescript'];
         
-        content = {
+        fileSystemServiceMock.content = {
             'dir/.brackets-typescript': JSON.stringify({
                 module: 'amd',
                 sources: [
@@ -335,13 +260,10 @@ describe('TypeScriptProjectManager', function () {
     });
 
     it('should dispose all project and reinitialize when file system is refreshed', function() {
-        fileIndexManagerMock.fileInfos = [ {
-            fullPath : 'dir/.brackets-typescript',
-            name : '.brackets-typescript'
-        }];
+        fileSystemServiceMock.files = ['dir/.brackets-typescript'];
      
         
-        content = {
+        fileSystemServiceMock.content = {
             'dir/.brackets-typescript': JSON.stringify({
                 module: 'amd',
                 sources: [
@@ -354,8 +276,8 @@ describe('TypeScriptProjectManager', function () {
         typeScriptProjectManager.init();
         typeScriptProjectFactory.reset();
         
-        fileSystemObserver.dispatch([{
-            kind: fileUtils.FileChangeKind.REFRESH
+        fileSystemServiceMock.projectFilesChanged.dispatch([{
+            kind: fileSystem.FileChangeKind.REFRESH
         }]);
         
         expect(disposeSpy.called).toBe(true);

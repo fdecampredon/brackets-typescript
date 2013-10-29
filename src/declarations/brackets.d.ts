@@ -11,15 +11,20 @@ declare module brackets {
         getProjectRoot():DirectoryEntry;
     }
     
-    interface DocumentManager {
-        getCurrentDocument(): Document
+    export interface DocumentManager {
+        getCurrentDocument?(): Document
+        getWorkingSet?(): brackets.FileEntry[];
     }
     
     interface Document {
-        file: FileEntry;    
-        getText():string;
-        replaceRange(text:string, start:CodeMirror.Position, end:CodeMirror.Position, origin? :string):void;
-        getLine(line:number):string;
+        file: FileEntry;
+        replaceRange?(text:string, start:CodeMirror.Position, end:CodeMirror.Position, origin? :string):void;
+        getLine?(index: number): string;
+    }
+    
+    interface Editor {
+        document:Document;
+        getCursorPos():CodeMirror.Position;
     }
     
     interface FileInfo {
@@ -56,13 +61,58 @@ declare module brackets {
             success: (file:FileEntry) => void, error?: (error:any) => void):void;
     }
     
+    
     interface FileEntry extends Entry {
     }
+    
+    
+    interface CodeHintManager {
+        registerHintProvider(hintProvider: CodeHintProvider, languageIds: string[], priority?: number): void;
+    }
+    interface HintResult {
+        hints?: any [];
+        match?: string;
+        selectInitial?: boolean
+    }
+    
+    interface CodeHintProvider {
+        hasHints(editor:Editor, implicitChar:string): boolean;
+        getHints(implicitChar:string): HintResult;
+        insertHint(hint: any):void;
+    }
+    
+    enum ErrorType {
+        ERROR,
+        WARNING,
+        META
+    }
+    
+    interface CodeInspection {
+        register(languageId: string, provider: InspectionProvider);
+        Type:typeof ErrorType;
+    }
+    
+    
+    interface LintingError {
+        pos: CodeMirror.Position; 
+        endPos?: CodeMirror.Position;
+        message: string; 
+        type?: ErrorType; 
+    }
+    
+    interface InspectionProvider {
+        name: string;
+        scanFile(content: string, path: string):{ errors: LintingError[];  aborted: boolean }; 
+    }
+    
+    
     
     function getModule(module: 'project/FileIndexManager'): brackets.FileIndexManager;
     function getModule(module: 'document/DocumentManager'): brackets.DocumentManager;
     function getModule(module: 'project/ProjectManager'): brackets.ProjectManager;
-    function getModule(module: 'file/FileUtils'): brackets.FileUtils;
+    function getModule(module: 'editor/CodeHintManager'):CodeHintManager;
+    function getModule(module: 'file/FileUtils'): FileUtils;
+    function getModule(module: 'language/CodeInspection'): CodeInspection;
     function getModule(module: string): any;
     
 }

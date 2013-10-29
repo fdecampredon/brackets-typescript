@@ -1,0 +1,10 @@
+{
+    "sources" : [
+        "src/**/*ts"
+    ],
+    "compileOnSave": false,
+    
+    "target": "ES5",
+    "module": "AMD",
+    "outDir": "./bin/"
+}
