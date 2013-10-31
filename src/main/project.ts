@@ -444,8 +444,12 @@ export class TypeScriptProject {
     private documentEditedHandler = (records: ws.DocumentChangeDescriptor[]) => {
         records.forEach((record: ws.DocumentChangeDescriptor) => {
             if (this.files.hasOwnProperty(record.path)) {
+                if (!record.from || !record.to) {
+                    this.updateFile(record.path);
+                }
                 var minChar = this.getIndexFromPos(record.path, record.from),
-                    limChar = minChar + (record.removed ? record.removed.length : 0); 
+                    limChar = this.getIndexFromPos(record.path, record.to);
+                
                 this.languageServiceHost.editScript(record.path, minChar, limChar, record.text);
             }
         });

@@ -1,9 +1,10 @@
-define(["require", "exports", './logger'], function(require, exports, __Logger__) {
+define(["require", "exports", './logger', './utils/immediate'], function(require, exports, __Logger__, __immediate__) {
     'use strict';
 
     
     var Logger = __Logger__;
     
+    var immediate = __immediate__;
 
     var logger = new Logger(), classifier = new Services.TypeScriptServicesFactory().createClassifier(logger);
 
@@ -36,6 +37,8 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
                             }
                             break;
                     }
+                } else {
+                    return false;
                 }
             }
             this.editor = editor;
@@ -45,7 +48,8 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
         TypeScriptCodeHintProvider.prototype.getHints = function (implicitChar) {
             var _this = this;
             var deferred = $.Deferred();
-            setTimeout(function () {
+
+            immediate.setImmediate(function () {
                 if (deferred.state() === 'rejected') {
                     return;
                 }
@@ -71,7 +75,7 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
                 }
 
                 var hints = _this.getCompletionAtHintPosition();
-                if (_this.lastUsedToken) {
+                if (_this.lastUsedToken && hints) {
                     var hasExactToken = false;
                     hints = hints.filter(function (hint) {
                         if (hint === _this.lastUsedToken.string) {
@@ -85,10 +89,10 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
                     }
                 }
                 deferred.resolve({
-                    hints: hints,
+                    hints: hints || [],
                     selectInitial: !!implicitChar
                 });
-            }, 0);
+            });
             return deferred;
         };
 

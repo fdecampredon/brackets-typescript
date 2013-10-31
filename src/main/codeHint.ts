@@ -3,6 +3,7 @@
 import project = require('./project');
 import Logger = require('./logger');
 import language = require('./typescript/language');
+import immediate = require('./utils/immediate');
 
 var logger = new Logger(),
     classifier = new Services.TypeScriptServicesFactory().createClassifier(logger);
@@ -47,7 +48,9 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
                             return false;
                         }
                         break;
-                }
+                } 
+            } else {
+                return false;
             }
         }
         this.editor = editor;
@@ -56,7 +59,8 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
     
     getHints(implicitChar:string): JQueryDeferred<brackets.HintResult> {
         var deferred: JQueryDeferred<brackets.HintResult> = $.Deferred();
-        setTimeout(() => {
+        //async so we are sure that the languageServiceHost has been updated
+        immediate.setImmediate(() => {
             if (deferred.state() === 'rejected') {
                 return;
             }
@@ -82,7 +86,7 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
             }
             
             var hints = this.getCompletionAtHintPosition();
-            if (this.lastUsedToken) {
+            if (this.lastUsedToken && hints) {
                 var hasExactToken = false;
                 hints = hints.filter(hint => {
                     if (hint === this.lastUsedToken.string) {
@@ -96,11 +100,11 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
                 }
             }
             deferred.resolve({
-                hints : hints,
+                hints : hints || [],
                 selectInitial: !!implicitChar
             });
             
-        }, 0);
+        });
         return deferred;
     }
     

@@ -25,18 +25,18 @@ export class TypeScriptErrorReporter implements brackets.InspectionProvider {
             languageServiceHost = project.getLanguageServiceHost(),
             scriptSnapshot = languageServiceHost.getScriptSnapshot(path);
         
-        var syntacticDiagnostics = languageService.getSyntacticDiagnostics(path);
-        var errors = this.diagnosticToError(syntacticDiagnostics, scriptSnapshot);
-        if (errors.length === 0) {
+        var syntacticDiagnostics = languageService.getSyntacticDiagnostics(path),
+            errors = this.diagnosticToError(syntacticDiagnostics, scriptSnapshot);
+       
+        /*  semantic errors take too much time
+            if (errors.length === 0) {
             var semanticDiagnostic = languageService.getSemanticDiagnostics(path);
             errors = this.diagnosticToError(semanticDiagnostic, scriptSnapshot);
-        }
-        
+        }*/
         
         return { 
             errors: errors, aborted: false
         };
-        
     }
     
     private diagnosticToError(diagnostics: TypeScript.Diagnostic[], scriptSnapshot: TypeScript.IScriptSnapshot): brackets.LintingError[] {

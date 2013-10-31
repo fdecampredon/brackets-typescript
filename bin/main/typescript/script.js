@@ -18,9 +18,11 @@ define(["require", "exports"], function(require, exports) {
         };
 
         ScriptInfo.prototype.updateContent = function (content) {
-            this.editRanges = [];
-            this.setContent(content);
-            this.version++;
+            if (content !== this.content) {
+                this.editRanges = [];
+                this.setContent(content);
+                this.version++;
+            }
         };
 
         ScriptInfo.prototype.editContent = function (minChar, limChar, newText) {

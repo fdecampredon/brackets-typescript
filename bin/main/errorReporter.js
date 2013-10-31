@@ -18,12 +18,7 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
             }
             var languageService = project.getLanguageService(), languageServiceHost = project.getLanguageServiceHost(), scriptSnapshot = languageServiceHost.getScriptSnapshot(path);
 
-            var syntacticDiagnostics = languageService.getSyntacticDiagnostics(path);
-            var errors = this.diagnosticToError(syntacticDiagnostics, scriptSnapshot);
-            if (errors.length === 0) {
-                var semanticDiagnostic = languageService.getSemanticDiagnostics(path);
-                errors = this.diagnosticToError(semanticDiagnostic, scriptSnapshot);
-            }
+            var syntacticDiagnostics = languageService.getSyntacticDiagnostics(path), errors = this.diagnosticToError(syntacticDiagnostics, scriptSnapshot);
 
             return {
                 errors: errors,

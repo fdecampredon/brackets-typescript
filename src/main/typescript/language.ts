@@ -160,8 +160,6 @@ class LanguageServicesDiagnostics implements Services.ILanguageServicesDiagnosti
 
     constructor(private destination: string) { }
 
-    public log(content: string): void {
-        //Imitates the LanguageServicesDiagnostics object when not in Visual Studio
-    }
+    public log(content: string): void { }
 
 }

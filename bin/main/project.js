@@ -219,7 +219,11 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
             this.documentEditedHandler = function (records) {
                 records.forEach(function (record) {
                     if (_this.files.hasOwnProperty(record.path)) {
-                        var minChar = _this.getIndexFromPos(record.path, record.from), limChar = minChar + (record.removed ? record.removed.length : 0);
+                        if (!record.from || !record.to) {
+                            _this.updateFile(record.path);
+                        }
+                        var minChar = _this.getIndexFromPos(record.path, record.from), limChar = _this.getIndexFromPos(record.path, record.to);
+
                         _this.languageServiceHost.editScript(record.path, minChar, limChar, record.text);
                     }
                 });

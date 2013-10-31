@@ -22,9 +22,11 @@
     }
 
     public updateContent(content: string): void {
-        this.editRanges = [];
-        this.setContent(content);
-        this.version++;
+        if (content !== this.content) {
+            this.editRanges = [];
+            this.setContent(content);
+            this.version++;
+        }
     }
 
     public editContent(minChar: number, limChar: number, newText: string): void {
