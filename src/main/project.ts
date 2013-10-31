@@ -219,6 +219,8 @@ export enum ProjectFileKind {
     REFERENCE
 }
 
+declare var TypeScriptDefaultLibraryContent: string;
+
 export class TypeScriptProject {
     
     private baseDirectory: string;
@@ -443,8 +445,8 @@ export class TypeScriptProject {
         records.forEach((record: ws.DocumentChangeDescriptor) => {
             if (this.files.hasOwnProperty(record.path)) {
                 var minChar = this.getIndexFromPos(record.path, record.from),
-                    limChar = this.getIndexFromPos(record.path, record.to)
-                this.languageServiceHost.editScript(record.path, minChar, limChar, record.text)
+                    limChar = minChar + (record.removed ? record.removed.length : 0); 
+                this.languageServiceHost.editScript(record.path, minChar, limChar, record.text);
             }
         });
     }
@@ -482,6 +484,9 @@ export class TypeScriptProject {
                                                         TypeScript.ModuleGenTarget.Synchronous );
    
         this.languageServiceHost = this.languageServiceHostFactory(compilationSettings, this.getFiles());
+        if (!compilationSettings.noLib) {
+            this.addDefaultLibrary();
+        }
         this.languageService = new Services.TypeScriptServicesFactory().createPullLanguageService(this.languageServiceHost);
         
         this.workingSet.files.forEach((path: string) => {
@@ -489,6 +494,12 @@ export class TypeScriptProject {
                 this.languageServiceHost.setScriptIsOpen(path, true);
             }
         });
+        
+        
+    }
+    
+    private addDefaultLibrary() {
+        this.languageServiceHost.addScript('TypescriptDefaulLib',TypeScriptDefaultLibraryContent);
     }
 }
 

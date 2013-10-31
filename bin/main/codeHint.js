@@ -1,5 +1,7 @@
-define(["require", "exports", './project', './logger'], function(require, exports, __project__, __Logger__) {
-    var project = __project__;
+define(["require", "exports", './logger'], function(require, exports, __Logger__) {
+    'use strict';
+
+    
     var Logger = __Logger__;
     
 
@@ -10,99 +12,126 @@ define(["require", "exports", './project', './logger'], function(require, export
             this.typescriptProjectManager = typescriptProjectManager;
         }
         TypeScriptCodeHintProvider.prototype.hasHints = function (editor, implicitChar) {
-            this.setCurrentFilePath(editor.document.file.fullPath);
-            this.lastUsedEditor = editor;
-            this.hintPosition = editor.getCursorPos();
-            if (this.project) {
-                this.hints = this.getCompletionAtHintPosition();
-                if (this.hints && this.hints.length > 0) {
-                    if (implicitChar) {
-                        var hints = this.getFilteredHints();
-                        return hints && hints.length === 1 && this.token.length > 1;
-                    } else {
-                        return this.hints.length > 0;
-                    }
-                }
-                ;
-            }
-            return false;
-        };
-
-        TypeScriptCodeHintProvider.prototype.getHints = function (implicitChar) {
-            var hints = this.getFilteredHints();
-            if (hints.length > 0) {
-                return {
-                    hints: hints,
-                    selectInitial: !!implicitChar
-                };
-            }
-            return null;
-        };
-
-        TypeScriptCodeHintProvider.prototype.insertHint = function (hint) {
-            var startPos = !this.token ? this.hintPosition : {
-                line: this.hintPosition.line,
-                ch: this.token.position
-            }, endPos = !this.token ? this.hintPosition : {
-                line: this.hintPosition.line,
-                ch: this.token.position + this.token.length
-            };
-
-            this.lastUsedEditor.document.replaceRange(hint, startPos, endPos);
-        };
-
-        TypeScriptCodeHintProvider.prototype.getFilteredHints = function () {
-            var _this = this;
-            var editorPos = this.lastUsedEditor.getCursorPos(), lineStr = this.lastUsedEditor.document.getLine(editorPos.line), classificationResult = classifier.getClassificationsForLine(lineStr, Services.EndOfLineState.Start), currentPos = 0, linePosition = editorPos.ch - 1;
-
-            for (var i = 0, l = classificationResult.entries.length; i < l; i++) {
-                var entry = classificationResult.entries[i];
-                if (linePosition >= currentPos && linePosition < currentPos + entry.length) {
+            if (implicitChar) {
+                var token = this.getCurrentToken(editor);
+                if (token) {
                     var TokenClass = Services.TokenClass;
-                    switch (entry.classification) {
+                    switch (token.classification) {
                         case TokenClass.NumberLiteral:
                         case TokenClass.StringLiteral:
                         case TokenClass.RegExpLiteral:
                         case TokenClass.Operator:
                         case TokenClass.Comment:
-                        case TokenClass.Punctuation:
                         case TokenClass.Whitespace:
-                            this.token = null;
+                            return false;
+                            break;
+                        case TokenClass.Punctuation:
+                            if (token.string !== '.') {
+                                return false;
+                            }
                             break;
                         default:
-                            this.token = {
-                                string: lineStr.substr(currentPos, entry.length),
-                                position: currentPos,
-                                length: entry.length
-                            };
+                            if (token.string.length < 2) {
+                                return false;
+                            }
                             break;
                     }
                 }
-                currentPos += entry.length;
             }
-            var hints = this.hints.slice(0, this.hints.length);
-            if (this.token) {
-                hints = hints.filter(function (hint) {
-                    return hint && hint.toLowerCase().indexOf(_this.token.string.toLowerCase()) === 0;
-                });
-            }
-            return hints;
+            this.editor = editor;
+            return true;
         };
 
-        TypeScriptCodeHintProvider.prototype.setCurrentFilePath = function (path) {
-            if (path !== this.currentFilePath || !project) {
-                this.currentFilePath = path;
-                this.project = this.typescriptProjectManager.getProjectForFile(path);
+        TypeScriptCodeHintProvider.prototype.getHints = function (implicitChar) {
+            var _this = this;
+            var deferred = $.Deferred();
+            setTimeout(function () {
+                if (deferred.state() === 'rejected') {
+                    return;
+                }
+                _this.lastUsedToken = _this.getCurrentToken(_this.editor);
+                if (_this.lastUsedToken) {
+                    var TokenClass = Services.TokenClass;
+                    switch (_this.lastUsedToken.classification) {
+                        case TokenClass.NumberLiteral:
+                        case TokenClass.StringLiteral:
+                        case TokenClass.RegExpLiteral:
+                        case TokenClass.Operator:
+                        case TokenClass.Comment:
+                        case TokenClass.Whitespace:
+                        case TokenClass.Punctuation:
+                            if (implicitChar && _this.lastUsedToken.string !== '.' || _this.lastUsedToken.classification !== TokenClass.Punctuation) {
+                                deferred.resolve({ hints: [] });
+                                return;
+                            }
+                            _this.lastUsedToken = null;
+                        default:
+                            break;
+                    }
+                }
+
+                var hints = _this.getCompletionAtHintPosition();
+                if (_this.lastUsedToken) {
+                    var hasExactToken = false;
+                    hints = hints.filter(function (hint) {
+                        if (hint === _this.lastUsedToken.string) {
+                            hasExactToken = true;
+                        }
+                        return hint && hint.toLowerCase().indexOf(_this.lastUsedToken.string.toLowerCase()) === 0;
+                    });
+                    if (hasExactToken) {
+                        deferred.resolve({ hints: [] });
+                        return;
+                    }
+                }
+                deferred.resolve({
+                    hints: hints,
+                    selectInitial: !!implicitChar
+                });
+            }, 0);
+            return deferred;
+        };
+
+        TypeScriptCodeHintProvider.prototype.insertHint = function (hint) {
+            var position = this.editor.getCursorPos(), startPos = !this.lastUsedToken ? position : {
+                line: position.line,
+                ch: this.lastUsedToken.position
+            }, endPos = !this.lastUsedToken ? position : {
+                line: position.line,
+                ch: this.lastUsedToken.position + this.lastUsedToken.string.length
+            };
+
+            this.editor.document.replaceRange(hint, startPos, endPos);
+        };
+
+        TypeScriptCodeHintProvider.prototype.getCurrentToken = function (editor) {
+            var position = editor.getCursorPos(), lineStr = editor.document.getLine(position.line), classificationResult = classifier.getClassificationsForLine(lineStr, Services.EndOfLineState.Start), currentPos = 0, linePosition = position.ch - 1;
+
+            for (var i = 0, l = classificationResult.entries.length; i < l; i++) {
+                var entry = classificationResult.entries[i];
+                if (linePosition >= currentPos && linePosition < (currentPos + entry.length)) {
+                    return {
+                        string: lineStr.substr(currentPos, entry.length),
+                        classification: entry.classification,
+                        position: currentPos
+                    };
+                }
+                currentPos += entry.length;
             }
+            return null;
         };
 
         TypeScriptCodeHintProvider.prototype.getCompletionAtHintPosition = function () {
-            var languageService = this.project.getLanguageService(), languageServiceHost = this.project.getLanguageServiceHost();
+            var currentFilePath = this.editor.document.file.fullPath, project = this.typescriptProjectManager.getProjectForFile(this.editor.document.file.fullPath);
+            if (!project) {
+                return null;
+            }
+            var languageService = project.getLanguageService(), languageServiceHost = project.getLanguageServiceHost(), position = this.editor.getCursorPos();
 
             if (!languageService || !languageService) {
                 return null;
             }
-            var index = languageServiceHost.lineColToPosition(this.currentFilePath, this.hintPosition.line, this.hintPosition.ch), completionInfo = languageService.getCompletionsAtPosition(this.currentFilePath, index, true);
+            var index = languageServiceHost.lineColToPosition(currentFilePath, position.line, position.ch), completionInfo = languageService.getCompletionsAtPosition(currentFilePath, index, true);
 
             if (completionInfo && completionInfo.entries && completionInfo.entries.length > 0) {
                 return completionInfo.entries.map(function (entry) {

@@ -25,7 +25,10 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
                 errors = this.diagnosticToError(semanticDiagnostic, scriptSnapshot);
             }
 
-            return { errors: errors, aborted: false };
+            return {
+                errors: errors,
+                aborted: false
+            };
         };
 
         TypeScriptErrorReporter.prototype.diagnosticToError = function (diagnostics, scriptSnapshot) {
@@ -46,7 +49,7 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
                         type = _this.errorType.WARNING;
                         break;
                     case TypeScript.DiagnosticCategory.NoPrefix:
-                        type = _this.errorType.META;
+                        type = _this.errorType.ERROR;
                         break;
                     case TypeScript.DiagnosticCategory.Message:
                         type = _this.errorType.META;

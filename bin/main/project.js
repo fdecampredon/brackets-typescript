@@ -219,7 +219,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
             this.documentEditedHandler = function (records) {
                 records.forEach(function (record) {
                     if (_this.files.hasOwnProperty(record.path)) {
-                        var minChar = _this.getIndexFromPos(record.path, record.from), limChar = _this.getIndexFromPos(record.path, record.to);
+                        var minChar = _this.getIndexFromPos(record.path, record.from), limChar = minChar + (record.removed ? record.removed.length : 0);
                         _this.languageServiceHost.editScript(record.path, minChar, limChar, record.text);
                     }
                 });
@@ -419,6 +419,9 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
             compilationSettings.moduleGenTarget = moduleType === 'none' ? TypeScript.ModuleGenTarget.Unspecified : (moduleType === 'amd' ? TypeScript.ModuleGenTarget.Asynchronous : TypeScript.ModuleGenTarget.Synchronous);
 
             this.languageServiceHost = this.languageServiceHostFactory(compilationSettings, this.getFiles());
+            if (!compilationSettings.noLib) {
+                this.addDefaultLibrary();
+            }
             this.languageService = new Services.TypeScriptServicesFactory().createPullLanguageService(this.languageServiceHost);
 
             this.workingSet.files.forEach(function (path) {
@@ -426,6 +429,10 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                     _this.languageServiceHost.setScriptIsOpen(path, true);
                 }
             });
+        };
+
+        TypeScriptProject.prototype.addDefaultLibrary = function () {
+            this.languageServiceHost.addScript('TypescriptDefaulLib', TypeScriptDefaultLibraryContent);
         };
         return TypeScriptProject;
     })();

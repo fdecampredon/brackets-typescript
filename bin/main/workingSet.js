@@ -75,7 +75,7 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
                         from: change.from,
                         to: change.to,
                         text: change.text && change.text.join('\n'),
-                        removed: change.removed
+                        removed: change.removed ? change.removed.join("\n") : ""
                     });
                     change = change.next;
                 }

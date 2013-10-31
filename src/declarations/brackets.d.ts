@@ -77,7 +77,7 @@ declare module brackets {
     
     interface CodeHintProvider {
         hasHints(editor:Editor, implicitChar:string): boolean;
-        getHints(implicitChar:string): HintResult;
+        getHints(implicitChar:string): JQueryDeferred<HintResult>;
         insertHint(hint: any):void;
     }
     

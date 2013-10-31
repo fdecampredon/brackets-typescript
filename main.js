@@ -3,9 +3,12 @@
 
 define(function (require, exports, module) {
  	"use strict";
-	require(["third_party/typescriptServices", "third_party/minimatch"],  function (){
-		require(["bin/main/index"],  function (init){
-			init();
-		})
-	})
+	require(["third_party/typescriptServices", "third_party/minimatch", "text!third_party/lib.d.ts"],  
+            function (typescript, minimatch, defaultLib){
+                window.TypeScriptDefaultLibraryContent = defaultLib;
+                require(["bin/main/index"],  function (init){
+                    init();
+                })
+	       }
+   );
 });
