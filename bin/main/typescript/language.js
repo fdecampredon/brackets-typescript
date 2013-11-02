@@ -7,6 +7,7 @@ var __extends = this.__extends || function (d, b) {
 define(["require", "exports", '../logger', './script'], function(require, exports, __Logger__, __script__) {
     var Logger = __Logger__;
     var script = __script__;
+    var Services = TypeScript.Services;
 
     var LanguageServiceHost = (function (_super) {
         __extends(LanguageServiceHost, _super);
@@ -120,7 +121,7 @@ define(["require", "exports", '../logger', './script'], function(require, export
             if (scriptInfo) {
                 return scriptInfo.byteOrderMark;
             }
-            return ByteOrderMark.None;
+            return TypeScript.ByteOrderMark.None;
         };
 
         LanguageServiceHost.prototype.getDiagnosticsObject = function () {

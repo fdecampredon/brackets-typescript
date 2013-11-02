@@ -1,6 +1,7 @@
 import project = require('./project');
 import Logger = require('./logger');
 import language = require('./typescript/language');
+import Services = TypeScript.Services;
 
 var logger = new Logger(),
     classifier = new Services.TypeScriptServicesFactory().createClassifier(logger);
@@ -28,11 +29,11 @@ export class TypeScriptErrorReporter implements brackets.InspectionProvider {
         var syntacticDiagnostics = languageService.getSyntacticDiagnostics(path),
             errors = this.diagnosticToError(syntacticDiagnostics, scriptSnapshot);
        
-        /*  semantic errors take too much time
-            if (errors.length === 0) {
+       
+        if (errors.length === 0) {
             var semanticDiagnostic = languageService.getSemanticDiagnostics(path);
             errors = this.diagnosticToError(semanticDiagnostic, scriptSnapshot);
-        }*/
+        }
         
         return { 
             errors: errors, aborted: false
@@ -43,13 +44,11 @@ export class TypeScriptErrorReporter implements brackets.InspectionProvider {
         if (!diagnostics) {
             return [];
         }
-        var lineMap = new TypeScript.LineMap(scriptSnapshot.getLineStartPositions(), scriptSnapshot.getLength());
-        return diagnostics.map((diagnostic: TypeScript.Diagnostic) => {
-            var lineCol = { line: -1, character: -1 };
-            lineMap.fillLineAndCharacterFromPosition(diagnostic.start(), lineCol);
-            var type,
-                diagnosticCat = TypeScript.getDiagnosticInfoFromKey(diagnostic.diagnosticKey()).category;
-            switch(diagnosticCat) {
+        return diagnostics.map(diagnostic => {
+            var info = diagnostic.info(),
+                type: brackets.ErrorType;
+            
+            switch(info.category) {
                 case TypeScript.DiagnosticCategory.Error:
                     type = this.errorType.ERROR;
                     break;
@@ -66,12 +65,12 @@ export class TypeScriptErrorReporter implements brackets.InspectionProvider {
             
             return {
                 pos: {
-                    line: lineCol.line,
-                    ch: lineCol.character + 1
+                    line: diagnostic.line(),
+                    ch: diagnostic.character()
                 },
                 endpos: {
-                    line: lineCol.line,
-                    ch: lineCol.character + 1 + diagnostic.length()
+                    line: diagnostic.line(),
+                    ch: diagnostic.character() + diagnostic.length()
                 },
                 message: diagnostic.message(),
                 type: type

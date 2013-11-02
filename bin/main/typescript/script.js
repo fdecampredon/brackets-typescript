@@ -2,7 +2,7 @@ define(["require", "exports"], function(require, exports) {
     var ScriptInfo = (function () {
         function ScriptInfo(fileName, content, isOpen, byteOrderMark) {
             if (typeof isOpen === "undefined") { isOpen = true; }
-            if (typeof byteOrderMark === "undefined") { byteOrderMark = ByteOrderMark.None; }
+            if (typeof byteOrderMark === "undefined") { byteOrderMark = TypeScript.ByteOrderMark.None; }
             this.version = 1;
             this.editRanges = [];
             this.lineMap = null;
@@ -14,7 +14,7 @@ define(["require", "exports"], function(require, exports) {
         }
         ScriptInfo.prototype.setContent = function (content) {
             this.content = content;
-            this.lineMap = TypeScript.LineMap.fromString(content);
+            this.lineMap = TypeScript.LineMap1.fromString(content);
         };
 
         ScriptInfo.prototype.updateContent = function (content) {
@@ -77,7 +77,7 @@ define(["require", "exports"], function(require, exports) {
 
         ScriptSnapshot.prototype.getLineStartPositions = function () {
             if (this.lineMap === null) {
-                this.lineMap = TypeScript.LineMap.fromString(this.textSnapshot);
+                this.lineMap = TypeScript.LineMap1.fromString(this.textSnapshot);
             }
 
             return this.lineMap.lineStarts();

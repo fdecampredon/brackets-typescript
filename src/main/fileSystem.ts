@@ -3,7 +3,7 @@
 import signal = require('./utils/signal');
 
 export interface IFileSystemService {
-    getProjectFiles(forceRefresh?: boolean): JQueryPromise<string>;
+    getProjectFiles(forceRefresh?: boolean): JQueryPromise<string []>;
     readFile(path: string): JQueryPromise<string>;
     projectFilesChanged: signal.ISignal<ChangeRecord[]> ;
     dispose(): void;
@@ -42,7 +42,7 @@ export class FileSystemService {
     }
     
     
-    getProjectFiles(forceRefresh: boolean = false): JQueryPromise<string> {
+    getProjectFiles(forceRefresh: boolean = false): JQueryPromise<string []> {
         var deferred = $.Deferred()
         var result = deferred.promise();
         
@@ -144,7 +144,7 @@ class FileSystemObserver extends signal.Signal<ChangeRecord[]>  {
     private namespace: string = '.fileSystemObserver' + (uidHelper++);
     private projectManager: JQuery;
     private documentManager: JQuery;
-    private projectFilesResolver: () => JQueryPromise<string>
+    private projectFilesResolver: () => JQueryPromise<string[]>
     
     
     constructor(projectManager: JQuery, documentManager: JQuery,  projectFilesResolver: () => JQueryPromise<string>) {

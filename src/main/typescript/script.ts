@@ -5,10 +5,10 @@
     public fileName: string;
     public content: string;
     public isOpen: boolean;
-    public byteOrderMark: ByteOrderMark;
+    public byteOrderMark: TypeScript.ByteOrderMark;
     
 
-    constructor(fileName: string, content: string, isOpen = true, byteOrderMark: ByteOrderMark = ByteOrderMark.None) {
+    constructor(fileName: string, content: string, isOpen = true, byteOrderMark: TypeScript.ByteOrderMark = TypeScript.ByteOrderMark.None) {
         this.fileName = fileName;
         this.content = content;
         this.isOpen = isOpen;
@@ -18,7 +18,7 @@
 
     private setContent(content: string): void {
         this.content = content;
-        this.lineMap = TypeScript.LineMap.fromString(content);
+        this.lineMap = TypeScript.LineMap1.fromString(content);
     }
 
     public updateContent(content: string): void {
@@ -90,7 +90,7 @@ export class ScriptSnapshot implements TypeScript.IScriptSnapshot {
 
     public getLineStartPositions(): number[] {
         if (this.lineMap === null) {
-            this.lineMap = TypeScript.LineMap.fromString(this.textSnapshot);
+            this.lineMap = TypeScript.LineMap1.fromString(this.textSnapshot);
         }
 
         return this.lineMap.lineStarts();

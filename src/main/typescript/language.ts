@@ -1,5 +1,6 @@
 import Logger = require('../logger');
 import script = require('./script');
+import Services = TypeScript.Services;
 
 
 export interface ILanguageServiceHost extends Services.ILanguageServiceHost {
@@ -133,12 +134,12 @@ export class LanguageServiceHost extends Logger implements ILanguageServiceHost 
         return false;
     }
     
-    getScriptByteOrderMark(path: string): ByteOrderMark {
+    getScriptByteOrderMark(path: string): TypeScript.ByteOrderMark {
         var scriptInfo =  this.files[path];
         if (scriptInfo) {
             return scriptInfo.byteOrderMark;
         }
-        return ByteOrderMark.None;
+        return TypeScript.ByteOrderMark.None;
     }
 
     

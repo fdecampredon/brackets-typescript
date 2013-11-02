@@ -1,6 +1,8 @@
 'use strict';
 
 import Logger = require('./logger');
+import Services = TypeScript.Services;
+import Formatting = TypeScript.Services.Formatting;
 
 class Token {
 	string:string;
@@ -26,7 +28,7 @@ class LineDescriptor {
 
 
 
-class TypeScriptMode implements CodeMirrorMode<LineDescriptor> {
+class TypeScriptMode implements CodeMirror.CodeMirrorMode<LineDescriptor> {
 	private options:CodeMirror.EditorConfiguration;
 
 	lineComment = "//";
@@ -46,7 +48,7 @@ class TypeScriptMode implements CodeMirrorMode<LineDescriptor> {
 		return lineDescriptor.clone();
 	}
     
-	token(stream:CodeMirrorStream, lineDescriptor:LineDescriptor) {
+	token(stream:CodeMirror.CodeMirrorStream, lineDescriptor:LineDescriptor) {
 		if(stream.sol()) {
 			this.initializeLineDescriptor(lineDescriptor, stream.string);
 		}
@@ -69,14 +71,14 @@ class TypeScriptMode implements CodeMirrorMode<LineDescriptor> {
 
 	indent(lineDescriptor:LineDescriptor , textAfter: string):number {
 		if(lineDescriptor.eolState !== Services.EndOfLineState.Start) {
-			return <number>CodeMirror.Pass;
+            return <number>(<any>CodeMirror).Pass
 		}
         var text = lineDescriptor.text + "\n" + (textAfter || "fakeIdent"),
             position = textAfter? text.length : text.length - 9,
             syntaxTree = this.getSyntaxTree(text),
             options = new FormattingOptions(!this.options.indentWithTabs, this.options.tabSize, this.options.indentUnit, '\n'),
-            textSnapshot =  new TypeScript.Formatting.TextSnapshot(TypeScript.SimpleText.fromString(text)),
-            indent = TypeScript.Formatting.SingleTokenIndenter.getIndentationAmount(
+            textSnapshot =  new Formatting.TextSnapshot(TypeScript.SimpleText.fromString(text)),
+            indent = Formatting.SingleTokenIndenter.getIndentationAmount(
                 position, 
                 syntaxTree.sourceUnit(), 
                 textSnapshot, 
@@ -84,7 +86,8 @@ class TypeScriptMode implements CodeMirrorMode<LineDescriptor> {
             );
         
         if(indent === null) {
-            return <number>CodeMirror.Pass
+            //strange bug preven CodeMirror.Pass
+            return <number>(<any>CodeMirror).Pass
         }
         return indent;
 	}
@@ -114,7 +117,7 @@ class TypeScriptMode implements CodeMirrorMode<LineDescriptor> {
             "script", 
             TypeScript.SimpleText.fromString(text), 
             false, 
-            new TypeScript.ParseOptions(TypeScript.LanguageVersion.EcmaScript5, true, true)
+            new TypeScript.ParseOptions(TypeScript.LanguageVersion.EcmaScript5, true)
         );
     }
 }
@@ -193,7 +196,7 @@ function getStyleForToken(token:Token, textBefore:string):string {
 	}
 }
 
-function typeScriptModeFactory(options:CodeMirror.EditorConfiguration, spec):CodeMirrorMode<any> {
+function typeScriptModeFactory(options:CodeMirror.EditorConfiguration, spec):CodeMirror.CodeMirrorMode<any> {
 	return new TypeScriptMode(options);
 }
 

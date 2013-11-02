@@ -2,6 +2,7 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
     
     var Logger = __Logger__;
     
+    var Services = TypeScript.Services;
 
     var logger = new Logger(), classifier = new Services.TypeScriptServicesFactory().createClassifier(logger);
 
@@ -20,6 +21,11 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
 
             var syntacticDiagnostics = languageService.getSyntacticDiagnostics(path), errors = this.diagnosticToError(syntacticDiagnostics, scriptSnapshot);
 
+            if (errors.length === 0) {
+                var semanticDiagnostic = languageService.getSemanticDiagnostics(path);
+                errors = this.diagnosticToError(semanticDiagnostic, scriptSnapshot);
+            }
+
             return {
                 errors: errors,
                 aborted: false
@@ -31,12 +37,10 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
             if (!diagnostics) {
                 return [];
             }
-            var lineMap = new TypeScript.LineMap(scriptSnapshot.getLineStartPositions(), scriptSnapshot.getLength());
             return diagnostics.map(function (diagnostic) {
-                var lineCol = { line: -1, character: -1 };
-                lineMap.fillLineAndCharacterFromPosition(diagnostic.start(), lineCol);
-                var type, diagnosticCat = TypeScript.getDiagnosticInfoFromKey(diagnostic.diagnosticKey()).category;
-                switch (diagnosticCat) {
+                var info = diagnostic.info(), type;
+
+                switch (info.category) {
                     case TypeScript.DiagnosticCategory.Error:
                         type = _this.errorType.ERROR;
                         break;
@@ -53,12 +57,12 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
 
                 return {
                     pos: {
-                        line: lineCol.line,
-                        ch: lineCol.character + 1
+                        line: diagnostic.line(),
+                        ch: diagnostic.character()
                     },
                     endpos: {
-                        line: lineCol.line,
-                        ch: lineCol.character + 1 + diagnostic.length()
+                        line: diagnostic.line(),
+                        ch: diagnostic.character() + diagnostic.length()
                     },
                     message: diagnostic.message(),
                     type: type

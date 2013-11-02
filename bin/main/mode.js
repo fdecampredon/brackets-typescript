@@ -2,6 +2,8 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
     'use strict';
 
     var Logger = __Logger__;
+    var Services = TypeScript.Services;
+    var Formatting = TypeScript.Services.Formatting;
 
     var Token = (function () {
         function Token() {
@@ -61,12 +63,12 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
 
         TypeScriptMode.prototype.indent = function (lineDescriptor, textAfter) {
             if (lineDescriptor.eolState !== Services.EndOfLineState.Start) {
-                return CodeMirror.Pass;
+                return (CodeMirror).Pass;
             }
-            var text = lineDescriptor.text + "\n" + (textAfter || "fakeIdent"), position = textAfter ? text.length : text.length - 9, syntaxTree = this.getSyntaxTree(text), options = new FormattingOptions(!this.options.indentWithTabs, this.options.tabSize, this.options.indentUnit, '\n'), textSnapshot = new TypeScript.Formatting.TextSnapshot(TypeScript.SimpleText.fromString(text)), indent = TypeScript.Formatting.SingleTokenIndenter.getIndentationAmount(position, syntaxTree.sourceUnit(), textSnapshot, options);
+            var text = lineDescriptor.text + "\n" + (textAfter || "fakeIdent"), position = textAfter ? text.length : text.length - 9, syntaxTree = this.getSyntaxTree(text), options = new FormattingOptions(!this.options.indentWithTabs, this.options.tabSize, this.options.indentUnit, '\n'), textSnapshot = new Formatting.TextSnapshot(TypeScript.SimpleText.fromString(text)), indent = Formatting.SingleTokenIndenter.getIndentationAmount(position, syntaxTree.sourceUnit(), textSnapshot, options);
 
             if (indent === null) {
-                return CodeMirror.Pass;
+                return (CodeMirror).Pass;
             }
             return indent;
         };
@@ -87,7 +89,7 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
         };
 
         TypeScriptMode.prototype.getSyntaxTree = function (text) {
-            return TypeScript.Parser.parse("script", TypeScript.SimpleText.fromString(text), false, new TypeScript.ParseOptions(TypeScript.LanguageVersion.EcmaScript5, true, true));
+            return TypeScript.Parser.parse("script", TypeScript.SimpleText.fromString(text), false, new TypeScript.ParseOptions(TypeScript.LanguageVersion.EcmaScript5, true));
         };
         return TypeScriptMode;
     })();

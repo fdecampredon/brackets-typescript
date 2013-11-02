@@ -3,6 +3,7 @@ import ws = require('./workingSet');
 import coreService = require('./typescript/coreService');
 import script = require('./typescript/script');
 import language = require('./typescript/language');
+import Services = TypeScript.Services;
 
 var BRACKETS_TYPESCRIPT_FILE_NAME = '.brackets-typescript'; 
 
@@ -185,7 +186,6 @@ export interface TypeScriptProjectConfig {
     sourceRoot?: string;
     declaration?: boolean;
     useCaseSensitiveFileResolution?: boolean;
-    allowBool?: boolean;
     allowImportModule?: boolean;
     noImplicitAny?: boolean;
 }
@@ -465,8 +465,6 @@ export class TypeScriptProject {
         compilationSettings.propagateEnumConstants = this.config.propagateEnumConstants;
         compilationSettings.removeComments = this.config.removeComments;
         compilationSettings.noLib = this.config.noLib;
-        compilationSettings.allowBool = this.config.allowBool;
-        compilationSettings.allowModuleKeywordInExternalModuleReference = this.config.allowImportModule;
         compilationSettings.noImplicitAny = this.config.noImplicitAny;
         compilationSettings.outFileOption = this.config.outFile || '';
         compilationSettings.outDirOption = this.config.outDir || '' ;

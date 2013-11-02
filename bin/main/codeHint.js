@@ -5,8 +5,23 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
     var Logger = __Logger__;
     
     var immediate = __immediate__;
+    var Services = TypeScript.Services;
 
-    var logger = new Logger(), classifier = new Services.TypeScriptServicesFactory().createClassifier(logger);
+    var logger = new Logger(), classifier = new Services.TypeScriptServicesFactory().createClassifier(logger), StringUtils = brackets.getModule("utils/StringUtils");
+
+    function isFunctionElement(kind) {
+        switch (kind) {
+            case Services.ScriptElementKind.callSignatureElement:
+            case Services.ScriptElementKind.constructorImplementationElement:
+            case Services.ScriptElementKind.constructSignatureElement:
+            case Services.ScriptElementKind.functionElement:
+            case Services.ScriptElementKind.localFunctionElement:
+            case Services.ScriptElementKind.memberFunctionElement:
+                return true;
+            default:
+                return false;
+        }
+    }
 
     var TypeScriptCodeHintProvider = (function () {
         function TypeScriptCodeHintProvider(typescriptProjectManager) {
@@ -53,6 +68,7 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
                 if (deferred.state() === 'rejected') {
                     return;
                 }
+
                 _this.lastUsedToken = _this.getCurrentToken(_this.editor);
                 if (_this.lastUsedToken) {
                     var TokenClass = Services.TokenClass;
@@ -74,20 +90,95 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
                     }
                 }
 
-                var hints = _this.getCompletionAtHintPosition();
-                if (_this.lastUsedToken && hints) {
+                var currentFilePath = _this.editor.document.file.fullPath, project = _this.typescriptProjectManager.getProjectForFile(_this.editor.document.file.fullPath);
+
+                if (!project) {
+                    deferred.resolve({ hints: null });
+                }
+
+                var languageService = project.getLanguageService(), languageServiceHost = project.getLanguageServiceHost(), position = _this.editor.getCursorPos();
+
+                if (!languageService || !languageService) {
+                    deferred.resolve({ hints: [] });
+                }
+
+                var filePosition = languageServiceHost.lineColToPosition(currentFilePath, position.line, position.ch), completionInfo = languageService.getCompletionsAtPosition(currentFilePath, filePosition, true), entries = completionInfo && completionInfo.entries;
+
+                if (!entries) {
+                    deferred.resolve({ hints: [] });
+                }
+
+                if (_this.lastUsedToken && entries) {
                     var hasExactToken = false;
-                    hints = hints.filter(function (hint) {
-                        if (hint === _this.lastUsedToken.string) {
+                    entries = entries.filter(function (entry) {
+                        if (entry.name === _this.lastUsedToken.string) {
                             hasExactToken = true;
                         }
-                        return hint && hint.toLowerCase().indexOf(_this.lastUsedToken.string.toLowerCase()) === 0;
+                        return entry.name && entry.name.toLowerCase().indexOf(_this.lastUsedToken.string.toLowerCase()) === 0;
                     });
                     if (hasExactToken) {
                         deferred.resolve({ hints: [] });
                         return;
                     }
                 }
+                entries = entries && entries.sort(function (entry1, entry2) {
+                    var name1 = entry1 && entry1.name.toLowerCase(), name2 = entry2 && entry2.name.toLowerCase();
+                    if (name1 < name2) {
+                        return -1;
+                    } else if (name1 > name2) {
+                        return 1;
+                    } else {
+                        return 0;
+                    }
+                });
+
+                var hints = entries && entries.map(function (entry) {
+                    var entryInfo = languageService.getCompletionEntryDetails(currentFilePath, filePosition, entry.name), hint = _this.hintTextFromInfo(entryInfo), $hintObj = $('<span>'), delimiter = '', hintCssClass;
+
+                    if (entry.kind === Services.ScriptElementKind.keyword) {
+                        switch (entry.name) {
+                            case 'number':
+                            case 'void':
+                            case 'bool':
+                            case 'boolean':
+                                hintCssClass = 'variable';
+                                break;
+                            case 'static':
+                            case 'public':
+                            case 'private':
+                            case 'export':
+                            case 'get':
+                            case 'set':
+                                hintCssClass = 'qualifier';
+
+                            case 'class':
+                            case 'function':
+                            case 'module':
+                            case 'var':
+                                hintCssClass = 'def';
+                                break;
+                            default:
+                                hintCssClass = 'keyword';
+                                break;
+                        }
+                    } else {
+                        hintCssClass = 'variable';
+                    }
+
+                    var $inner = $('<span>').addClass('cm-' + hintCssClass);
+                    $hintObj = $hintObj.addClass('cm-s-default').append($inner);
+
+                    if (_this.lastUsedToken) {
+                        var match = StringUtils.htmlEscape(hint.slice(0, _this.lastUsedToken.string.length)), suffix = StringUtils.htmlEscape(hint.slice(_this.lastUsedToken.string.length));
+                        $inner.append(delimiter).append($('<span>').append(match).css('font-weight', 'bold')).append(suffix + delimiter);
+                    } else {
+                        $inner.text(delimiter + hint + delimiter);
+                    }
+                    $hintObj.data('entry', entry);
+
+                    return $hintObj;
+                });
+
                 deferred.resolve({
                     hints: hints || [],
                     selectInitial: !!implicitChar
@@ -97,7 +188,7 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
         };
 
         TypeScriptCodeHintProvider.prototype.insertHint = function (hint) {
-            var position = this.editor.getCursorPos(), startPos = !this.lastUsedToken ? position : {
+            var entry = hint.data('entry'), text = entry.name, position = this.editor.getCursorPos(), startPos = !this.lastUsedToken ? position : {
                 line: position.line,
                 ch: this.lastUsedToken.position
             }, endPos = !this.lastUsedToken ? position : {
@@ -105,7 +196,7 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
                 ch: this.lastUsedToken.position + this.lastUsedToken.string.length
             };
 
-            this.editor.document.replaceRange(hint, startPos, endPos);
+            this.editor.document.replaceRange(text, startPos, endPos);
         };
 
         TypeScriptCodeHintProvider.prototype.getCurrentToken = function (editor) {
@@ -125,33 +216,14 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
             return null;
         };
 
-        TypeScriptCodeHintProvider.prototype.getCompletionAtHintPosition = function () {
-            var currentFilePath = this.editor.document.file.fullPath, project = this.typescriptProjectManager.getProjectForFile(this.editor.document.file.fullPath);
-            if (!project) {
-                return null;
+        TypeScriptCodeHintProvider.prototype.hintTextFromInfo = function (entryInfo) {
+            var text = entryInfo.name;
+            if (isFunctionElement(entryInfo.kind)) {
+                text += entryInfo.type || '';
+            } else if (entryInfo.type && entryInfo.type !== entryInfo.name) {
+                text += ' : ' + entryInfo.type;
             }
-            var languageService = project.getLanguageService(), languageServiceHost = project.getLanguageServiceHost(), position = this.editor.getCursorPos();
-
-            if (!languageService || !languageService) {
-                return null;
-            }
-            var index = languageServiceHost.lineColToPosition(currentFilePath, position.line, position.ch), completionInfo = languageService.getCompletionsAtPosition(currentFilePath, index, true);
-
-            if (completionInfo && completionInfo.entries && completionInfo.entries.length > 0) {
-                return completionInfo.entries.map(function (entry) {
-                    return entry.name;
-                }).sort(function (a, b) {
-                    a = a && a.toLowerCase();
-                    b = b && b.toLowerCase();
-                    if (a < b) {
-                        return -1;
-                    } else if (a > b) {
-                        return 1;
-                    } else {
-                        return 0;
-                    }
-                });
-            }
+            return text;
         };
         return TypeScriptCodeHintProvider;
     })();

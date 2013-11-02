@@ -4,6 +4,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
     var coreService = __coreService__;
     var script = __script__;
     var language = __language__;
+    var Services = TypeScript.Services;
 
     var BRACKETS_TYPESCRIPT_FILE_NAME = '.brackets-typescript';
 
@@ -406,8 +407,6 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
             compilationSettings.propagateEnumConstants = this.config.propagateEnumConstants;
             compilationSettings.removeComments = this.config.removeComments;
             compilationSettings.noLib = this.config.noLib;
-            compilationSettings.allowBool = this.config.allowBool;
-            compilationSettings.allowModuleKeywordInExternalModuleReference = this.config.allowImportModule;
             compilationSettings.noImplicitAny = this.config.noImplicitAny;
             compilationSettings.outFileOption = this.config.outFile || '';
             compilationSettings.outDirOption = this.config.outDir || '';
