@@ -37,7 +37,7 @@ define(["require", "exports", './mode', './fileSystem', './workingSet', './proje
 
         EditorManager.registerInlineEditProvider(quickEditProvider.typeScriptInlineEditorProvider);
 
-        commentsHelper.init(new signal.DomSignalWrapper($("#editor-holder")[0], "keydown", true), projectManager);
+        commentsHelper.init(new signal.DomSignalWrapper($("#editor-holder")[0], "keydown", true));
     }
 
     

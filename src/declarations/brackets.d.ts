@@ -32,7 +32,7 @@ declare module brackets {
             start: CodeMirror.Position;
             end: CodeMirror.Position
         }
-        setCursorPos(line: number, ch: number, center: boolean, expandTabs: boolean) ;
+        setCursorPos(line: number, ch: number, center: boolean, expandTabs: boolean): void ;
     }
     
     interface FileInfo {
@@ -57,7 +57,7 @@ declare module brackets {
     }
     
     interface DirectoryReader {
-        readEntries(callback: (entries:Entry[]) => void, errorCallback?:(...rest: any[]) => void);
+        readEntries(callback: (entries:Entry[]) => void, errorCallback?:(...rest: any[]) => void): void;
     }
     
     interface DirectoryEntry extends Entry {
@@ -96,7 +96,7 @@ declare module brackets {
     }
     
     interface CodeInspection {
-        register(languageId: string, provider: InspectionProvider);
+        register(languageId: string, provider: InspectionProvider): void;
         Type:typeof ErrorType;
     }
     
@@ -114,9 +114,9 @@ declare module brackets {
     }
     
     interface EditorManager {
-        registerInlineEditProvider(provider: InlineEditProvider, priority?: number); 
-        registerInlineDocsProvider(provider: InlineDocsProvider, priority?: number);
-        registerJumpToDefProvider(provider:JumpDoDefProvider);
+        registerInlineEditProvider(provider: InlineEditProvider, priority?: number): void; 
+        registerInlineDocsProvider(provider: InlineDocsProvider, priority?: number): void;
+        registerJumpToDefProvider(provider:JumpDoDefProvider): void;
         getFocusedEditor(): Editor;
     }
     
@@ -135,7 +135,7 @@ declare module brackets {
     
     
     interface InlineWidget {
-        load(editor: Editor)
+        load(editor: Editor): void
     }
     
    
@@ -143,7 +143,7 @@ declare module brackets {
     module MultiRangeInlineEditor {
         class MultiRangeInlineEditor implements InlineWidget {
             constructor(ranges: MultiRangeInlineEditorRange[]);
-            load(editor: Editor)
+            load(editor: Editor): void
         }
     }
     

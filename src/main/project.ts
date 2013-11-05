@@ -291,7 +291,7 @@ export class TypeScriptProject {
         this.missingFiles = {};
         this.references = {}
         return this.fileSystemService.getProjectFiles().then((paths: string[]) => {
-            var promises = [];
+            var promises: JQueryPromise<any>[] = [];
             paths
                 .filter(path => this.isProjectSourceFile(path))
                 .forEach(path => promises.push(this.addFile(path)));
@@ -315,7 +315,7 @@ export class TypeScriptProject {
         if (!this.files.hasOwnProperty(path)) {
             this.files[path] = null;
             return this.fileSystemService.readFile(path).then((content: string) => {
-                var promises = [];
+                var promises: JQueryPromise<any>[] = [];
                 if (content === null || content === undefined) {
                     this.missingFiles[path] = true;
                     delete this.files[path];

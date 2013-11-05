@@ -44,10 +44,11 @@ var EditorManager       = brackets.getModule('editor/EditorManager'),
 // - gesture to re-word-wrap a comment block
 //
 // - pressing enter in *middle* of //-style comment should split it onto second line with // prefix
-
-/**
+/*
  * 
+ * @param editor
  */
+
 function handleEnterKey(editor: brackets.Editor): boolean {
     var cursor = editor.getCursorPos(),
         token = editor._codeMirror.getTokenAt(cursor),
@@ -61,6 +62,7 @@ function handleEnterKey(editor: brackets.Editor): boolean {
             
             if (index != -1 && indent.match(/^\s*$/)) {
                 var isFirstLineComment: boolean = (line.substr(index, 2) === '/*'),
+                    isJSDocComment: boolean = (line.substr(index, 3) === '/**'),
                     isClosed: boolean = false,
                     currentLineNumber: number = cursor.line + 1,
                     firstNonBlankIndex: number;
@@ -81,30 +83,33 @@ function handleEnterKey(editor: brackets.Editor): boolean {
                     currentLineNumber++;
                 }
                 if (isFirstLineComment && !isClosed) {
-                    insert = '\n'+ indent + ' * \n' + indent + ' */';
+                    indent += ' ';
+                    insert = '\n'+ indent + '* \n';
+                    if (isJSDocComment) {
+                        var currentLineNumber: number = cursor.line;
+                        do {
+                            currentLineNumber++;
+                            line = editor.document.getLine(currentLineNumber);
+                        } while (!line && line !== undefined);
+                        
+                        //Todo perhaps i should use ast here 
+                        var matches = /^\s*((function|private|public)\s+)?\S+\(([^)]*)\)(\s*:\s*\S+)? \s*\{\s*$/.exec(line),
+                            params = matches && matches[matches.length - 2].split(',').map(param => {
+                                return param.replace(/:.*$/,'').replace(/\s/g,'');
+                            }).filter(param => !!param);
+                        if (params && params.length > 0) {
+                            insert = '\n'+ indent + '* \n'
+                            params.forEach(param => {
+                                insert += indent + '* @param ' + param + '\n';  
+                            })
+                        }
+                    }
+                    
+                    insert += indent + '*/';
                     newPosition = {
                         line: cursor.line +1, 
                         ch: indent.length + 3
                     }
-                    /* todo jsdoc
-                        var isNextLineFunc: boolean = false,
-                        currentpath = editor.document.file.fullPath,
-                        project = typeScriptProjectManager.getProjectForFile(currentpath),
-                        languageService = project && project.getLanguageService(),
-                        languageHost =  project && project.getLanguageServiceHost();
-                    
-                    var currentLineNumber: number = cursor.line;
-                    do {
-                        currentLineNumber++;
-                        line = editor.document.getLine(currentLineNumber);
-                    } while (!line && line !== undefined);
-                    
-                    if (line !== undefined && languageService) {
-                        var syntaxTree = languageService.getSyntaxTree(currentpath);
-                        if (syntaxTree) {
-                            var syntaxToken = syntaxTree.sourceUnit().findTokenOnLeft(languageHost.lineColToPosition(currentpath, currentLineNumber, 0));
-                        }
-                    }*/
                 } else {
                     insert = '\n'+ indent + (isFirstLineComment? ' ' : '') + '* ';
                 }
@@ -154,11 +159,9 @@ function handleKeyPress(event: KeyboardEvent) {
     } 
 }
 
-var keyPressSignal: signal.ISignal<KeyboardEvent>,
-    typeScriptProjectManager: project.TypeScriptProjectManager;
-export function init(signal: signal.ISignal<KeyboardEvent>, projectManager: project.TypeScriptProjectManager) {
+var keyPressSignal: signal.ISignal<KeyboardEvent>;
+export function init(signal: signal.ISignal<KeyboardEvent>) {
     keyPressSignal = signal;
-    typeScriptProjectManager = projectManager;
     signal.add(handleKeyPress);
 }
 

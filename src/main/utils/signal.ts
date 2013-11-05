@@ -1,7 +1,7 @@
 'use strict';
 
 export interface ISignal<T> {
-    add(listener: (parameter: T) => any, priority?): void;
+    add(listener: (parameter: T) => any, priority?: number): void;
     remove(listener: (parameter: T) => any): void;
     dispatch(parameter: T): boolean;
     clear(): void;
@@ -70,7 +70,7 @@ export class JQuerySignalWrapper<JQueryEventObject> implements ISignal<JQueryEve
         this.signal.dispatch(parameter);
     }    
     
-    add(listener: (parameter: JQueryEventObject) => any, priority?): void {
+    add(listener: (parameter: JQueryEventObject) => any, priority?: number): void {
         this.signal.add(listener, priority);
         this.target.on(this.event, this.jqueryEventHandler); 
     }
@@ -114,7 +114,7 @@ export class DomSignalWrapper<T extends Event> implements ISignal<T>  {
         this.signal.dispatch(parameter);
     }    
     
-    add(listener: (parameter: T) => any, priority?): void {
+    add(listener: (parameter: T) => any, priority?: number): void {
         this.signal.add(listener, priority);
         this.target.addEventListener(this.event, this.eventHandler, this.capture);
     }

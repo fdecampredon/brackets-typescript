@@ -6,5 +6,6 @@
     
     "target": "ES5",
     "module": "AMD",
-    "outDir": "./bin/"
+    "outDir": "./bin/",
+    "noImplicitAny": true
 }

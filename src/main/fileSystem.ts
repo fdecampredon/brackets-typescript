@@ -185,11 +185,11 @@ class FileSystemObserver extends signal.Signal<ChangeRecord[]>  {
             this.dispatch([{ kind: FileChangeKind.REFRESH}]);
         });
         
-        this.documentManager.on('documentSaved' + this.namespace, (event, document: brackets.Document) => {
+        this.documentManager.on('documentSaved' + this.namespace, (event: any, document: brackets.Document) => {
             this.documentChangesHandler(document);
         });
         
-        this.documentManager.on('documentRefreshed' + this.namespace, (event, document: brackets.Document) => {
+        this.documentManager.on('documentRefreshed' + this.namespace, (event: any, document: brackets.Document) => {
             this.documentChangesHandler(document);
         });
     }

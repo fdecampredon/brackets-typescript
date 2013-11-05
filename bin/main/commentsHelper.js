@@ -15,7 +15,7 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
                 var line = editor.document.getLine(cursor.line), index = line.search(/[\/*]/), indent = line.substr(0, index);
 
                 if (index != -1 && indent.match(/^\s*$/)) {
-                    var isFirstLineComment = (line.substr(index, 2) === '/*'), isClosed = false, currentLineNumber = cursor.line + 1, firstNonBlankIndex;
+                    var isFirstLineComment = (line.substr(index, 2) === '/*'), isJSDocComment = (line.substr(index, 3) === '/**'), isClosed = false, currentLineNumber = cursor.line + 1, firstNonBlankIndex;
                     while (true) {
                         line = editor.document.getLine(currentLineNumber);
                         if (line === undefined) {
@@ -33,7 +33,29 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
                         currentLineNumber++;
                     }
                     if (isFirstLineComment && !isClosed) {
-                        insert = '\n' + indent + ' * \n' + indent + ' */';
+                        indent += ' ';
+                        insert = '\n' + indent + '* \n';
+                        if (isJSDocComment) {
+                            var currentLineNumber = cursor.line;
+                            do {
+                                currentLineNumber++;
+                                line = editor.document.getLine(currentLineNumber);
+                            } while(!line && line !== undefined);
+
+                            var matches = /^\s*((function|private|public)\s+)?\S+\(([^)]*)\)(\s*:\s*\S+)? \s*\{\s*$/.exec(line), params = matches && matches[matches.length - 2].split(',').map(function (param) {
+                                return param.replace(/:.*$/, '').replace(/\s/g, '');
+                            }).filter(function (param) {
+                                return !!param;
+                            });
+                            if (params && params.length > 0) {
+                                insert = '\n' + indent + '* \n';
+                                params.forEach(function (param) {
+                                    insert += indent + '* @param ' + param + '\n';
+                                });
+                            }
+                        }
+
+                        insert += indent + '*/';
                         newPosition = {
                             line: cursor.line + 1,
                             ch: indent.length + 3
@@ -83,10 +105,9 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
         }
     }
 
-    var keyPressSignal, typeScriptProjectManager;
-    function init(signal, projectManager) {
+    var keyPressSignal;
+    function init(signal) {
         keyPressSignal = signal;
-        typeScriptProjectManager = projectManager;
         signal.add(handleKeyPress);
     }
     exports.init = init;

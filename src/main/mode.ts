@@ -197,7 +197,7 @@ function getStyleForToken(token:Token, textBefore:string):string {
 	}
 }
 
-function typeScriptModeFactory(options:CodeMirror.EditorConfiguration, spec):CodeMirror.CodeMirrorMode<any> {
+function typeScriptModeFactory(options:CodeMirror.EditorConfiguration, spec: any):CodeMirror.CodeMirrorMode<any> {
 	return new TypeScriptMode(options);
 }
 

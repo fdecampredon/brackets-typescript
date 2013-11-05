@@ -12,6 +12,7 @@ export class TypeScriptErrorReporter implements brackets.InspectionProvider {
     
     name = 'TypeScript';
     
+    
     constructor(typescriptProjectManager: project.TypeScriptProjectManager, errorType: typeof brackets.ErrorType) {
         this.typescriptProjectManager = typescriptProjectManager;
         this.errorType = errorType;
