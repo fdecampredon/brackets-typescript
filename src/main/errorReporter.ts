@@ -36,7 +36,8 @@ export class TypeScriptErrorReporter implements brackets.InspectionProvider {
         }
         
         return { 
-            errors: errors, aborted: false
+            errors: errors, 
+            aborted: false
         };
     }
     

@@ -2,13 +2,16 @@
 /*global define, $, brackets, window */
 
 define(function (require, exports, module) {
- 	"use strict";
-	require(["third_party/typescriptServices", "third_party/minimatch", "text!third_party/lib.d.ts"],  
-            function (typescript, minimatch, defaultLib){
-                window.TypeScriptDefaultLibraryContent = defaultLib;
-                require(["bin/main/index"],  function (init){
-                    init();
-                })
-	       }
-   );
+    "use strict";
+    require(
+        ["third_party/typescriptServices", "third_party/minimatch"],
+        function (typescript, minimatch) {
+            window.TypeScriptDefaultLibraryPath = require.toUrl('third_party/lib.d.ts');
+            require(["bin/main/index"],  function (init) {
+                init();
+            });
+        }
+    );
 });
+
+

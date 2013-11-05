@@ -56,6 +56,12 @@ define(["require", "exports"], function(require, exports) {
         ScriptInfo.prototype.getPositionFromLine = function (line, col) {
             return this.lineMap.getPosition(line, col);
         };
+
+        ScriptInfo.prototype.getLineAndColForPositon = function (position) {
+            var lineAndChar = { line: -1, character: -1 };
+            this.lineMap.fillLineAndCharacterFromPosition(position, lineAndChar);
+            return lineAndChar;
+        };
         return ScriptInfo;
     })();
     exports.ScriptInfo = ScriptInfo;

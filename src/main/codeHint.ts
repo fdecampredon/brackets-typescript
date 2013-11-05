@@ -129,14 +129,10 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
             }
             
             if (this.lastUsedToken && entries) {
-                var hasExactToken = false;
                 entries = entries.filter(entry => {
-                    if (entry.name === this.lastUsedToken.string) {
-                        hasExactToken = true;
-                    }
                     return entry.name && entry.name.toLowerCase().indexOf(this.lastUsedToken.string.toLowerCase()) === 0;
                 });
-                if (hasExactToken) {
+                if (entries.length === 1 && entries[0].name === this.lastUsedToken.string) {
                     deferred.resolve({hints : []});
                     return;
                 }

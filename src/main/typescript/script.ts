@@ -64,6 +64,12 @@
     public getPositionFromLine(line :number, col:number) {
         return this.lineMap.getPosition(line, col);
     }
+     
+    public getLineAndColForPositon(position: number) {
+        var lineAndChar = { line: -1, character: -1};
+        this.lineMap.fillLineAndCharacterFromPosition(position, lineAndChar)
+        return lineAndChar;
+    }
 }
 
  

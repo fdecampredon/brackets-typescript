@@ -9,7 +9,9 @@ export interface ILanguageServiceHost extends Services.ILanguageServiceHost {
     editScript(path: string, minChar: number, limChar: number, newText: string): void;
     removeScript(path: string): void;
     lineColToPosition(path: string, line :number, col:number): number;
+    postionToLineAndCol(path: string, position: number): TypeScript.ILineAndCharacter
     setScriptIsOpen(path: string, isOpen: boolean): void
+
 }
     
 
@@ -70,6 +72,14 @@ export class LanguageServiceHost extends Logger implements ILanguageServiceHost 
             }
         }
         return -1;
+    }
+    
+    postionToLineAndCol(path: string, position: number): TypeScript.ILineAndCharacter {
+        var script = this.files[path];
+        if (script) {
+            return script.getLineAndColForPositon(position);
+        }
+        return null;
     }
 
     setScriptIsOpen(path: string, isOpen:boolean) {

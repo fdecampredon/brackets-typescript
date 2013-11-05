@@ -1,4 +1,4 @@
-define(["require", "exports", './mode', './fileSystem', './workingSet', './project', './codeHint', './errorReporter'], function(require, exports, __typeScriptModeFactory__, __fs__, __ws__, __project__, __codeHint__, __errorReporter__) {
+define(["require", "exports", './mode', './fileSystem', './workingSet', './project', './codeHint', './errorReporter', './quickEdit', './commentsHelper', './utils/signal'], function(require, exports, __typeScriptModeFactory__, __fs__, __ws__, __project__, __codeHint__, __errorReporter__, __qe__, __commentsHelper__, __signal__) {
     'use strict';
 
     var typeScriptModeFactory = __typeScriptModeFactory__;
@@ -7,6 +7,9 @@ define(["require", "exports", './mode', './fileSystem', './workingSet', './proje
     var project = __project__;
     var codeHint = __codeHint__;
     var errorReporter = __errorReporter__;
+    var qe = __qe__;
+    var commentsHelper = __commentsHelper__;
+    var signal = __signal__;
 
     function init() {
         CodeMirror.defineMode('typescript', typeScriptModeFactory);
@@ -20,17 +23,21 @@ define(["require", "exports", './mode', './fileSystem', './workingSet', './proje
             lineComment: ['//']
         });
 
-        var FileIndexManager = brackets.getModule('project/FileIndexManager'), DocumentManager = brackets.getModule('document/DocumentManager'), ProjectManager = brackets.getModule('project/ProjectManager'), FileUtils = brackets.getModule('file/FileUtils'), CodeHintManager = brackets.getModule('editor/CodeHintManager'), CodeInspection = brackets.getModule('language/CodeInspection');
+        var FileIndexManager = brackets.getModule('project/FileIndexManager'), DocumentManager = brackets.getModule('document/DocumentManager'), ProjectManager = brackets.getModule('project/ProjectManager'), FileUtils = brackets.getModule('file/FileUtils'), CodeHintManager = brackets.getModule('editor/CodeHintManager'), CodeInspection = brackets.getModule('language/CodeInspection'), EditorManager = brackets.getModule('editor/EditorManager');
 
         var fileSystemService = new fs.FileSystemService(ProjectManager, DocumentManager, FileIndexManager, FileUtils), workingSet = new ws.WorkingSet(DocumentManager);
 
-        var projectManager = new project.TypeScriptProjectManager(fileSystemService, workingSet, project.typeScriptProjectFactory), codeHintProvider = new codeHint.TypeScriptCodeHintProvider(projectManager), lintingProvider = new errorReporter.TypeScriptErrorReporter(projectManager, CodeInspection.Type);
+        var projectManager = new project.TypeScriptProjectManager(fileSystemService, workingSet, project.typeScriptProjectFactory), codeHintProvider = new codeHint.TypeScriptCodeHintProvider(projectManager), lintingProvider = new errorReporter.TypeScriptErrorReporter(projectManager, CodeInspection.Type), quickEditProvider = new qe.TypeScriptQuickEditProvider(projectManager);
 
         projectManager.init();
 
         CodeHintManager.registerHintProvider(codeHintProvider, ['typescript'], 0);
 
         CodeInspection.register('typescript', lintingProvider);
+
+        EditorManager.registerInlineEditProvider(quickEditProvider.typeScriptInlineEditorProvider);
+
+        commentsHelper.init(new signal.DomSignalWrapper($("#editor-holder")[0], "keydown", true));
     }
 
     

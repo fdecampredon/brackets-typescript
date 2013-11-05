@@ -435,7 +435,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         };
 
         TypeScriptProject.prototype.addDefaultLibrary = function () {
-            this.languageServiceHost.addScript('TypescriptDefaulLib', TypeScriptDefaultLibraryContent);
+            this.addFile(TypeScriptDefaultLibraryPath);
         };
         return TypeScriptProject;
     })();

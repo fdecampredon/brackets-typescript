@@ -13,12 +13,16 @@ import ws = require('./workingSet');
 import project = require('./project');
 import codeHint = require('./codeHint');
 import errorReporter = require('./errorReporter');
+import qe = require('./quickEdit');
+import commentsHelper = require('./commentsHelper');
+import signal = require('./utils/signal');
 
 /**
  * The init function is the main entry point of the extention
  * It is responsible for bootstraping, and injecting depency of the
  * main components in the application.
  */
+
 function init() {
 	
     //Register the typescript mode
@@ -39,7 +43,8 @@ function init() {
         ProjectManager = brackets.getModule('project/ProjectManager'),
         FileUtils = brackets.getModule('file/FileUtils'),
         CodeHintManager = brackets.getModule('editor/CodeHintManager'),
-        CodeInspection = brackets.getModule('language/CodeInspection');
+        CodeInspection = brackets.getModule('language/CodeInspection'),
+        EditorManager = brackets.getModule('editor/EditorManager');
     
     
     var fileSystemService = new fs.FileSystemService(ProjectManager, DocumentManager, FileIndexManager, FileUtils),
@@ -47,13 +52,21 @@ function init() {
     
     var projectManager = new project.TypeScriptProjectManager(fileSystemService, workingSet, project.typeScriptProjectFactory),
         codeHintProvider = new codeHint.TypeScriptCodeHintProvider(projectManager),
-        lintingProvider = new errorReporter.TypeScriptErrorReporter(projectManager, CodeInspection.Type); 
+        lintingProvider = new errorReporter.TypeScriptErrorReporter(projectManager, CodeInspection.Type),
+        quickEditProvider = new qe.TypeScriptQuickEditProvider(projectManager);
+    
+        
     
     projectManager.init();
 
     CodeHintManager.registerHintProvider(codeHintProvider, ['typescript'], 0);
     
     CodeInspection.register('typescript', lintingProvider); 
+    
+    EditorManager.registerInlineEditProvider(quickEditProvider.typeScriptInlineEditorProvider);
+    
+   
+    commentsHelper.init(new signal.DomSignalWrapper<KeyboardEvent>($("#editor-holder")[0], "keydown", true))
 
 }
 

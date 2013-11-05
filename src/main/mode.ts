@@ -71,6 +71,7 @@ class TypeScriptMode implements CodeMirror.CodeMirrorMode<LineDescriptor> {
 
 	indent(lineDescriptor:LineDescriptor , textAfter: string):number {
 		if(lineDescriptor.eolState !== Services.EndOfLineState.Start) {
+            //strange bug preven CodeMirror.Pass
             return <number>(<any>CodeMirror).Pass
 		}
         var text = lineDescriptor.text + "\n" + (textAfter || "fakeIdent"),

@@ -14,6 +14,7 @@ declare module brackets {
     export interface DocumentManager {
         getCurrentDocument?(): Document
         getWorkingSet?(): brackets.FileEntry[];
+        getDocumentForPath?(path: string): JQueryPromise<Document>
     }
     
     interface Document {
@@ -23,8 +24,15 @@ declare module brackets {
     }
     
     interface Editor {
+        _codeMirror: CodeMirror.Editor
         document:Document;
         getCursorPos():CodeMirror.Position;
+        getModeForSelection(): string;
+        getSelection(boolean: boolean): {
+            start: CodeMirror.Position;
+            end: CodeMirror.Position
+        }
+        setCursorPos(line: number, ch: number, center: boolean, expandTabs: boolean) ;
     }
     
     interface FileInfo {
@@ -105,14 +113,56 @@ declare module brackets {
         scanFile(content: string, path: string):{ errors: LintingError[];  aborted: boolean }; 
     }
     
+    interface EditorManager {
+        registerInlineEditProvider(provider: InlineEditProvider, priority?: number); 
+        registerInlineDocsProvider(provider: InlineDocsProvider, priority?: number);
+        registerJumpToDefProvider(provider:JumpDoDefProvider);
+        getFocusedEditor(): Editor;
+    }
     
+    interface InlineEditProvider {
+        (hostEditor: Editor, pos: CodeMirror.Position): JQueryPromise<InlineWidget>
+    }
+    
+    interface InlineDocsProvider {
+        (hostEditor: Editor, pos: CodeMirror.Position): JQueryPromise<InlineWidget>
+    }
+    
+    interface JumpDoDefProvider {
+        (hostEditor: Editor, pos: CodeMirror.Position): JQueryPromise<InlineWidget>
+    }
+    
+    
+    
+    interface InlineWidget {
+        load(editor: Editor)
+    }
+    
+   
+    
+    module MultiRangeInlineEditor {
+        class MultiRangeInlineEditor implements InlineWidget {
+            constructor(ranges: MultiRangeInlineEditorRange[]);
+            load(editor: Editor)
+        }
+    }
+    
+    interface MultiRangeInlineEditorRange {
+        name: string;
+        document : brackets.Document;
+        lineStart:number;
+        lineEnd:number;
+    }
     
     function getModule(module: 'project/FileIndexManager'): brackets.FileIndexManager;
     function getModule(module: 'document/DocumentManager'): brackets.DocumentManager;
     function getModule(module: 'project/ProjectManager'): brackets.ProjectManager;
     function getModule(module: 'editor/CodeHintManager'):CodeHintManager;
+    function getModule(module: 'editor/EditorManager'): EditorManager;
+    function getModule(module: 'editor/MultiRangeInlineEditor'): typeof MultiRangeInlineEditor;
     function getModule(module: 'file/FileUtils'): FileUtils;
     function getModule(module: 'language/CodeInspection'): CodeInspection;
+    
     function getModule(module: string): any;
     
 }

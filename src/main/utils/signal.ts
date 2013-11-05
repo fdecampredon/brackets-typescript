@@ -58,34 +58,31 @@ export class Signal<T> implements ISignal<T> {
 }
 
 
-export class JQuerySignalWrapper<T> implements ISignal<T>  {
-    private target: JQuery;
-    private event: string;
+export class JQuerySignalWrapper<JQueryEventObject> implements ISignal<JQueryEventObject>  {
+  
+    constructor(
+        private target: JQuery, 
+        private event: string
+    ) {}
     
-    private signal: Signal<T>;
-    private jqueryEventHandler = (parameter: T) => {
+    private signal: Signal<JQueryEventObject> = new Signal<JQueryEventObject>();
+    private jqueryEventHandler = (parameter: JQueryEventObject) => {
         this.signal.dispatch(parameter);
-    }
+    }    
     
-    constructor(target: JQuery, event: string) {
-        this.target = target;
-        this.event = event;
-        this.signal = new Signal<T>();
-    }
-    
-    add(listener: (parameter: T) => any, priority?): void {
+    add(listener: (parameter: JQueryEventObject) => any, priority?): void {
         this.signal.add(listener, priority);
         this.target.on(this.event, this.jqueryEventHandler); 
     }
     
-    remove(listener: (parameter: T) => any): void {
+    remove(listener: (parameter: JQueryEventObject) => any): void {
         this.signal.remove(listener);
         if (!this.hasListeners()) {
             this.removeJQueryEventListener();
         }
-    }
+    } 
     
-    dispatch(parameter: T): boolean {
+    dispatch(parameter: JQueryEventObject): boolean {
         return this.signal.dispatch(parameter);
     }
     
@@ -100,5 +97,49 @@ export class JQuerySignalWrapper<T> implements ISignal<T>  {
     
     private removeJQueryEventListener() {
         this.target.off(this.event, this.jqueryEventHandler);
+    }
+}
+
+
+export class DomSignalWrapper<T extends Event> implements ISignal<T>  {
+  
+    constructor(
+        private target: EventTarget, 
+        private event: string,
+        private capture: boolean
+    ) {}
+    
+    private signal: Signal<T> = new Signal<T>();
+    private eventHandler = (parameter: T) => {
+        this.signal.dispatch(parameter);
+    }    
+    
+    add(listener: (parameter: T) => any, priority?): void {
+        this.signal.add(listener, priority);
+        this.target.addEventListener(this.event, this.eventHandler, this.capture);
+    }
+    
+    remove(listener: (parameter: T) => any): void {
+        this.signal.remove(listener);
+        if (!this.hasListeners()) {
+            this.removeEventListener();
+        }
+    } 
+    
+    dispatch(parameter: T): boolean {
+        return this.signal.dispatch(parameter);
+    }
+    
+    clear(): void {
+        this.signal.clear();
+        this.removeEventListener();
+    }
+    
+    hasListeners(): boolean {
+        return this.signal.hasListeners();
+    }
+    
+    private removeEventListener() {
+        this.target.removeEventListener(this.event, this.eventHandler, this.capture);
     }
 }

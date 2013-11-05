@@ -57,12 +57,12 @@ define(["require", "exports"], function(require, exports) {
     var JQuerySignalWrapper = (function () {
         function JQuerySignalWrapper(target, event) {
             var _this = this;
-            this.jqueryEventHandler = function (parameter) {
-                _this.signal.dispatch(parameter);
-            };
             this.target = target;
             this.event = event;
             this.signal = new Signal();
+            this.jqueryEventHandler = function (parameter) {
+                _this.signal.dispatch(parameter);
+            };
         }
         JQuerySignalWrapper.prototype.add = function (listener, priority) {
             this.signal.add(listener, priority);
@@ -95,4 +95,47 @@ define(["require", "exports"], function(require, exports) {
         return JQuerySignalWrapper;
     })();
     exports.JQuerySignalWrapper = JQuerySignalWrapper;
+
+    var DomSignalWrapper = (function () {
+        function DomSignalWrapper(target, event, capture) {
+            var _this = this;
+            this.target = target;
+            this.event = event;
+            this.capture = capture;
+            this.signal = new Signal();
+            this.eventHandler = function (parameter) {
+                _this.signal.dispatch(parameter);
+            };
+        }
+        DomSignalWrapper.prototype.add = function (listener, priority) {
+            this.signal.add(listener, priority);
+            this.target.addEventListener(this.event, this.eventHandler, this.capture);
+        };
+
+        DomSignalWrapper.prototype.remove = function (listener) {
+            this.signal.remove(listener);
+            if (!this.hasListeners()) {
+                this.removeEventListener();
+            }
+        };
+
+        DomSignalWrapper.prototype.dispatch = function (parameter) {
+            return this.signal.dispatch(parameter);
+        };
+
+        DomSignalWrapper.prototype.clear = function () {
+            this.signal.clear();
+            this.removeEventListener();
+        };
+
+        DomSignalWrapper.prototype.hasListeners = function () {
+            return this.signal.hasListeners();
+        };
+
+        DomSignalWrapper.prototype.removeEventListener = function () {
+            this.target.removeEventListener(this.event, this.eventHandler, this.capture);
+        };
+        return DomSignalWrapper;
+    })();
+    exports.DomSignalWrapper = DomSignalWrapper;
 });

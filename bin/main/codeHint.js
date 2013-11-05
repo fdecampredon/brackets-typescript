@@ -109,14 +109,10 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
                 }
 
                 if (_this.lastUsedToken && entries) {
-                    var hasExactToken = false;
                     entries = entries.filter(function (entry) {
-                        if (entry.name === _this.lastUsedToken.string) {
-                            hasExactToken = true;
-                        }
                         return entry.name && entry.name.toLowerCase().indexOf(_this.lastUsedToken.string.toLowerCase()) === 0;
                     });
-                    if (hasExactToken) {
+                    if (entries.length === 1 && entries[0].name === _this.lastUsedToken.string) {
                         deferred.resolve({ hints: [] });
                         return;
                     }

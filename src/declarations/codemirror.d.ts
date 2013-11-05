@@ -55,7 +55,7 @@ declare module CodeMirror {
         (options:CodeMirror.EditorConfiguration, spec):CodeMirrorMode<T>
     }
 
-    function defineMode(id:string, modefactory:CodeMirrorModeFactory<any>);
+    function defineMode(id: string, modefactory: CodeMirrorModeFactory<any>);
     function defineMIME(mime:string, modeId:string);
     
     var Pass: any;

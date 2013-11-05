@@ -1,9 +1,11 @@
 import signal = require('./utils/signal');
 
 export interface IWorkingSet {
+    getCurrentDocument(): brackets.Document;
     
     workingSetChanged: signal.ISignal<ChangeRecord>;
     documentEdited: signal.ISignal<DocumentChangeDescriptor[]>;
+    currentDocumentChanged: signal.ISignal<brackets.Document>;
 
     files:string [];
     dispose(): void;
@@ -51,12 +53,17 @@ export class WorkingSet implements IWorkingSet {
     
     workingSetChanged = new signal.Signal<ChangeRecord>();
     documentEdited = new signal.Signal<DocumentChangeDescriptor[]>();
+    currentDocumentChanged = new signal.Signal<brackets.Document>();
     
     private _files: string[] = [];
 
     get files(): string[] {
         return this._files.slice(0, this._files.length);
     }
+    
+    getCurrentDocument() {
+        return this._currentDocument
+    }    
     
    
     
@@ -130,6 +137,7 @@ export class WorkingSet implements IWorkingSet {
         if (this._currentDocument) {
             $(this._currentDocument).on('change', this.documentChangesHandler);
         }
+        this.currentDocumentChanged.dispatch(this._currentDocument);
     }
     
     private documentChangesHandler = (event: any, document: brackets.Document, change: CodeMirror.EditorChangeLinkedList) => {

@@ -40,6 +40,7 @@ export class TypeScriptProjectManager {
     dispose(): void {
         this.fileSystemService.projectFilesChanged.remove(this.filesChangeHandler);
         this.disposeProjects();
+        
     }
     
     
@@ -219,7 +220,7 @@ export enum ProjectFileKind {
     REFERENCE
 }
 
-declare var TypeScriptDefaultLibraryContent: string;
+declare var TypeScriptDefaultLibraryPath: string;
 
 export class TypeScriptProject {
     
@@ -501,7 +502,7 @@ export class TypeScriptProject {
     }
     
     private addDefaultLibrary() {
-        this.languageServiceHost.addScript('TypescriptDefaulLib',TypeScriptDefaultLibraryContent);
+        this.addFile(TypeScriptDefaultLibraryPath)
     }
 }
 

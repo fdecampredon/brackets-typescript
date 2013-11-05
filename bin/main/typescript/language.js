@@ -61,6 +61,14 @@ define(["require", "exports", '../logger', './script'], function(require, export
             return -1;
         };
 
+        LanguageServiceHost.prototype.postionToLineAndCol = function (path, position) {
+            var script = this.files[path];
+            if (script) {
+                return script.getLineAndColForPositon(position);
+            }
+            return null;
+        };
+
         LanguageServiceHost.prototype.setScriptIsOpen = function (path, isOpen) {
             var script = this.files[path];
             if (script) {

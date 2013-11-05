@@ -12,6 +12,7 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
             var _this = this;
             this.workingSetChanged = new signal.Signal();
             this.documentEdited = new signal.Signal();
+            this.currentDocumentChanged = new signal.Signal();
             this._files = [];
             this.workingSetAddHandler = function (event, file) {
                 _this._files.push(file.fullPath);
@@ -102,6 +103,10 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
             configurable: true
         });
 
+        WorkingSet.prototype.getCurrentDocument = function () {
+            return this._currentDocument;
+        };
+
         WorkingSet.prototype.dispose = function () {
             $(this.documentManager).off('workingSetAdd', this.workingSetAddHandler);
             $(this.documentManager).off('workingSetAddList', this.workingSetAddListHandler);
@@ -119,6 +124,7 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
             if (this._currentDocument) {
                 $(this._currentDocument).on('change', this.documentChangesHandler);
             }
+            this.currentDocumentChanged.dispatch(this._currentDocument);
         };
         return WorkingSet;
     })();
