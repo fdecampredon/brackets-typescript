@@ -3,10 +3,10 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
 
     
     var Logger = __Logger__;
+    
+    var Services = TypeScript.Services;
 
     var EditorManager = brackets.getModule('editor/EditorManager'), DocumentManager = brackets.getModule('document/DocumentManager'), KeyEvent = brackets.getModule('utils/KeyEvent'), StringUtils = brackets.getModule('utils/StringUtils');
-
-    var Services = TypeScript.Services;
 
     function handleEnterKey(editor) {
         var cursor = editor.getCursorPos(), token = editor._codeMirror.getTokenAt(cursor), insert, newPosition;
@@ -80,13 +80,13 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
                     }
                 }
             }
-        } else {
         }
     }
 
-    var keyPressSignal;
-    function init(signal) {
+    var keyPressSignal, typeScriptProjectManager;
+    function init(signal, projectManager) {
         keyPressSignal = signal;
+        typeScriptProjectManager = projectManager;
         signal.add(handleKeyPress);
     }
     exports.init = init;

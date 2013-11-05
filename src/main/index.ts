@@ -66,7 +66,7 @@ function init() {
     EditorManager.registerInlineEditProvider(quickEditProvider.typeScriptInlineEditorProvider);
     
    
-    commentsHelper.init(new signal.DomSignalWrapper<KeyboardEvent>($("#editor-holder")[0], "keydown", true))
+    commentsHelper.init(new signal.DomSignalWrapper<KeyboardEvent>($("#editor-holder")[0], "keydown", true), projectManager)
 
 }
 

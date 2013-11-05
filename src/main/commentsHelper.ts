@@ -24,6 +24,8 @@
 
 import signal = require('./utils/signal');
 import Logger = require('./logger');
+import project = require('project');
+import Services = TypeScript.Services;
 
 // Brackets modules
 var EditorManager       = brackets.getModule('editor/EditorManager'),
@@ -31,10 +33,6 @@ var EditorManager       = brackets.getModule('editor/EditorManager'),
     KeyEvent            = brackets.getModule('utils/KeyEvent'),
     StringUtils         = brackets.getModule('utils/StringUtils');
 
-import Services = TypeScript.Services;
-
-// Features:
-// - Pressing Enter inside a block comment automatically inserts a correctly indented "*" prefix on the new line
 
 // TODO:
 //
@@ -47,7 +45,9 @@ import Services = TypeScript.Services;
 //
 // - pressing enter in *middle* of //-style comment should split it onto second line with // prefix
 
-
+/**
+ * 
+ */
 function handleEnterKey(editor: brackets.Editor): boolean {
     var cursor = editor.getCursorPos(),
         token = editor._codeMirror.getTokenAt(cursor),
@@ -81,12 +81,30 @@ function handleEnterKey(editor: brackets.Editor): boolean {
                     currentLineNumber++;
                 }
                 if (isFirstLineComment && !isClosed) {
-                    line = editor.document.getLine(cursor.line +1);
                     insert = '\n'+ indent + ' * \n' + indent + ' */';
                     newPosition = {
                         line: cursor.line +1, 
                         ch: indent.length + 3
                     }
+                    /* todo jsdoc
+                        var isNextLineFunc: boolean = false,
+                        currentpath = editor.document.file.fullPath,
+                        project = typeScriptProjectManager.getProjectForFile(currentpath),
+                        languageService = project && project.getLanguageService(),
+                        languageHost =  project && project.getLanguageServiceHost();
+                    
+                    var currentLineNumber: number = cursor.line;
+                    do {
+                        currentLineNumber++;
+                        line = editor.document.getLine(currentLineNumber);
+                    } while (!line && line !== undefined);
+                    
+                    if (line !== undefined && languageService) {
+                        var syntaxTree = languageService.getSyntaxTree(currentpath);
+                        if (syntaxTree) {
+                            var syntaxToken = syntaxTree.sourceUnit().findTokenOnLeft(languageHost.lineColToPosition(currentpath, currentLineNumber, 0));
+                        }
+                    }*/
                 } else {
                     insert = '\n'+ indent + (isFirstLineComment? ' ' : '') + '* ';
                 }
@@ -133,14 +151,14 @@ function handleKeyPress(event: KeyboardEvent) {
                 }
             }
         }
-    } else {
-        
-    }
+    } 
 }
 
-var keyPressSignal: signal.ISignal<KeyboardEvent>
-export function init(signal: signal.ISignal<KeyboardEvent>) {
+var keyPressSignal: signal.ISignal<KeyboardEvent>,
+    typeScriptProjectManager: project.TypeScriptProjectManager;
+export function init(signal: signal.ISignal<KeyboardEvent>, projectManager: project.TypeScriptProjectManager) {
     keyPressSignal = signal;
+    typeScriptProjectManager = projectManager;
     signal.add(handleKeyPress);
 }
 
