@@ -49,6 +49,10 @@ var EditorManager       = brackets.getModule('editor/EditorManager'),
  * @param editor
  */
 
+/**
+ * main helper function
+ * @param editor
+ */
 function handleEnterKey(editor: brackets.Editor): boolean {
     var cursor = editor.getCursorPos(),
         token = editor._codeMirror.getTokenAt(cursor),
