@@ -26,7 +26,7 @@ import signal = require('./utils/signal');
 function init() {
 	
     //Register the typescript mode
-    CodeMirror.defineMode('typescript', typeScriptModeFactory);
+    CodeMirror.defineMode('typescript', typeScriptModeFactory); 
 	
     //Register the language extension
 	var LanguageManager = brackets.getModule('language/LanguageManager');
@@ -38,7 +38,7 @@ function init() {
 	    lineComment: ['//']
 	});
     
-    var FileIndexManager = brackets.getModule('project/FileIndexManager'),
+    var FileSystem = brackets.getModule('filesystem/FileSystem'),
         DocumentManager = brackets.getModule('document/DocumentManager'), 
         ProjectManager = brackets.getModule('project/ProjectManager'),
         FileUtils = brackets.getModule('file/FileUtils'),
@@ -47,7 +47,7 @@ function init() {
         EditorManager = brackets.getModule('editor/EditorManager');
     
     
-    var fileSystemService = new fs.FileSystemService(ProjectManager, DocumentManager, FileIndexManager, FileUtils),
+    var fileSystemService: any = new fs.FileSystem(FileSystem, ProjectManager),
         workingSet = new ws.WorkingSet(DocumentManager);
     
     var projectManager = new project.TypeScriptProjectManager(fileSystemService, workingSet, project.typeScriptProjectFactory),

@@ -93,19 +93,22 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
                 var currentFilePath = _this.editor.document.file.fullPath, project = _this.typescriptProjectManager.getProjectForFile(_this.editor.document.file.fullPath);
 
                 if (!project) {
-                    deferred.resolve({ hints: null });
+                    deferred.resolve({ hints: [] });
+                    return;
                 }
 
                 var languageService = project.getLanguageService(), languageServiceHost = project.getLanguageServiceHost(), position = _this.editor.getCursorPos();
 
                 if (!languageService || !languageService) {
                     deferred.resolve({ hints: [] });
+                    return;
                 }
 
                 var filePosition = languageServiceHost.lineColToPosition(currentFilePath, position.line, position.ch), completionInfo = languageService.getCompletionsAtPosition(currentFilePath, filePosition, true), entries = completionInfo && completionInfo.entries;
 
                 if (!entries) {
                     deferred.resolve({ hints: [] });
+                    return;
                 }
 
                 if (_this.lastUsedToken && entries) {

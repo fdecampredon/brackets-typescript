@@ -1,43 +1,138 @@
-var __extends = this.__extends || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    __.prototype = b.prototype;
-    d.prototype = new __();
-};
 define(["require", "exports", './utils/signal'], function(require, exports, __signal__) {
     'use strict';
 
     var signal = __signal__;
 
-    var FileSystemService = (function () {
-        function FileSystemService(projectManager, documentManager, fileIndexManager, fileUtils) {
-            var _this = this;
-            this.projectFilesChangedsHandler = function (records) {
-                records.forEach(function (record) {
-                    switch (record.kind) {
-                        case FileChangeKind.ADD:
-                            _this.files.push(record.path);
-                            break;
-                        case FileChangeKind.DELETE:
-                            var index = _this.files.indexOf(record.path);
-                            if (index !== -1) {
-                                _this.files.splice(index, 1);
-                            }
-                            break;
-                    }
-                });
-            };
-            this.projectManager = projectManager;
-            this.documentManager = documentManager;
-            this.fileIndexManager = fileIndexManager;
-            this.fileUtils = fileUtils;
+    (function (FileSystemError) {
+        FileSystemError[FileSystemError["FILE_NOT_FOUND"] = 0] = "FILE_NOT_FOUND";
+    })(exports.FileSystemError || (exports.FileSystemError = {}));
+    var FileSystemError = exports.FileSystemError;
 
-            this._projectFilesChanged = new FileSystemObserver($(projectManager), $(documentManager), function () {
-                return _this.getProjectFiles(true);
-            });
-            this._projectFilesChanged.add(this.projectFilesChangedsHandler);
+    (function (FileChangeKind) {
+        FileChangeKind[FileChangeKind["ADD"] = 0] = "ADD";
+
+        FileChangeKind[FileChangeKind["UPDATE"] = 1] = "UPDATE";
+
+        FileChangeKind[FileChangeKind["DELETE"] = 2] = "DELETE";
+
+        FileChangeKind[FileChangeKind["REFRESH"] = 3] = "REFRESH";
+    })(exports.FileChangeKind || (exports.FileChangeKind = {}));
+    var FileChangeKind = exports.FileChangeKind;
+
+    var FileSystem = (function () {
+        function FileSystem(nativeFileSystem, projectManager) {
+            var _this = this;
+            this.nativeFileSystem = nativeFileSystem;
+            this.projectManager = projectManager;
+            this.isDirty = true;
+            this.changesHandler = function (file) {
+                if (!file) {
+                    _this.isDirty = true;
+                    _this.projectFilesChanged.dispatch([
+                        {
+                            kind: FileChangeKind.REFRESH
+                        }
+                    ]);
+                } else if (file.isFile) {
+                    _this.projectFilesChanged.dispatch([
+                        {
+                            kind: FileChangeKind.UPDATE,
+                            path: file.fullPath
+                        }
+                    ]);
+                } else if (file.isDirectory) {
+                    var directory = file, children;
+                    directory.getContents(function (err, files) {
+                        if (err) {
+                            _this.isDirty = true;
+                            _this.projectFilesChanged.dispatch([
+                                {
+                                    kind: FileChangeKind.REFRESH
+                                }
+                            ]);
+                            return;
+                        }
+                        var oldFiles = {}, newFiles = {};
+                        _this.filesPaths.forEach(function (path) {
+                            var index = path.indexOf(directory.fullPath);
+                            if (index !== -1) {
+                                var index2 = path.indexOf('/', index);
+                                if (index2 = -1) {
+                                    oldFiles[path] = [path];
+                                } else {
+                                    var dirPath = path.substring(0, index2);
+                                    if (!oldFiles[dirPath]) {
+                                        oldFiles[dirPath] = [path];
+                                    } else {
+                                        oldFiles[dirPath].push(path);
+                                    }
+                                }
+                            }
+                        });
+
+                        files.forEach(function (file) {
+                            newFiles[file.fullPath] = file;
+                        });
+
+                        var changes;
+                        for (var path in oldFiles) {
+                            if (!newFiles.hasOwnProperty(path) && oldFiles.hasOwnProperty(path)) {
+                                oldFiles[path].forEach(function (path) {
+                                    var index = _this.filesPaths.indexOf(path);
+                                    if (index !== -1) {
+                                        _this.filesPaths.splice(index, 1);
+                                        delete _this.files[path];
+                                        changes.push({
+                                            kind: FileChangeKind.DELETE,
+                                            path: path
+                                        });
+                                    }
+                                });
+                            }
+                        }
+
+                        var promises = [];
+                        for (var path in newFiles) {
+                            if (newFiles.hasOwnProperty(path) && !oldFiles.hasOwnProperty(path)) {
+                                if (newFiles[path].isFile) {
+                                    _this.filesPaths.push(path);
+                                    _this.files[path] = newFiles[path];
+                                    changes.push({
+                                        kind: FileChangeKind.ADD,
+                                        path: path
+                                    });
+                                } else {
+                                    var directory = newFiles[path];
+                                    promises.push(_this.getDirectoryFiles(directory).then(function (files) {
+                                        files.forEach(function (file) {
+                                            _this.filesPaths.push(path);
+                                            _this.files[path] = newFiles[path];
+                                            changes.push({
+                                                kind: FileChangeKind.ADD,
+                                                path: path
+                                            });
+                                        });
+                                    }));
+                                }
+                            }
+                        }
+                        ;
+                        if (promises.length > 0) {
+                            ($.when.apply($, promises)).then(function () {
+                                if (changes.length > 0) {
+                                    _this.projectFilesChanged.dispatch(changes);
+                                }
+                            });
+                        } else if (changes.length > 0) {
+                            _this.projectFilesChanged.dispatch(changes);
+                        }
+                    });
+                }
+            };
+            this._projectFilesChanged = new signal.Signal();
+            nativeFileSystem.on('change', this.changesHandler);
         }
-        Object.defineProperty(FileSystemService.prototype, "projectFilesChanged", {
+        Object.defineProperty(FileSystem.prototype, "projectFilesChanged", {
             get: function () {
                 return this._projectFilesChanged;
             },
@@ -45,57 +140,71 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
             configurable: true
         });
 
-        FileSystemService.prototype.getProjectFiles = function (forceRefresh) {
+        FileSystem.prototype.getProjectFiles = function (forceRefresh) {
             if (typeof forceRefresh === "undefined") { forceRefresh = false; }
             var _this = this;
             var deferred = $.Deferred();
-            var result = deferred.promise();
 
-            if (this.files && !forceRefresh) {
-                deferred.resolve(this.files);
+            if (!forceRefresh && !this.isDirty) {
+                deferred.resolve(this.filesPaths);
             } else {
-                this.fileIndexManager.getFileInfoList('all').then(function (files) {
-                    _this.files = files.map(function (fileInfo) {
-                        return fileInfo.fullPath;
+                this.projectManager.getAllFiles().then(function (files) {
+                    if (!files) {
+                        files = [];
+                    }
+                    _this.files = {};
+                    _this.filesPaths = files.map(function (file) {
+                        _this.files[file.fullPath] = file;
+                        return file.fullPath;
                     });
-                    deferred.resolve(_this.files);
+                    _this.isDirty = false;
+                    deferred.resolve(_this.filesPaths);
                 });
             }
 
-            return result;
+            return deferred.promise();
         };
 
-        FileSystemService.prototype.readFile = function (path) {
-            var _this = this;
-            var result = $.Deferred();
-            this.projectManager.getProjectRoot().getFile(path, { create: false }, function (fileEntry) {
-                _this.fileUtils.readAsText(fileEntry).then(function (content) {
+        FileSystem.prototype.readFile = function (path) {
+            var result = $.Deferred(), file;
+            if (this.files.hasOwnProperty(path)) {
+                file = this.files[path];
+            } else {
+                file = this.nativeFileSystem.getFileForPath(path);
+            }
+
+            file.read({}, function (err, content) {
+                if (err) {
+                    result.reject(err);
+                } else {
                     result.resolve(content);
-                }, function () {
-                    result.reject.apply(result, arguments);
-                });
-            }, function () {
-                result.reject.call(result, path, arguments);
+                }
             });
+
             return result.promise();
         };
 
-        FileSystemService.prototype.dispose = function () {
-            this._projectFilesChanged.dispose();
+        FileSystem.prototype.dispose = function () {
+            this.nativeFileSystem.off('change', this.changesHandler);
+            this._projectFilesChanged.clear();
         };
-        return FileSystemService;
+
+        FileSystem.prototype.getDirectoryFiles = function (directory) {
+            var deferred = $.Deferred(), files;
+
+            directory.visit(function (entry) {
+                if (entry.isFile) {
+                    files.push(entry);
+                }
+                return true;
+            }, {}, function (err) {
+                deferred.resolve(files);
+            });
+            return deferred.promise();
+        };
+        return FileSystem;
     })();
-    exports.FileSystemService = FileSystemService;
-
-    (function (FileChangeKind) {
-        FileChangeKind[FileChangeKind["ADD"] = 0] = "ADD";
-        FileChangeKind[FileChangeKind["UPDATE"] = 1] = "UPDATE";
-        FileChangeKind[FileChangeKind["DELETE"] = 2] = "DELETE";
-        FileChangeKind[FileChangeKind["REFRESH"] = 3] = "REFRESH";
-    })(exports.FileChangeKind || (exports.FileChangeKind = {}));
-    var FileChangeKind = exports.FileChangeKind;
-
-    var uidHelper = 0;
+    exports.FileSystem = FileSystem;
 
     var StringSet = (function () {
         function StringSet() {
@@ -118,99 +227,4 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
         };
         return StringSet;
     })();
-
-    var FileSystemObserver = (function (_super) {
-        __extends(FileSystemObserver, _super);
-        function FileSystemObserver(projectManager, documentManager, projectFilesResolver) {
-            var _this = this;
-            _super.call(this);
-            this.namespace = '.fileSystemObserver' + (uidHelper++);
-            this.projectManager = projectManager;
-            this.documentManager = documentManager;
-            this.projectFilesResolver = projectFilesResolver;
-            this.refresh().then(function (p) {
-                return _this.addListeners();
-            });
-        }
-        FileSystemObserver.prototype.dispose = function () {
-            this.projectManager.off(this.namespace);
-            this.documentManager.off(this.namespace);
-        };
-
-        FileSystemObserver.prototype.refresh = function () {
-            this.fileSet = new StringSet();
-            return this.collectFiles();
-        };
-
-        FileSystemObserver.prototype.collectFiles = function () {
-            var _this = this;
-            return this.projectFilesResolver().then(function (files) {
-                for (var i = 0, l = files.length; i < l; i++) {
-                    _this.fileSet.add(files[i]);
-                }
-                return;
-            });
-        };
-
-        FileSystemObserver.prototype.addListeners = function () {
-            var _this = this;
-            this.projectManager.on('projectFilesChange' + this.namespace, function () {
-                _this.compareAndUpdate();
-            });
-
-            this.projectManager.on('projectRefresh' + this.namespace, function () {
-                _this.refresh();
-                _this.dispatch([{ kind: FileChangeKind.REFRESH }]);
-            });
-
-            this.documentManager.on('documentSaved' + this.namespace, function (event, document) {
-                _this.documentChangesHandler(document);
-            });
-
-            this.documentManager.on('documentRefreshed' + this.namespace, function (event, document) {
-                _this.documentChangesHandler(document);
-            });
-        };
-
-        FileSystemObserver.prototype.compareAndUpdate = function () {
-            var _this = this;
-            var oldFileSet = this.fileSet;
-            this.fileSet = new StringSet();
-            this.collectFiles().then(function () {
-                var changes = [], path;
-
-                oldFileSet.forEach(function (path) {
-                    if (!_this.fileSet.has(path)) {
-                        changes.push({
-                            kind: FileChangeKind.DELETE,
-                            path: path
-                        });
-                    }
-                });
-
-                _this.fileSet.forEach(function (path) {
-                    if (!oldFileSet.has(path)) {
-                        changes.push({
-                            kind: FileChangeKind.ADD,
-                            path: path
-                        });
-                    }
-                });
-
-                if (changes.length > 0) {
-                    _this.dispatch(changes);
-                }
-            });
-        };
-
-        FileSystemObserver.prototype.documentChangesHandler = function (document) {
-            this.dispatch([
-                {
-                    kind: FileChangeKind.UPDATE,
-                    path: document.file.fullPath
-                }
-            ]);
-        };
-        return FileSystemObserver;
-    })(signal.Signal);
 });

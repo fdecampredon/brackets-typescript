@@ -1,11 +1,13 @@
 'use strict';
 
-import fileSystem = require('../main/fileSystem');
+import fs = require('../main/fileSystem');
 
+describe('FileSystem', function() {
+    
+});
 
-
-
-describe('FileSystemService', function () {
+/*
+describe('FileSystem', function () {
     
     
     var fileInfos: brackets.FileInfo[],
@@ -306,4 +308,4 @@ describe('FileSystemService', function () {
         
     });
     
-});
+});*/

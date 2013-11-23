@@ -109,7 +109,8 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
                 project: project.TypeScriptProject = this.typescriptProjectManager.getProjectForFile(this.editor.document.file.fullPath);
             
             if (!project) {
-                deferred.resolve({ hints: null});
+                deferred.resolve({ hints: []});
+                return;
             }
             
             var languageService = project.getLanguageService(), 
@@ -118,6 +119,7 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
             
             if(!languageService || !languageService) {
                  deferred.resolve({hints : []});
+                return;
             }
        
             var filePosition = languageServiceHost.lineColToPosition(currentFilePath, position.line, position.ch),
@@ -125,7 +127,8 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
                 entries = completionInfo && completionInfo.entries;
             
             if(!entries) {
-                 deferred.resolve({hints : []});
+                deferred.resolve({hints : []});
+                return;
             }
             
             if (this.lastUsedToken && entries) {

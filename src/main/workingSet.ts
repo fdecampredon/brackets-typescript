@@ -77,7 +77,7 @@ export class WorkingSet implements IWorkingSet {
         this.setCurrentDocument(null);
     }
     
-    private workingSetAddHandler = (event: any, file: brackets.FileEntry) => {
+    private workingSetAddHandler = (event: any, file: brackets.File) => {
         this._files.push(file.fullPath);
         this.workingSetChanged.dispatch({
             kind: WorkingSetChangeKind.ADD,
@@ -86,7 +86,7 @@ export class WorkingSet implements IWorkingSet {
     }
 
     
-    private workingSetAddListHandler = (event: any, ...files: brackets.FileEntry[]) => {
+    private workingSetAddListHandler = (event: any, ...files: brackets.File[]) => {
         var paths = files.map( file => file.fullPath);
         this._files = this._files.concat(paths);
         this.workingSetChanged.dispatch({
@@ -96,7 +96,7 @@ export class WorkingSet implements IWorkingSet {
     }
     
             
-    private workingSetRemoveHandler = (event: any, file: brackets.FileEntry) => {
+    private workingSetRemoveHandler = (event: any, file: brackets.File) => {
         var index = this._files.indexOf(file.fullPath);
         if (index !== -1) {
             this._files.splice(index, 1);
@@ -107,7 +107,7 @@ export class WorkingSet implements IWorkingSet {
         }
     }
     
-    private workingSetRemoveListHandler = (event: any, ...files: brackets.FileEntry[]) => {
+    private workingSetRemoveListHandler = (event: any, ...files: brackets.File[]) => {
         var pathsRemoved: string[] = [];
         files.forEach(file => {
             var index = this._files.indexOf(file.fullPath);

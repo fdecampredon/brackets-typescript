@@ -11,19 +11,19 @@ export interface TypeScriptProjectFactory {
     (   
         baseDirectory: string,
         config: TypeScriptProjectConfig, 
-        fileSystemService: fileSystem.IFileSystemService,
+        fileSystemService: fileSystem.IFileSystem,
         workingSet: ws.IWorkingSet
     ): TypeScriptProject
 }
 
 
 export class TypeScriptProjectManager {
-    private fileSystemService: fileSystem.IFileSystemService;
+    private fileSystemService: fileSystem.IFileSystem;
     private typeScriptProjectFactory: TypeScriptProjectFactory;
     private projectMap: { [path:string]: TypeScriptProject };
     private workingSet: ws.IWorkingSet;
     
-    constructor(fileSystemService: fileSystem.IFileSystemService, 
+    constructor(fileSystemService: fileSystem.IFileSystem, 
                 workingSet: ws.IWorkingSet,
                 typeScriptProjectFactory: TypeScriptProjectFactory) {
         this.fileSystemService = fileSystemService;
@@ -226,7 +226,7 @@ export class TypeScriptProject {
     
     private baseDirectory: string;
     private config: TypeScriptProjectConfig; 
-    private fileSystemService: fileSystem.IFileSystemService;
+    private fileSystemService: fileSystem.IFileSystem;
     private workingSet: ws.IWorkingSet;
     private languageServiceHostFactory: LanguageServiceHostFactory
     
@@ -238,7 +238,7 @@ export class TypeScriptProject {
     
     constructor(baseDirectory: string,
                 config: TypeScriptProjectConfig, 
-                fileSystemService: fileSystem.IFileSystemService,
+                fileSystemService: fileSystem.IFileSystem,
                 workingSet: ws.IWorkingSet,
                 languageServiceHostFactory: LanguageServiceHostFactory) {
         this.baseDirectory = baseDirectory;
@@ -510,7 +510,7 @@ export class TypeScriptProject {
 export function typeScriptProjectFactory (   
                                         baseDirectory: string,
                                         config: TypeScriptProjectConfig, 
-                                        fileSystemService: fileSystem.IFileSystemService,
+                                        fileSystemService: fileSystem.IFileSystem,
                                         workingSet: ws.IWorkingSet
                                     ): TypeScriptProject {
     return new TypeScriptProject(baseDirectory, config, fileSystemService, workingSet, 

@@ -23,9 +23,9 @@ define(["require", "exports", './mode', './fileSystem', './workingSet', './proje
             lineComment: ['//']
         });
 
-        var FileIndexManager = brackets.getModule('project/FileIndexManager'), DocumentManager = brackets.getModule('document/DocumentManager'), ProjectManager = brackets.getModule('project/ProjectManager'), FileUtils = brackets.getModule('file/FileUtils'), CodeHintManager = brackets.getModule('editor/CodeHintManager'), CodeInspection = brackets.getModule('language/CodeInspection'), EditorManager = brackets.getModule('editor/EditorManager');
+        var FileSystem = brackets.getModule('filesystem/FileSystem'), DocumentManager = brackets.getModule('document/DocumentManager'), ProjectManager = brackets.getModule('project/ProjectManager'), FileUtils = brackets.getModule('file/FileUtils'), CodeHintManager = brackets.getModule('editor/CodeHintManager'), CodeInspection = brackets.getModule('language/CodeInspection'), EditorManager = brackets.getModule('editor/EditorManager');
 
-        var fileSystemService = new fs.FileSystemService(ProjectManager, DocumentManager, FileIndexManager, FileUtils), workingSet = new ws.WorkingSet(DocumentManager);
+        var fileSystemService = new fs.FileSystem(FileSystem, ProjectManager), workingSet = new ws.WorkingSet(DocumentManager);
 
         var projectManager = new project.TypeScriptProjectManager(fileSystemService, workingSet, project.typeScriptProjectFactory), codeHintProvider = new codeHint.TypeScriptCodeHintProvider(projectManager), lintingProvider = new errorReporter.TypeScriptErrorReporter(projectManager, CodeInspection.Type), quickEditProvider = new qe.TypeScriptQuickEditProvider(projectManager);
 
