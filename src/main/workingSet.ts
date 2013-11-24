@@ -131,7 +131,7 @@ export interface Position {
  */
 export interface BracketesDocumentManager {
     getWorkingSet(): { fullPath: string }[];
-    getOpentDocumentForPath(fullPath: string): BracketsDocument;
+    getDocumentForPath(fullPath: string): JQueryPromise<BracketsDocument>;
 }
 
 /**
@@ -272,16 +272,17 @@ export class WorkingSet implements IWorkingSet {
      * @param path
      */
     private addDocument(path: string) {
-        var document: BracketsDocument = this.documentManager.getOpentDocumentForPath(path);
-        if (!document) {
-            throw new Error('??? should not happen');
-        }
-        if (this._files[path]) {
-            //should not happen but just in case ...
-            this.removeDocument(path);
-        }
-        this._files[document.file.fullPath] = document;
-        $(document).on('change', this.documentChangesHandler);
+        this.documentManager.getDocumentForPath(path).then(document => {
+            if (!document) {
+                throw new Error('??? should not happen');
+            }
+            if (this._files[path]) {
+                //should not happen but just in case ...
+                this.removeDocument(path);
+            }
+            this._files[document.file.fullPath] = document;
+            $(document).on('change', this.documentChangesHandler);
+        });
     }
     
     /**
@@ -291,7 +292,7 @@ export class WorkingSet implements IWorkingSet {
     private removeDocument(path: string) {
         var document = this._files[path];
         if (!document) {
-            throw new Error('??? should not happen');
+            return;
         }
         $(document).off('change', this.documentChangesHandler);
         delete this._files[path];

@@ -131,21 +131,23 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
         };
 
         WorkingSet.prototype.addDocument = function (path) {
-            var document = this.documentManager.getOpentDocumentForPath(path);
-            if (!document) {
-                throw new Error('??? should not happen');
-            }
-            if (this._files[path]) {
-                this.removeDocument(path);
-            }
-            this._files[document.file.fullPath] = document;
-            $(document).on('change', this.documentChangesHandler);
+            var _this = this;
+            this.documentManager.getDocumentForPath(path).then(function (document) {
+                if (!document) {
+                    throw new Error('??? should not happen');
+                }
+                if (_this._files[path]) {
+                    _this.removeDocument(path);
+                }
+                _this._files[document.file.fullPath] = document;
+                $(document).on('change', _this.documentChangesHandler);
+            });
         };
 
         WorkingSet.prototype.removeDocument = function (path) {
             var document = this._files[path];
             if (!document) {
-                throw new Error('??? should not happen');
+                return;
             }
             $(document).off('change', this.documentChangesHandler);
             delete this._files[path];

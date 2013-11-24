@@ -9,11 +9,16 @@ describe('WorkingSet', function (): void {
             getWorkingSet() {
                 return workingSetFiles.map(file => { return { fullPath: file }});
             },
-            getOpentDocumentForPath(path: string) {
+            getDocument(path: string) {
                 if (!documents[path]) {
                     documents[path] = { file: { fullPath: path } };
                 }
                 return documents[path];
+            },
+            getDocumentForPath(path: string) {
+                var deferred = $.Deferred<ws.BracketsDocument>();
+                deferred.resolve(this.getDocument(path));
+                return deferred.promise();
             },
             addFile(path: string) {
                 workingSetFiles.push(path)
@@ -128,7 +133,7 @@ describe('WorkingSet', function (): void {
         
         
        it('should notify when a document has been edited', function () {
-            var doc = documentManagerMock.getOpentDocumentForPath('/path/file1.ts');
+            var doc = documentManagerMock.getDocument('/path/file1.ts');
                
             $(doc).triggerHandler('change', [doc, {
                 from : {
@@ -186,7 +191,7 @@ describe('WorkingSet', function (): void {
         
         it('should notify when a multiple document have been edited', function () {
            
-            var doc = documentManagerMock.getOpentDocumentForPath('/path/file1.ts');
+            var doc = documentManagerMock.getDocument('/path/file1.ts');
             $(doc).triggerHandler('change', [doc, {
                 from : {
                     ch: 0,
@@ -201,7 +206,7 @@ describe('WorkingSet', function (): void {
             }]);
             
            
-            doc = documentManagerMock.getOpentDocumentForPath('/path/file3.ts');
+            doc = documentManagerMock.getDocument('/path/file3.ts');
             
             $(doc).triggerHandler('change', [doc, {
                 from : {
@@ -252,7 +257,7 @@ describe('WorkingSet', function (): void {
         
         it('should not notify when a document that is not in the working set have been edited ', function () {
             //stupid case to see if event handling works properly
-            var doc = documentManagerMock.getOpentDocumentForPath('/unknowpath');
+            var doc = documentManagerMock.getDocument('/unknowpath');
             $(doc).triggerHandler('change', [doc, {
                 from : {
                     ch: 0,
@@ -268,7 +273,7 @@ describe('WorkingSet', function (): void {
             
            
             documentManagerMock.removeFile('/path/file1.ts');
-            doc = documentManagerMock.getOpentDocumentForPath('/path/file1.ts');
+            doc = documentManagerMock.getDocument('/path/file1.ts');
             
             $(doc).triggerHandler('change', [doc, {
                 from : {
