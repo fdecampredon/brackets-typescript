@@ -526,7 +526,7 @@ declare module brackets {
          * it; see {@link getDocumentForPath()} for details.
          * @param fullPath
          */
-        getOpentDocumentForPath(fullPath: string): Document;
+        getOpenDocumentForPath(fullPath: string): Document;
         
          /**
          * Gets the text of a Document (including any unsaved changes), or would-be Document if the

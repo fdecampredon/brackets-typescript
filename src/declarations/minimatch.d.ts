@@ -72,5 +72,3 @@ interface MiniMatchStatic {
     (path: string, pattern: string, options?: MiniMatchOptions): boolean;
     filter(pattern: string, options?: MiniMatchOptions): { (path: string): boolean };
 }
-
-declare var minimatch: MiniMatchStatic;

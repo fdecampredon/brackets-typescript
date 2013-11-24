@@ -3,9 +3,9 @@ import ws = require('./workingSet');
 import coreService = require('./typescript/coreService');
 import script = require('./typescript/script');
 import language = require('./typescript/language');
+import utils = require('./typeScriptUtils');
 import Services = TypeScript.Services;
 
-var BRACKETS_TYPESCRIPT_FILE_NAME = '.brackets-typescript'; 
 
 export interface TypeScriptProjectFactory {
     (   
@@ -152,7 +152,7 @@ export class TypeScriptProjectManager {
 
 
 function isTypeScriptProjectConfigFile(path: string): boolean {
-    return path && path.substr(path.lastIndexOf('/') + 1, path.length) === BRACKETS_TYPESCRIPT_FILE_NAME;
+    return path && path.substr(path.lastIndexOf('/') + 1, path.length) === utils.PROJECT_CONFIG_FILE_NAME;
 }
 
 
@@ -219,8 +219,6 @@ export enum ProjectFileKind {
     SOURCE,
     REFERENCE
 }
-
-declare var TypeScriptDefaultLibraryPath: string;
 
 export class TypeScriptProject {
     
@@ -396,7 +394,7 @@ export class TypeScriptProject {
     
     private isProjectSourceFile(path: string): boolean {
         path = PathUtils.makePathRelative(path, this.baseDirectory);
-        return this.config.sources.some(pattern => minimatch(path, pattern));
+        return this.config.sources.some(pattern => utils.minimatch(path, pattern));
     }
     
     
@@ -502,7 +500,7 @@ export class TypeScriptProject {
     }
     
     private addDefaultLibrary() {
-        this.addFile(TypeScriptDefaultLibraryPath)
+        this.addFile(utils.DEFAULT_LIB_LOCATION)
     }
 }
 

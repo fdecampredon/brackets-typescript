@@ -1,9 +1,10 @@
 //a modified version of minimatch for browsers
-(function(exports) {
+
+
+define(function () {
 'use strict';
     
-var platform ="win32";
-exports.minimatch = minimatch;
+var platform = "win32";
 
     
 
@@ -260,32 +261,7 @@ function Entry (key, value, mru, len, age) {
   this.now = age
 }
     
-if (!require) {
-  require = function (id) {
-    switch (id) {
-      case "sigmund": return function sigmund (obj) {
-        return JSON.stringify(obj)
-      }
-      case "path": return { basename: function (f) {
-        f = f.split(/[\/\\]/)
-        var e = f.pop()
-        if (!e) e = f.pop()
-        return e
-      }}
-      case "lru-cache": return function LRUCache () {
-        // not quite an LRU, but still space-limited.
-        var cache = {}
-        var cnt = 0
-        this.set = function (k, v) {
-          cnt ++
-          if (cnt >= 100) cache = {}
-          cache[k] = v
-        }
-        this.get = function (k) { return cache[k] }
-      }
-    }
-  }
-}
+
     
 function sigmund (subject, maxSessions) {
     maxSessions = maxSessions || 10;
@@ -1372,4 +1348,4 @@ function regExpEscape (s) {
     
 return minimatch;    
 
-}(window));
+});

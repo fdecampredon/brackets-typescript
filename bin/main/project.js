@@ -1,12 +1,11 @@
-define(["require", "exports", './fileSystem', './workingSet', './typescript/coreService', './typescript/script', './typescript/language'], function(require, exports, __fileSystem__, __ws__, __coreService__, __script__, __language__) {
+define(["require", "exports", './fileSystem', './workingSet', './typescript/coreService', './typescript/script', './typescript/language', './typeScriptUtils'], function(require, exports, __fileSystem__, __ws__, __coreService__, __script__, __language__, __utils__) {
     var fileSystem = __fileSystem__;
     var ws = __ws__;
     var coreService = __coreService__;
     var script = __script__;
     var language = __language__;
+    var utils = __utils__;
     var Services = TypeScript.Services;
-
-    var BRACKETS_TYPESCRIPT_FILE_NAME = '.brackets-typescript';
 
     var TypeScriptProjectManager = (function () {
         function TypeScriptProjectManager(fileSystemService, workingSet, typeScriptProjectFactory) {
@@ -132,7 +131,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
     exports.TypeScriptProjectManager = TypeScriptProjectManager;
 
     function isTypeScriptProjectConfigFile(path) {
-        return path && path.substr(path.lastIndexOf('/') + 1, path.length) === BRACKETS_TYPESCRIPT_FILE_NAME;
+        return path && path.substr(path.lastIndexOf('/') + 1, path.length) === utils.PROJECT_CONFIG_FILE_NAME;
     }
 
     function validateTypeScriptProjectConfig(config) {
@@ -393,7 +392,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         TypeScriptProject.prototype.isProjectSourceFile = function (path) {
             path = PathUtils.makePathRelative(path, this.baseDirectory);
             return this.config.sources.some(function (pattern) {
-                return minimatch(path, pattern);
+                return utils.minimatch(path, pattern);
             });
         };
 
@@ -435,7 +434,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         };
 
         TypeScriptProject.prototype.addDefaultLibrary = function () {
-            this.addFile(TypeScriptDefaultLibraryPath);
+            this.addFile(utils.DEFAULT_LIB_LOCATION);
         };
         return TypeScriptProject;
     })();

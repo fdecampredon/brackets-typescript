@@ -11,10 +11,11 @@ define(["require", "exports", './mode', './fileSystem', './workingSet', './proje
     var commentsHelper = __commentsHelper__;
     var signal = __signal__;
 
+    var LanguageManager = brackets.getModule('language/LanguageManager'), FileSystem = brackets.getModule('filesystem/FileSystem'), DocumentManager = brackets.getModule('document/DocumentManager'), ProjectManager = brackets.getModule('project/ProjectManager'), CodeHintManager = brackets.getModule('editor/CodeHintManager'), CodeInspection = brackets.getModule('language/CodeInspection'), EditorManager = brackets.getModule('editor/EditorManager');
+
     function init() {
         CodeMirror.defineMode('typescript', typeScriptModeFactory);
 
-        var LanguageManager = brackets.getModule('language/LanguageManager');
         LanguageManager.defineLanguage('typescript', {
             name: 'TypeScript',
             mode: 'typescript',
@@ -22,8 +23,6 @@ define(["require", "exports", './mode', './fileSystem', './workingSet', './proje
             blockComment: ['/*', '*/'],
             lineComment: ['//']
         });
-
-        var FileSystem = brackets.getModule('filesystem/FileSystem'), DocumentManager = brackets.getModule('document/DocumentManager'), ProjectManager = brackets.getModule('project/ProjectManager'), FileUtils = brackets.getModule('file/FileUtils'), CodeHintManager = brackets.getModule('editor/CodeHintManager'), CodeInspection = brackets.getModule('language/CodeInspection'), EditorManager = brackets.getModule('editor/EditorManager');
 
         var fileSystemService = new fs.FileSystem(FileSystem, ProjectManager), workingSet = new ws.WorkingSet(DocumentManager);
 
