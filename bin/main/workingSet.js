@@ -10,12 +10,12 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
     var WorkingSet = (function () {
         function WorkingSet(documentManager) {
             var _this = this;
-            this.workingSetChanged = new signal.Signal();
-            this.documentEdited = new signal.Signal();
-            this.currentDocumentChanged = new signal.Signal();
-            this._files = [];
+            this.documentManager = documentManager;
+            this._workingSetChanged = new signal.Signal();
+            this._documentEdited = new signal.Signal();
+            this._files = {};
             this.workingSetAddHandler = function (event, file) {
-                _this._files.push(file.fullPath);
+                _this.addDocument(file.fullPath);
                 _this.workingSetChanged.dispatch({
                     kind: WorkingSetChangeKind.ADD,
                     paths: [file.fullPath]
@@ -27,52 +27,44 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
                     files[_i] = arguments[_i + 1];
                 }
                 var paths = files.map(function (file) {
+                    _this.addDocument(file.fullPath);
                     return file.fullPath;
                 });
-                _this._files = _this._files.concat(paths);
-                _this.workingSetChanged.dispatch({
-                    kind: WorkingSetChangeKind.ADD,
-                    paths: paths
-                });
-            };
-            this.workingSetRemoveHandler = function (event, file) {
-                var index = _this._files.indexOf(file.fullPath);
-                if (index !== -1) {
-                    _this._files.splice(index, 1);
+                if (paths.length > 0) {
                     _this.workingSetChanged.dispatch({
-                        kind: WorkingSetChangeKind.REMOVE,
-                        paths: [file.fullPath]
+                        kind: WorkingSetChangeKind.ADD,
+                        paths: paths
                     });
                 }
+            };
+            this.workingSetRemoveHandler = function (event, file) {
+                _this.removeDocument(file.fullPath);
+                _this.workingSetChanged.dispatch({
+                    kind: WorkingSetChangeKind.REMOVE,
+                    paths: [file.fullPath]
+                });
             };
             this.workingSetRemoveListHandler = function (event) {
                 var files = [];
                 for (var _i = 0; _i < (arguments.length - 1); _i++) {
                     files[_i] = arguments[_i + 1];
                 }
-                var pathsRemoved = [];
-                files.forEach(function (file) {
-                    var index = _this._files.indexOf(file.fullPath);
-                    if (index !== -1) {
-                        _this._files.splice(index, 1);
-                        pathsRemoved.push(file.fullPath);
-                    }
+                var paths = files.map(function (file) {
+                    _this.removeDocument(file.fullPath);
+                    return file.fullPath;
                 });
-                if (pathsRemoved.length > 0) {
+                if (paths.length > 0) {
                     _this.workingSetChanged.dispatch({
                         kind: WorkingSetChangeKind.REMOVE,
-                        paths: pathsRemoved
+                        paths: paths
                     });
                 }
-            };
-            this.currentDocumentChangeHandler = function (event, document) {
-                _this.setCurrentDocument(_this.documentManager.getCurrentDocument());
             };
             this.documentChangesHandler = function (event, document, change) {
                 var changesDescriptor = [];
                 while (change) {
                     changesDescriptor.push({
-                        path: _this._currentDocument.file.fullPath,
+                        path: document.file.fullPath,
                         from: change.from,
                         to: change.to,
                         text: change.text && change.text.join('\n'),
@@ -84,27 +76,50 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
                     _this.documentEdited.dispatch(changesDescriptor);
                 }
             };
-            this.documentManager = documentManager;
             $(documentManager).on('workingSetAdd', this.workingSetAddHandler);
             $(documentManager).on('workingSetAddList', this.workingSetAddListHandler);
             $(documentManager).on('workingSetRemove', this.workingSetRemoveHandler);
             $(documentManager).on('workingSetRemoveList', this.workingSetRemoveListHandler);
-            $(documentManager).on('currentDocumentChange', this.currentDocumentChangeHandler);
-            this._files = documentManager.getWorkingSet().map(function (file) {
+            this.setFiles(documentManager.getWorkingSet().map(function (file) {
                 return file.fullPath;
-            });
-            this.setCurrentDocument(this.documentManager.getCurrentDocument());
+            }));
         }
-        Object.defineProperty(WorkingSet.prototype, "files", {
+        Object.defineProperty(WorkingSet.prototype, "workingSetChanged", {
             get: function () {
-                return this._files.slice(0, this._files.length);
+                return this._workingSetChanged;
             },
             enumerable: true,
             configurable: true
         });
 
-        WorkingSet.prototype.getCurrentDocument = function () {
-            return this._currentDocument;
+        Object.defineProperty(WorkingSet.prototype, "documentEdited", {
+            get: function () {
+                return this._documentEdited;
+            },
+            enumerable: true,
+            configurable: true
+        });
+
+        Object.defineProperty(WorkingSet.prototype, "files", {
+            get: function () {
+                return Object.keys(this._files);
+            },
+            enumerable: true,
+            configurable: true
+        });
+
+        WorkingSet.prototype.setFiles = function (files) {
+            var _this = this;
+            for (var path in this._files) {
+                if (this._files.hasOwnProperty(path)) {
+                    this.removeDocument(path);
+                }
+            }
+            if (files) {
+                files.forEach(function (file) {
+                    return _this.addDocument(file);
+                });
+            }
         };
 
         WorkingSet.prototype.dispose = function () {
@@ -112,19 +127,28 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
             $(this.documentManager).off('workingSetAddList', this.workingSetAddListHandler);
             $(this.documentManager).off('workingSetRemove', this.workingSetRemoveHandler);
             $(this.documentManager).off('workingSetRemoveList', this.workingSetRemoveListHandler);
-            $(this.documentManager).off('currentDocumentChange', this.currentDocumentChangeHandler);
-            this.setCurrentDocument(null);
+            this.setFiles(null);
         };
 
-        WorkingSet.prototype.setCurrentDocument = function (document) {
-            if (this._currentDocument) {
-                $(this._currentDocument).off('change', this.documentChangesHandler);
+        WorkingSet.prototype.addDocument = function (path) {
+            var document = this.documentManager.getOpentDocumentForPath(path);
+            if (!document) {
+                throw new Error('??? should not happen');
             }
-            this._currentDocument = document;
-            if (this._currentDocument) {
-                $(this._currentDocument).on('change', this.documentChangesHandler);
+            if (this._files[path]) {
+                this.removeDocument(path);
             }
-            this.currentDocumentChanged.dispatch(this._currentDocument);
+            this._files[document.file.fullPath] = document;
+            $(document).on('change', this.documentChangesHandler);
+        };
+
+        WorkingSet.prototype.removeDocument = function (path) {
+            var document = this._files[path];
+            if (!document) {
+                throw new Error('??? should not happen');
+            }
+            $(document).off('change', this.documentChangesHandler);
+            delete this._files[path];
         };
         return WorkingSet;
     })();

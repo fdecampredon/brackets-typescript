@@ -1,150 +1,310 @@
 import signal = require('./utils/signal');
 
-export interface IWorkingSet {
-    getCurrentDocument(): brackets.Document;
-    
-    workingSetChanged: signal.ISignal<ChangeRecord>;
-    documentEdited: signal.ISignal<DocumentChangeDescriptor[]>;
-    currentDocumentChanged: signal.ISignal<brackets.Document>;
 
-    files:string [];
+
+//--------------------------------------------------------------------------
+//
+//  IWorkingSet
+//
+//--------------------------------------------------------------------------
+
+/**
+ * A simple wrapper over brackets Document and DocumentManager that
+ * provide information of change in the working set and
+ * in the edited document.
+ */
+export interface IWorkingSet {
+    /**
+     * list of files in the working set
+     */
+    files: string [];
+
+    
+    /**
+     * a signal dispatching events when change occured in the working set
+     */
+    workingSetChanged: signal.ISignal<ChangeRecord>;
+    
+    /**
+     * a signal that provide fine grained change over edited document
+     */
+    documentEdited: signal.ISignal<DocumentChangeDescriptor[]>;
+
+    /**
+     * dispose the working set 
+     */
     dispose(): void;
 }
 
 
+
+//--------------------------------------------------------------------------
+//
+//  ChangeRecord
+//
+//--------------------------------------------------------------------------
+
+
+/**
+ * describe change in the working set
+ */
 export interface ChangeRecord {
+    /**
+     * kind of change that occured in the working set
+     */
     kind: WorkingSetChangeKind;
+    
+    /**
+     * list of paths that has been added or removed from the working set
+     */
     paths : string[];
 }
+
+
+/**
+ * enum listing the change kind that occur in a working set
+ */
 export enum WorkingSetChangeKind {
     ADD,
     REMOVE
 }
 
 
+
+
+
+
+
+//--------------------------------------------------------------------------
+//
+//  DocumentChangeDescriptor
+//
+//--------------------------------------------------------------------------
+
+/**
+ * describe a change in a document
+ */
+export interface DocumentChangeDescriptor {
+    /**
+     * path of the files that has changed
+     */
+    path: string;
+    
+    /**
+     * start position of the change
+     */
+    from: Position;
+    
+    /**
+     * end positon of the change
+     */
+    to: Position;
+    
+    /**
+     * text that has been inserted (if any)
+     */
+    text: string;
+    
+    /**
+     * text that has been removed (if any)
+     */
+    removed: string;
+}
+
+/**
+ * describe a positon in a document by line/character
+ */
 export interface Position {
     line: number;
     ch: number;
 }
 
-export interface DocumentChangeDescriptor {
-    path: string;
-    from: Position;
-    to: Position;
-    text: string;
-    removed: string;
+
+//--------------------------------------------------------------------------
+//
+//  IWorkingSet implementation
+//
+//--------------------------------------------------------------------------
+
+/**
+ * extracted interface of the brackets DocumentManager 
+ */
+export interface BracketesDocumentManager {
+    getWorkingSet(): { fullPath: string }[];
+    getOpentDocumentForPath(fullPath: string): BracketsDocument;
 }
 
+/**
+ * extracted interface of the brackets Document
+ */
+export interface BracketsDocument {
+    file: { fullPath: string };
+}
 
+/**
+ * implementation of the IWorkingSet
+ */
 export class WorkingSet implements IWorkingSet {
     
-    private documentManager: brackets.DocumentManager;
     
-    constructor(documentManager: brackets.DocumentManager) {
-        this.documentManager = documentManager
+    constructor(
+            private documentManager: BracketesDocumentManager
+    ) {
         $(documentManager).on('workingSetAdd', this.workingSetAddHandler);
         $(documentManager).on('workingSetAddList', this.workingSetAddListHandler);
         $(documentManager).on('workingSetRemove', this.workingSetRemoveHandler);
         $(documentManager).on('workingSetRemoveList', this.workingSetRemoveListHandler);
-        $(documentManager).on('currentDocumentChange', this.currentDocumentChangeHandler);
-        this._files = documentManager.getWorkingSet().map(file => file.fullPath);
-        this.setCurrentDocument(this.documentManager.getCurrentDocument());
+        this.setFiles(documentManager.getWorkingSet().map(file => file.fullPath));
     }
     
-    workingSetChanged = new signal.Signal<ChangeRecord>();
-    documentEdited = new signal.Signal<DocumentChangeDescriptor[]>();
-    currentDocumentChanged = new signal.Signal<brackets.Document>();
+    private _workingSetChanged = new signal.Signal<ChangeRecord>();
     
-    private _files: string[] = [];
+    /**
+     * @see IWorkingSet#workingSetChanged
+     */
+    get workingSetChanged() {
+        return this._workingSetChanged;
+    }
+    
+    private _documentEdited = new signal.Signal<DocumentChangeDescriptor[]>();
+    
+    /**
+     * @see IWorkingSet#documentEdited
+     */
+    get documentEdited() {
+        return this._documentEdited;
+    }
+    
+    /**
+     * map file to document for event handling
+     */
+    private _files: { [path: string]: BracketsDocument } = {};
 
+    /**
+     * @see IWorkingSet#files
+     */
     get files(): string[] {
-        return this._files.slice(0, this._files.length);
+        return Object.keys(this._files)
     }
     
-    getCurrentDocument() {
-        return this._currentDocument
-    }    
+    /**
+     * set working set files
+     */
+    private setFiles(files: string[]) {
+        for (var path in this._files) {
+            if (this._files.hasOwnProperty(path)) {
+                this.removeDocument(path);
+            }
+        }
+        if (files) {
+            files.forEach(file => this.addDocument(file));
+        }
+    }
+ 
     
-   
-    
-        
+    /**
+     * @see dispose
+     */    
     dispose(): void {
         $(this.documentManager).off('workingSetAdd', this.workingSetAddHandler);
         $(this.documentManager).off('workingSetAddList', this.workingSetAddListHandler);
         $(this.documentManager).off('workingSetRemove', this.workingSetRemoveHandler);
         $(this.documentManager).off('workingSetRemoveList', this.workingSetRemoveListHandler);
-        $(this.documentManager).off('currentDocumentChange', this.currentDocumentChangeHandler);
-        this.setCurrentDocument(null);
+        this.setFiles(null);
     }
     
+    /**
+     * handle 'workingSetAdd' event
+     */
     private workingSetAddHandler = (event: any, file: brackets.File) => {
-        this._files.push(file.fullPath);
+        this.addDocument(file.fullPath);
         this.workingSetChanged.dispatch({
             kind: WorkingSetChangeKind.ADD,
             paths: [file.fullPath]
         });
     }
 
-    
+    /**
+     * handle 'workingSetAddList' event
+     */
     private workingSetAddListHandler = (event: any, ...files: brackets.File[]) => {
-        var paths = files.map( file => file.fullPath);
-        this._files = this._files.concat(paths);
-        this.workingSetChanged.dispatch({
-            kind: WorkingSetChangeKind.ADD,
-            paths: paths
+        var paths = files.map( file => {
+            this.addDocument(file.fullPath); 
+            return file.fullPath
         });
+        if (paths.length > 0) {
+            this.workingSetChanged.dispatch({
+                kind: WorkingSetChangeKind.ADD,
+                paths: paths
+            });
+        }
     }
     
-            
+    /**
+     * handle 'workingSetRemove' event
+     */      
     private workingSetRemoveHandler = (event: any, file: brackets.File) => {
-        var index = this._files.indexOf(file.fullPath);
-        if (index !== -1) {
-            this._files.splice(index, 1);
-            this.workingSetChanged.dispatch({
-                kind: WorkingSetChangeKind.REMOVE,
-                paths: [file.fullPath]
-            });
-        }
-    }
-    
-    private workingSetRemoveListHandler = (event: any, ...files: brackets.File[]) => {
-        var pathsRemoved: string[] = [];
-        files.forEach(file => {
-            var index = this._files.indexOf(file.fullPath);
-            if (index !== -1) {
-                this._files.splice(index, 1);
-                pathsRemoved.push(file.fullPath)
-            }
+        this.removeDocument(file.fullPath);
+        this.workingSetChanged.dispatch({
+            kind: WorkingSetChangeKind.REMOVE,
+            paths: [file.fullPath]
         });
-        if (pathsRemoved.length > 0) {
+    }
+    
+    /**
+     * handle 'workingSetRemoveList' event
+     */      
+    private workingSetRemoveListHandler = (event: any, ...files: brackets.File[]) => {
+        var paths = files.map( file => {
+            this.removeDocument(file.fullPath); 
+            return file.fullPath
+        });
+        if (paths.length > 0) {
             this.workingSetChanged.dispatch({
                 kind: WorkingSetChangeKind.REMOVE,
-                paths: pathsRemoved
+                paths: paths
             });
         }
     }
-    
-    private currentDocumentChangeHandler = (event: any, document: brackets.Document) => {
-        this.setCurrentDocument(this.documentManager.getCurrentDocument());
+ 
+    /**
+     * add a document to the working set, and add event listener on the 'change' of this workingset
+     * @param path
+     */
+    private addDocument(path: string) {
+        var document: BracketsDocument = this.documentManager.getOpentDocumentForPath(path);
+        if (!document) {
+            throw new Error('??? should not happen');
+        }
+        if (this._files[path]) {
+            //should not happen but just in case ...
+            this.removeDocument(path);
+        }
+        this._files[document.file.fullPath] = document;
+        $(document).on('change', this.documentChangesHandler);
     }
     
-    private _currentDocument: brackets.Document;
-    private setCurrentDocument(document: brackets.Document) {
-        if (this._currentDocument) {
-            $(this._currentDocument).off('change', this.documentChangesHandler);
+    /**
+     * remove a document from working set, and add event listener on the 'change' of this workingset
+     * @param path
+     */
+    private removeDocument(path: string) {
+        var document = this._files[path];
+        if (!document) {
+            throw new Error('??? should not happen');
         }
-        this._currentDocument = document;
-        if (this._currentDocument) {
-            $(this._currentDocument).on('change', this.documentChangesHandler);
-        }
-        this.currentDocumentChanged.dispatch(this._currentDocument);
+        $(document).off('change', this.documentChangesHandler);
+        delete this._files[path];
     }
     
-    private documentChangesHandler = (event: any, document: brackets.Document, change: CodeMirror.EditorChangeLinkedList) => {
+    /**
+     * handle 'change' on document
+     */
+    private documentChangesHandler = (event: any, document: BracketsDocument, change: CodeMirror.EditorChangeLinkedList) => {
         var changesDescriptor: DocumentChangeDescriptor[] = []
         while (change) {
             changesDescriptor.push({
-                path: this._currentDocument.file.fullPath,
+                path: document.file.fullPath,
                 from: change.from,
                 to: change.to,
                 text: change.text && change.text.join('\n'),
