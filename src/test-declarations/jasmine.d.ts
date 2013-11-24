@@ -353,6 +353,7 @@ declare module jasmine {
         andReturn(value: any): Spy;
         andCallThrough(): Spy;
         andCallFake(fakeFunc: Function): Spy;
+        reset(): void;
     }
 
     interface Util {

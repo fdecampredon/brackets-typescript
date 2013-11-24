@@ -268,6 +268,9 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
     }
     
     private hintTextFromInfo(entryInfo : Services.CompletionEntryDetails): string {
+        if (!entryInfo) {
+            return 'bla'
+        }
         var text = entryInfo.name;
         if (isFunctionElement(entryInfo.kind)) {
             text += entryInfo.type || '';

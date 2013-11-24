@@ -3,11 +3,6 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
 
     var signal = __signal__;
 
-    (function (FileSystemError) {
-        FileSystemError[FileSystemError["FILE_NOT_FOUND"] = 0] = "FILE_NOT_FOUND";
-    })(exports.FileSystemError || (exports.FileSystemError = {}));
-    var FileSystemError = exports.FileSystemError;
-
     (function (FileChangeKind) {
         FileChangeKind[FileChangeKind["ADD"] = 0] = "ADD";
 
@@ -26,13 +21,12 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
             this.projectManager = projectManager;
             this.isDirty = true;
             this.changesHandler = function (file) {
+                if (_this.isDirty) {
+                    return;
+                }
+
                 if (!file) {
-                    _this.isDirty = true;
-                    _this.projectFilesChanged.dispatch([
-                        {
-                            kind: FileChangeKind.REFRESH
-                        }
-                    ]);
+                    _this.reset();
                 } else if (file.isFile) {
                     _this.projectFilesChanged.dispatch([
                         {
@@ -44,23 +38,18 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
                     var directory = file, children;
                     directory.getContents(function (err, files) {
                         if (err) {
-                            _this.isDirty = true;
-                            _this.projectFilesChanged.dispatch([
-                                {
-                                    kind: FileChangeKind.REFRESH
-                                }
-                            ]);
-                            return;
+                            _this.reset();
                         }
                         var oldFiles = {}, newFiles = {};
+
                         _this.filesPaths.forEach(function (path) {
                             var index = path.indexOf(directory.fullPath);
                             if (index !== -1) {
-                                var index2 = path.indexOf('/', index);
-                                if (index2 = -1) {
+                                var index2 = path.indexOf('/', index + directory.fullPath.length);
+                                if (index2 === -1) {
                                     oldFiles[path] = [path];
                                 } else {
-                                    var dirPath = path.substring(0, index2);
+                                    var dirPath = path.substring(0, index2 + 1);
                                     if (!oldFiles[dirPath]) {
                                         oldFiles[dirPath] = [path];
                                     } else {
@@ -74,7 +63,7 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
                             newFiles[file.fullPath] = file;
                         });
 
-                        var changes;
+                        var changes = [];
                         for (var path in oldFiles) {
                             if (!newFiles.hasOwnProperty(path) && oldFiles.hasOwnProperty(path)) {
                                 oldFiles[path].forEach(function (path) {
@@ -102,14 +91,15 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
                                         path: path
                                     });
                                 } else {
-                                    var directory = newFiles[path];
-                                    promises.push(_this.getDirectoryFiles(directory).then(function (files) {
+                                    var newDir = newFiles[path];
+
+                                    promises.push(_this.getDirectoryFiles(newDir).then(function (files) {
                                         files.forEach(function (file) {
-                                            _this.filesPaths.push(path);
-                                            _this.files[path] = newFiles[path];
+                                            _this.filesPaths.push(file.fullPath);
+                                            _this.files[file.fullPath] = newFiles[file.fullPath];
                                             changes.push({
                                                 kind: FileChangeKind.ADD,
-                                                path: path
+                                                path: file.fullPath
                                             });
                                         });
                                     }));
@@ -117,11 +107,14 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
                             }
                         }
                         ;
+
                         if (promises.length > 0) {
                             ($.when.apply($, promises)).then(function () {
                                 if (changes.length > 0) {
                                     _this.projectFilesChanged.dispatch(changes);
                                 }
+                            }, function () {
+                                _this.reset();
                             });
                         } else if (changes.length > 0) {
                             _this.projectFilesChanged.dispatch(changes);
@@ -140,12 +133,11 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
             configurable: true
         });
 
-        FileSystem.prototype.getProjectFiles = function (forceRefresh) {
-            if (typeof forceRefresh === "undefined") { forceRefresh = false; }
+        FileSystem.prototype.getProjectFiles = function () {
             var _this = this;
             var deferred = $.Deferred();
 
-            if (!forceRefresh && !this.isDirty) {
+            if (!this.isDirty) {
                 deferred.resolve(this.filesPaths);
             } else {
                 this.projectManager.getAllFiles().then(function (files) {
@@ -167,7 +159,7 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
 
         FileSystem.prototype.readFile = function (path) {
             var result = $.Deferred(), file;
-            if (this.files.hasOwnProperty(path)) {
+            if (!this.isDirty && this.files.hasOwnProperty(path)) {
                 file = this.files[path];
             } else {
                 file = this.nativeFileSystem.getFileForPath(path);
@@ -189,8 +181,19 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
             this._projectFilesChanged.clear();
         };
 
+        FileSystem.prototype.reset = function () {
+            this.isDirty = true;
+            this.files = null;
+            this.filesPaths = null;
+            this.projectFilesChanged.dispatch([
+                {
+                    kind: FileChangeKind.REFRESH
+                }
+            ]);
+        };
+
         FileSystem.prototype.getDirectoryFiles = function (directory) {
-            var deferred = $.Deferred(), files;
+            var deferred = $.Deferred(), files = [];
 
             directory.visit(function (entry) {
                 if (entry.isFile) {
@@ -205,26 +208,4 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
         return FileSystem;
     })();
     exports.FileSystem = FileSystem;
-
-    var StringSet = (function () {
-        function StringSet() {
-            this.map = Object.create(null);
-        }
-        StringSet.prototype.add = function (value) {
-            this.map[value] = true;
-        };
-
-        StringSet.prototype.remove = function (value) {
-            return delete this.map[value];
-        };
-
-        StringSet.prototype.has = function (value) {
-            return this.map[value];
-        };
-
-        StringSet.prototype.forEach = function (callback) {
-            return Object.keys(this.map).forEach(callback);
-        };
-        return StringSet;
-    })();
 });

@@ -216,6 +216,9 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
         };
 
         TypeScriptCodeHintProvider.prototype.hintTextFromInfo = function (entryInfo) {
+            if (!entryInfo) {
+                return 'bla';
+            }
             var text = entryInfo.name;
             if (isFunctionElement(entryInfo.kind)) {
                 text += entryInfo.type || '';

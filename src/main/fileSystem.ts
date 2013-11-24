@@ -1,13 +1,13 @@
 'use strict';
 
-
-//--------------------------------------------------------------------------
-//
-//  FileSystem
-//
-//--------------------------------------------------------------------------
-
 import signal = require('./utils/signal');
+
+
+//--------------------------------------------------------------------------
+//
+//  IFileSystem
+//
+//--------------------------------------------------------------------------
 
 /**
  * A simple wrapper over brackets filesystem that provide simple function and 
@@ -21,9 +21,8 @@ export interface IFileSystem {
     
     /**
      * return a promise that resolve with a string containing the files in the project
-     * @param forceRefresh if set to true refresh the internal cache
      */
-    getProjectFiles(forceRefresh?: boolean): JQueryPromise<string []>;
+    getProjectFiles(): JQueryPromise<string []>;
     
     /**
      * read a file, return a promise with the file content
@@ -38,12 +37,11 @@ export interface IFileSystem {
 }
 
 
-/**
- * Errors enum
- */
-export enum FileSystemError  {
-    FILE_NOT_FOUND
-}
+//--------------------------------------------------------------------------
+//
+//  Change record
+//
+//--------------------------------------------------------------------------
 
 
 /**
@@ -80,36 +78,26 @@ export interface ChangeRecord {
 }
 
 
+//--------------------------------------------------------------------------
+//
+//  IFileSystem implementation
+//
+//--------------------------------------------------------------------------
+
+
 /**
  * Extracted interface of the brackets FileSystem
  */
 export interface BracketsFileSystem{
-    /**
-     * Return a File object for the specified path.This file may not yet exist on disk.
-     *
-     * @param path Absolute path of file. 
-     */
     getFileForPath(path: string): brackets.File; 
     on(event: string, handler: (...rest: any[]) => any): void
     off(event: string, handler: (...rest: any[]) => any): void
 } 
 
 /**
- * extracted inteface of the brackets Project Manager
+ * extracted inteface of the brackets ProjectManager
  */
 export interface BracketsProjectManager {
-    /**
-     * Returns an Array of all files for this project, optionally including
-     * files in the working set that are *not* under the project root. Files filtered
-     * out by shouldShow() OR isBinaryFile() are excluded.
-     *
-     * @param filter Optional function to filter
-     *          the file list (does not filter directory traversal). API matches Array.filter().
-     * @param includeWorkingSet If true, include files in the working set
-     *          that are not under the project root (*except* for untitled documents).
-     *
-     * @return {$.Promise} Promise that is resolved with an Array of File objects.
-     */
     getAllFiles(filter?: (file: brackets.File) => boolean, includeWorkingSet?: boolean):JQueryPromise<brackets.File[]>;
 }
 
@@ -155,10 +143,10 @@ export class FileSystem implements IFileSystem {
     /**
      * @see IFileSystem.getProjectFiles
      */
-    getProjectFiles(forceRefresh: boolean = false): JQueryPromise<string[]> {
+    getProjectFiles(): JQueryPromise<string[]> {
         var deferred = $.Deferred<string[]>();
         
-        if (!forceRefresh && !this.isDirty) {
+        if (!this.isDirty) {
             deferred.resolve(this.filesPaths);
         } else {
             this.projectManager.getAllFiles().then((files: brackets.File[]) => {
@@ -184,7 +172,7 @@ export class FileSystem implements IFileSystem {
     readFile(path: string): JQueryPromise<string> {
         var result = $.Deferred(),
             file: brackets.File;
-        if (this.files.hasOwnProperty(path)) {
+        if (!this.isDirty && this.files.hasOwnProperty(path)) {
             file = this.files[path];
         } else {
             file = this.nativeFileSystem.getFileForPath(path)
@@ -210,14 +198,19 @@ export class FileSystem implements IFileSystem {
     }
     
     
-    
-    private changesHandler = (file? : brackets.FileSystemEntry): void  => {
+    /**
+     * handle project workspaces changes
+     */
+    private changesHandler = (file? : brackets.FileSystemEntry) => {
+        if (this.isDirty) {
+            return
+        }
+        
         if (!file) {
-            this.isDirty = true;
-            this.projectFilesChanged.dispatch([{
-                kind: FileChangeKind.REFRESH
-            }]);
+            //everithing does have changed reset 
+            this.reset();
         } else if (file.isFile) {
+            //file have been updated simply dispatch an update event
             this.projectFilesChanged.dispatch([{
                kind: FileChangeKind.UPDATE,
                path: file.fullPath
@@ -227,22 +220,22 @@ export class FileSystem implements IFileSystem {
                children: brackets.FileSystemEntry;
             directory.getContents((err: string, files: brackets.FileSystemEntry[]) => {
                 if (err) {
-                    this.isDirty = true;
-                    this.projectFilesChanged.dispatch([{
-                        kind: FileChangeKind.REFRESH
-                    }]);
-                    return;
+                    // an err occured reset 
+                    this.reset();
                 }
                 var oldFiles: { [path: string]: string[]} = {},
                     newFiles: { [path: string]: brackets.FileSystemEntry} = {};
+                
+                //collect all the paths in the cache
                 this.filesPaths.forEach(path  => {
                     var index = path.indexOf(directory.fullPath)
                     if (index !== -1) {
-                        var index2 = path.indexOf('/', index);
-                        if (index2 = -1) {
+                        var index2 = path.indexOf('/', index + directory.fullPath.length);
+                        if (index2 === -1) {
                             oldFiles[path] = [path];
                         } else {
-                            var dirPath = path.substring(0, index2);
+                            //in case of subdir regroup the files by subdir
+                            var dirPath = path.substring(0, index2 + 1);
                             if (!oldFiles[dirPath]) {
                                 oldFiles[dirPath] = [path];
                             } else {
@@ -256,9 +249,10 @@ export class FileSystem implements IFileSystem {
                     newFiles[file.fullPath] = file;
                 });
                 
-                var changes: ChangeRecord[];
+                var changes: ChangeRecord[] = [];
                 for (var path in oldFiles) {
-                    if (!newFiles.hasOwnProperty(path) && oldFiles.hasOwnProperty(path))  {
+                    if (!newFiles.hasOwnProperty(path) && oldFiles.hasOwnProperty(path)) {
+                        //for each files that has been deleted add a DELETE record
                         oldFiles[path].forEach(path => {
                             var index = this.filesPaths.indexOf(path);
                             if (index !== -1) {
@@ -276,6 +270,7 @@ export class FileSystem implements IFileSystem {
                 var promises: JQueryPromise<any>[] = []
                 for (var path in newFiles) {
                     if (newFiles.hasOwnProperty(path) && !oldFiles.hasOwnProperty(path))  {
+                        //if a file has been added just add a ADD record
                         if (newFiles[path].isFile) {
                             this.filesPaths.push(path);
                             this.files[path] = <brackets.File> newFiles[path];
@@ -284,27 +279,34 @@ export class FileSystem implements IFileSystem {
                                 path : path
                             });   
                         } else {
-                            var directory = <brackets.Directory> newFiles[path];
-                            promises.push(this.getDirectoryFiles(directory).then( files => {
+                            var newDir = <brackets.Directory> newFiles[path];
+                            //if a dir has been added collect each files in this directory then for each one add an 'ADD' record
+                            promises.push(this.getDirectoryFiles(newDir).then( files => {
                                 files.forEach(file => {
-                                    this.filesPaths.push(path);
-                                    this.files[path] = <brackets.File> newFiles[path];
+                                    this.filesPaths.push(file.fullPath);
+                                    this.files[file.fullPath] = <brackets.File> newFiles[file.fullPath];
                                     changes.push({
                                         kind: FileChangeKind.ADD,
-                                        path : path
+                                        path : file.fullPath
                                     });     
                                 })        
                             }))
                         }
                     }
                 };
+                
+                //if async wait for each promise to resolve then dispatch the change event (if any change occured)
                 if (promises.length > 0 ) {
                     (<JQueryPromise<any>>$.when.apply($, promises)).then(() => {
                         if (changes.length > 0) {
                             this.projectFilesChanged.dispatch(changes);  
                         }  
-                    })
+                    }, () => {
+                        //in case of error reset
+                        this.reset()
+                    });
                 } else if (changes.length > 0) {
+                    // else this patch the change record (if any change occured)
                     this.projectFilesChanged.dispatch(changes);  
                 }  
                 
@@ -313,11 +315,23 @@ export class FileSystem implements IFileSystem {
     }
     
     /**
+     * reset the wrapper and dispatch a refresh event
+     */
+    private reset():void {
+        this.isDirty = true;
+        this.files = null;
+        this.filesPaths = null;
+        this.projectFilesChanged.dispatch([{
+            kind: FileChangeKind.REFRESH
+        }]);
+    }
+    
+    /**
      * retrieves all files contained in a directory (and in subdirectory)
      */
     private getDirectoryFiles(directory: brackets.Directory): JQueryPromise<brackets.File[]> {
         var deferred = $.Deferred(),
-            files: brackets.File[]; 
+            files: brackets.File[] = []; 
         
         directory.visit(entry => {
             if (entry.isFile) {
@@ -328,34 +342,5 @@ export class FileSystem implements IFileSystem {
             deferred.resolve(files);
         });
         return deferred.promise()
-    }
-    
-    
-}
-    
-    
-
-
-class StringSet {
-    map: { [path: string]: boolean };
-    
-    constructor() {
-        this.map = Object.create(null)
-    }
-    
-    add(value: string): void {
-        this.map[value] = true;
-    }
-    
-    remove(value: string): boolean {
-        return delete this.map[value];
-    }
-    
-    has(value: string): boolean {
-        return this.map[value];
-    }
-    
-    forEach(callback: (value: string) => void) {
-        return Object.keys(this.map).forEach(callback)
     }
 }
