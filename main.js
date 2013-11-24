@@ -7,16 +7,25 @@ define(function (require, exports, module) {
         [
             "third_party/typescriptServices",
             "third_party/minimatch",
-            "bin/main/typeScriptUtils"
+            "bin/main/typeScriptUtils",
+            "text!config.json"
         ],
-        function (typescript, minimatch, typeScriptUtils, init) {
-            var AppInit = brackets.getModule('utils/AppInit');
+        function (typescript, minimatch, typeScriptUtils, configText) {
+            var AppInit = brackets.getModule('utils/AppInit'),
+                config = JSON.parse(configText);
+            
             typeScriptUtils.DEFAULT_LIB_LOCATION = require.toUrl('third_party/lib.d.ts');
             typeScriptUtils.minimatch = minimatch;
             
             require(["bin/main/index"], function (init) {
-                init();
-                //AppInit.appReady(init);
+                //in debug mode avoid using AppInit that catch errors ...
+                if (config.isDebug) {
+                    init(config);
+                } else {
+                    AppInit.appReady(function () {
+                        init(config);
+                    });
+                }
             });
         }
     );

@@ -1,33 +1,61 @@
 'use strict';
 
-var debug: boolean;
+var currentLogLevel: Logger.Level = 3;
 
 class Logger {
     information(): boolean { 
-    	return debug; 
+    	return currentLogLevel >= Logger.Level.INFORMATION; 
     }
+    
     debug(): boolean { 
-    	return debug; 
+    	return currentLogLevel >= Logger.Level.DEBUG; 
     }
+    
     warning(): boolean { 
-    	return debug; 
+    	return currentLogLevel >= Logger.Level.WARNING; 
     }
+    
     error(): boolean { 
-    	return debug; 
+    	return currentLogLevel >= Logger.Level.ERROR; 
     }
+    
     fatal(): boolean { 
-    	return debug; 
+    	return currentLogLevel >= Logger.Level.FATAL; 
     }
 
     log(s: string): void {
-       console.log(s);
+       //console.log(s);
     }
 }
 
 module Logger {
-	export function setDebugMode(value:boolean) {
-		debug = value;
+	export function setLogLevel(value: string) {
+		switch(value) {
+            case "information":
+                currentLogLevel = Level.INFORMATION;
+                break;
+            case "debug":
+               currentLogLevel = Level.DEBUG;
+                break;
+            case "warning":
+                currentLogLevel = Level.WARNING;
+                break;
+            case "error":
+                currentLogLevel = Level.ERROR;
+                break;
+            case "fatal":
+                currentLogLevel = Level.FATAL;
+                break;
+        }
 	}
+    
+    export enum Level {
+        INFORMATION,
+        DEBUG, 
+        WARNING,
+        ERROR,
+        FATAL
+    }
 }
 
 export = Logger;

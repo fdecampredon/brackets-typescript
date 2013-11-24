@@ -16,6 +16,7 @@ import errorReporter = require('./errorReporter');
 import qe = require('./quickEdit');
 import commentsHelper = require('./commentsHelper');
 import signal = require('./utils/signal');
+import logger = require('./logger');
 
 // brackets dependency
 var LanguageManager = brackets.getModule('language/LanguageManager'),
@@ -32,7 +33,12 @@ var LanguageManager = brackets.getModule('language/LanguageManager'),
  * main components in the application.
  */
 
-function init() {
+
+function init(conf: {
+        isDebug: boolean;
+        logLevel: string;
+    }) {
+    logger.setLogLevel(conf.logLevel);
     
     //Register the typescript mode
     CodeMirror.defineMode('typescript', typeScriptModeFactory); 
