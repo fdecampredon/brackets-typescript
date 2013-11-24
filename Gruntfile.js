@@ -60,7 +60,8 @@ module.exports = function (grunt) {
                     module: 'amd',
                     target: 'es5',
                     sourcemap: false,
-                    noImplicitAny: true
+                    //wait for 0.9.5
+                    /*noImplicitAny: true*/
                 }
             }   
 		},
@@ -69,7 +70,9 @@ module.exports = function (grunt) {
                 src: ['third_party/**/*.js'],
                 options: {
                     specs: 'bin/test/**/*Test.js',
-                    template: require('grunt-template-jasmine-requirejs')
+                    template: require('grunt-template-jasmine-requirejs'),
+                    keepRunner: true,
+                    outfile: 'SpecRunner.html'
                 }
             }
         }
