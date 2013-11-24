@@ -1,4 +1,4 @@
-import fileSystem = require('./fileSystem');
+import fs = require('./fileSystem');
 import ws = require('./workingSet');
 import coreService = require('./typescript/coreService');
 import script = require('./typescript/script');
@@ -7,68 +7,107 @@ import utils = require('./typeScriptUtils');
 import Services = TypeScript.Services;
 
 
+
+//--------------------------------------------------------------------------
+//
+//  TypeScriptProjectManager
+//
+//--------------------------------------------------------------------------
+
+/**
+ * describe a factory used by the project manager to create project
+ */
 export interface TypeScriptProjectFactory {
     (   
         baseDirectory: string,
         config: TypeScriptProjectConfig, 
-        fileSystemService: fileSystem.IFileSystem,
+        fileSystemService: fs.IFileSystem,
         workingSet: ws.IWorkingSet
     ): TypeScriptProject
 }
 
-
+/**
+ * The main facade class of the extentions, responsible to create / destroy / update projects
+ * by observing config files in the files of the opened brackets folder
+ */
 export class TypeScriptProjectManager {
-    private fileSystemService: fileSystem.IFileSystem;
-    private typeScriptProjectFactory: TypeScriptProjectFactory;
+    
+    
+    /**
+     * @param fileSystem the fileSystem wrapper used by the projectManager
+     * @param workingSet the working set wrapper used by the projectManager
+     * @param typeScriptProjectFactory the factory used by the projectManager to create TypeScriptProject
+     */
+    constructor(
+        private fileSystem: fs.IFileSystem, 
+        private workingSet: ws.IWorkingSet,
+        private typeScriptProjectFactory: TypeScriptProjectFactory
+    ) {}
+    
+    /**
+     * a map containing the projects 
+     */
     private projectMap: { [path:string]: TypeScriptProject };
-    private workingSet: ws.IWorkingSet;
     
-    constructor(fileSystemService: fileSystem.IFileSystem, 
-                workingSet: ws.IWorkingSet,
-                typeScriptProjectFactory: TypeScriptProjectFactory) {
-        this.fileSystemService = fileSystemService;
-        this.typeScriptProjectFactory = typeScriptProjectFactory;
-        this.workingSet = workingSet;
-    }
     
+    /**
+     * initialize the project manager
+     */
     init(): void {
         this.createProjects();
-        this.fileSystemService.projectFilesChanged.add(this.filesChangeHandler);
+        this.fileSystem.projectFilesChanged.add(this.filesChangeHandler);
     }
     
-    
+    /**
+     * dispose the project manager
+     */
     dispose(): void {
-        this.fileSystemService.projectFilesChanged.remove(this.filesChangeHandler);
+        this.fileSystem.projectFilesChanged.remove(this.filesChangeHandler);
         this.disposeProjects();
         
     }
     
-    
+    /**
+     * this method will try to find a project referencing the given path
+     * it will by priority try to retrive project that have that file as part of 'direct source'
+     * before returning projects that just have 'reference' to this file
+     * 
+     * @param path the path of the typesrcript file for which project are looked fo
+     */
     getProjectForFile(path: string): TypeScriptProject {
+        //first we check for a project that have tha file as source 
         for (var configPath in this.projectMap) {
             if (this.projectMap[configPath].getProjectFileKind(path) === ProjectFileKind.SOURCE) {
                 return this.projectMap[configPath];
             }
         }
         
+        //then we check for a project that just reference the file
         for (var configPath in this.projectMap) {
             if (this.projectMap[configPath].getProjectFileKind(path) === ProjectFileKind.REFERENCE) {
                 return this.projectMap[configPath];
             }
         }
         
+        //TODO return a kind of "single file project" if no project are found
         return null;
     }
     
+    /**
+     * find bracketsTypescript config files and create a project for each file founds
+     */
     private createProjects():void {
         this.projectMap = {}; 
-        this.fileSystemService.getProjectFiles().then((paths: string[]) => {
+        this.fileSystem.getProjectFiles().then((paths: string[]) => {
             paths
-                .filter(isTypeScriptProjectConfigFile)
+                .filter(utils.isTypeScriptProjectConfigFile)
                 .forEach(this.createProjectFromFile, this);     
         });
     }
     
+    /**
+     * dispose every projects created by the project Manager
+     */
     private disposeProjects():void {
         var projectMap = this.projectMap ;
         for (var path in projectMap) {
@@ -79,21 +118,38 @@ export class TypeScriptProjectManager {
         this.projectMap = {};
     }
     
+    /**
+     * for a given config file create a project
+     * 
+     * @param configFilePath the config file path
+     */
     private createProjectFromFile(configFilePath: string) {
         this.retrieveConfig(configFilePath).then( config => this.createProjectFromConfig(configFilePath, config));
     }
     
+    /**
+     * for given validated config and config file path create a project
+     * 
+     * @param configFilePath the config file path
+     * @param config the config created from the file
+     */
     private createProjectFromConfig(configFilePath: string, config : TypeScriptProjectConfig) {
         if (config) {
             this.projectMap[configFilePath] = this.typeScriptProjectFactory(PathUtils.directory(configFilePath), 
-                                                                                config, this.fileSystemService, this.workingSet);
+                                                                                config, this.fileSystem, this.workingSet);
         } else {
             this.projectMap[configFilePath] = null;
         }
     }
     
+    /**
+     * try to create a config from a given config file path
+     * validate the config file, then add default values if needed
+     * 
+     * @param configFilePath
+     */
     private retrieveConfig(configFilePath: string): JQueryPromise<TypeScriptProjectConfig> {
-        return this.fileSystemService.readFile(configFilePath).then((content: string) => {
+        return this.fileSystem.readFile(configFilePath).then((content: string) => {
             var config : TypeScriptProjectConfig;
             try {
                 config =  JSON.parse(content);
@@ -116,28 +172,41 @@ export class TypeScriptProjectManager {
         });
     }
     
-    private filesChangeHandler = (changeRecords: fileSystem.ChangeRecord[]) => {
+    /**
+     * handle changes in the file system, update / delete / create project accordingly
+     */
+    private filesChangeHandler = (changeRecords: fs.ChangeRecord[]) => {
         changeRecords.forEach(record => {
-            if (record.kind === fileSystem.FileChangeKind.REFRESH) {
+            if (record.kind === fs.FileChangeKind.REFRESH) {
+                //reinitialize the projects if refrehsh
                 this.disposeProjects();
                 this.createProjects();
-            } else if (isTypeScriptProjectConfigFile(record.path)) {
+            } else if (utils.isTypeScriptProjectConfigFile(record.path)) {
+                
                 switch (record.kind) { 
-                    case fileSystem.FileChangeKind.DELETE:
+                    
+                    // a config file has been deleted detele the project
+                    case fs.FileChangeKind.DELETE:
                         if (this.projectMap[record.path]) {
                             this.projectMap[record.path].dispose();
                             delete this.projectMap[record.path];
                         }
                         break;
-                    case fileSystem.FileChangeKind.ADD:
+                        
+                    // a config file has been created create a new project
+                    case fs.FileChangeKind.ADD:
                         this.createProjectFromFile(record.path);
                         break;
-                    case fileSystem.FileChangeKind.UPDATE:
+                        
+                    case fs.FileChangeKind.UPDATE:
                         this.retrieveConfig(record.path).then((config : TypeScriptProjectConfig) => {
                             if (config) {
                                 if(this.projectMap[record.path]) {
+                                    //config file has been updated create the project
                                     this.projectMap[record.path].update(config);
                                 } else {
+                                    // this config file was already present, but was invalid, now create the project
+                                    // with the obtained valid config file
                                     this.createProjectFromConfig(record.path, config);
                                 }
                             }
@@ -151,11 +220,11 @@ export class TypeScriptProjectManager {
 }
 
 
-function isTypeScriptProjectConfigFile(path: string): boolean {
-    return path && path.substr(path.lastIndexOf('/') + 1, path.length) === utils.PROJECT_CONFIG_FILE_NAME;
-}
 
-
+/**
+ * helper function that valid a config file
+ * @param config the config file to validate
+ */
 export function validateTypeScriptProjectConfig(config : TypeScriptProjectConfig): boolean {
     if (!config) {
         return false;
@@ -169,6 +238,37 @@ export function validateTypeScriptProjectConfig(config : TypeScriptProjectConfig
     return true;
 }
 
+
+/**
+ * default config
+ */
+export var typeScriptProjectConfigDefault: TypeScriptProjectConfig = {
+    compileOnSave: false,
+    
+    propagateEnumConstants: false,
+    removeComments: false,
+    allowAutomaticSemicolonInsertion : true,
+    noLib: false,
+    target: 'es3',
+    module: 'none',
+    mapSource: false,
+    declaration: false,
+    useCaseSensitiveFileResolution: false,
+    allowBool: false,
+    allowImportModule: false,
+    noImplicitAny: false
+}
+
+
+
+//--------------------------------------------------------------------------
+//
+//  TypeScriptProject
+//
+//--------------------------------------------------------------------------
+/**
+ * the TypeScript project config file interface
+ */
 export interface TypeScriptProjectConfig {
     sources?: string[];
     compileOnSave?: boolean;
@@ -191,24 +291,9 @@ export interface TypeScriptProjectConfig {
     noImplicitAny?: boolean;
 }
 
-export var typeScriptProjectConfigDefault: TypeScriptProjectConfig = {
-    compileOnSave: false,
-    
-    propagateEnumConstants: false,
-    removeComments: false,
-    allowAutomaticSemicolonInsertion : true,
-    noLib: false,
-    target: 'es3',
-    module: 'none',
-    mapSource: false,
-    declaration: false,
-    useCaseSensitiveFileResolution: false,
-    allowBool: false,
-    allowImportModule: false,
-    noImplicitAny: false
-}
-
-
+/**
+ * 
+ */
 export interface LanguageServiceHostFactory {
     (settings: TypeScript.CompilationSettings, files:  { [path: string]: string }): language.LanguageServiceHost;
 }
@@ -224,7 +309,7 @@ export class TypeScriptProject {
     
     private baseDirectory: string;
     private config: TypeScriptProjectConfig; 
-    private fileSystemService: fileSystem.IFileSystem;
+    private fileSystemService: fs.IFileSystem;
     private workingSet: ws.IWorkingSet;
     private languageServiceHostFactory: LanguageServiceHostFactory
     
@@ -236,7 +321,7 @@ export class TypeScriptProject {
     
     constructor(baseDirectory: string,
                 config: TypeScriptProjectConfig, 
-                fileSystemService: fileSystem.IFileSystem,
+                fileSystemService: fs.IFileSystem,
                 workingSet: ws.IWorkingSet,
                 languageServiceHostFactory: LanguageServiceHostFactory) {
         this.baseDirectory = baseDirectory;
@@ -398,20 +483,20 @@ export class TypeScriptProject {
     }
     
     
-    private filesChangeHandler = (changeRecords: fileSystem.ChangeRecord[]) => {
+    private filesChangeHandler = (changeRecords: fs.ChangeRecord[]) => {
         changeRecords.forEach(record => {
             switch (record.kind) { 
-                case fileSystem.FileChangeKind.ADD:
+                case fs.FileChangeKind.ADD:
                     if (this.isProjectSourceFile(record.path) || this.missingFiles[record.path]) {
                         this.addFile(record.path);
                     }
                     break;
-                case fileSystem.FileChangeKind.DELETE:
+                case fs.FileChangeKind.DELETE:
                     if (this.files.hasOwnProperty(record.path)) {
                         this.removeFile(record.path);
                     }
                     break;
-                case fileSystem.FileChangeKind.UPDATE:
+                case fs.FileChangeKind.UPDATE:
                     if (this.files.hasOwnProperty(record.path)) {
                         this.updateFile(record.path);
                     }
@@ -508,7 +593,7 @@ export class TypeScriptProject {
 export function typeScriptProjectFactory (   
                                         baseDirectory: string,
                                         config: TypeScriptProjectConfig, 
-                                        fileSystemService: fileSystem.IFileSystem,
+                                        fileSystemService: fs.IFileSystem,
                                         workingSet: ws.IWorkingSet
                                     ): TypeScriptProject {
     return new TypeScriptProject(baseDirectory, config, fileSystemService, workingSet, 
