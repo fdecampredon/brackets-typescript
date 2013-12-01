@@ -40930,7 +40930,7 @@ var TypeScript;
                 }
             } else if (term.kind() === 124 /* ArrayType */) {
                 var arrayType = term;
-                var underlying = this.computeTypeReferenceSymbol(arrayType.type, context);
+                var underlying = this.resolveTypeReference(arrayType.type, context);
                 var arraySymbol = underlying.getArrayType();
 
                 if (!arraySymbol) {
@@ -47089,15 +47089,6 @@ var TypeScript;
                 }
             }
 
-            if (sourceProp.isOptional && !targetProp.isOptional) {
-                if (comparisonInfo) {
-                    var enclosingSymbol = this.getEnclosingSymbolForAST(ast);
-                    comparisonInfo.flags |= 2 /* RequiredPropertyIsMissing */;
-                    comparisonInfo.addMessage(TypeScript.getDiagnosticMessage(TypeScript.DiagnosticCode.Property_0_defined_as_optional_in_type_1_but_is_required_in_type_2, [targetProp.getScopedNameEx().toString(), sourceProp.getContainer().toString(enclosingSymbol), targetProp.getContainer().toString(enclosingSymbol)]));
-                }
-                return false;
-            }
-
             this.resolveDeclaredSymbol(sourceProp, context);
 
             var sourcePropType = sourceProp.type;
@@ -47318,15 +47309,6 @@ var TypeScript;
             }
 
             if (sourceSig.isGeneric()) {
-                var rootSourceSig = sourceSig.getRootSymbol();
-                var rootTargetSig = targetSig.getRootSymbol();
-
-                if (comparisonCache.valueAt(rootSourceSig.pullSymbolID, rootTargetSig.pullSymbolID) != undefined) {
-                    return true;
-                }
-
-                comparisonCache.setValueAt(rootSourceSig.pullSymbolID, rootTargetSig.pullSymbolID, false);
-
                 sourceSig = this.instantiateSignatureInContext(sourceSig, targetSig, context);
 
                 if (!sourceSig) {
@@ -49837,7 +49819,15 @@ var TypeScript;
             var symbol = null;
 
             if (decls.length) {
-                symbol = decls[0].getSymbol();
+                var decl = decls[0];
+                if (TypeScript.hasFlag(declType, 164 /* SomeContainer */)) {
+                    var valueDecl = decl.getValueDecl();
+                    if (valueDecl) {
+                        valueDecl.ensureSymbolIsBound();
+                    }
+                }
+
+                symbol = decl.getSymbol();
 
                 if (symbol) {
                     this.symbolCache[cacheID] = symbol;
