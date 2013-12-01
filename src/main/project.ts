@@ -299,9 +299,6 @@ export enum ProjectFileKind {
  */
 export class TypeScriptProject {
     
-   
-   
-    
     constructor(
         private baseDirectory: string,
         private config: TypeScriptProjectConfig, 

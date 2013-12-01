@@ -28,6 +28,16 @@
   
   <script src=".grunt/grunt-contrib-jasmine/jasmine-html.js"></script>
   
+  <script src="third_party/jquery.js"></script>
+  
+  <script src="third_party/path-utils.js"></script>
+  
+  <script src="third_party/typescriptServices.js"></script>
+  
+  <script src="src/test-helpers/minimatchHelper.js"></script>
+  
+  <script src="src/test-helpers/phantomHelper.js"></script>
+  
   
 
   <script>
@@ -40,24 +50,9 @@
     function launchTest() {
     require([
       
-        
-        'third_party/jquery' ,
-      
-        
-        'third_party/minimatch' ,
-      
-        
-        'third_party/path-utils' ,
-      
-        
-        'third_party/sinon' ,
-      
-        
-        'third_party/typescriptServices' 
-      
     ],
     function(){
-      require(['bin/test/fileSystemTest.js','bin/test/projectManagerTest.js','bin/test/signalTest.js','bin/test/workingSetTest.js','.grunt/grunt-contrib-jasmine/reporter.js'], function(){
+      require(['bin/test/fileSystemTest.js','bin/test/projectManagerTest.js','bin/test/projectTest.js','bin/test/signalTest.js','bin/test/workingSetTest.js','.grunt/grunt-contrib-jasmine/reporter.js'], function(){
         require(['.grunt/grunt-contrib-jasmine/jasmine-helper.js'], function(){
           // good to go! Our tests should already be running.
         })

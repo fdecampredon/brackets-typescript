@@ -12,6 +12,10 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 //    Author : François de Campredon (http://francois.de-campredon.fr/),
+//
+
+
+/*global module, require*/
 
 module.exports = function (grunt) {
     
@@ -34,23 +38,23 @@ module.exports = function (grunt) {
                 src: '**',
                 dest: 'bin/templates',
                 flatten: true,
-                filter: 'isFile',
-            },
+                filter: 'isFile'
+            }
         },
         typescript: {
             main: {
-	    		src: ['src/declarations/*.d.ts', 'src/main/**/*.ts'],
-	        	dest: 'bin',
+                src: ['src/declarations/*.d.ts', 'src/main/**/*.ts'],
+                dest: 'bin',
                
-	        	options: {
+                options: {
                     base_path : 'src',
                     module : 'amd',
-	         		target: 'es5',
+                    target: 'es5',
                     sourcemap: false
                     //wait for 0.9.5
                     /*noImplicitAny: true*/
-	          	}
-        	},
+                }
+            },
             test: {
                 src: ['src/declarations/*.d.ts', 'src/test-declarations/*.d.ts', 'src/test/**/*.ts'],
                 dest: 'bin',
@@ -59,17 +63,23 @@ module.exports = function (grunt) {
                     base_path : 'src',
                     module: 'amd',
                     target: 'es5',
-                    sourcemap: false,
+                    sourcemap: false
                     //wait for 0.9.5
                     /*noImplicitAny: true*/
                 }
-            }   
+            }
 		},
         jasmine: {
             test: {
-                src: ['third_party/**/*.js'],
+                src: 'undefined.js',
                 options: {
                     specs: 'bin/test/**/*Test.js',
+                    vendor : [
+                        'third_party/jquery.js',
+                        'third_party/path-utils.js',
+                        'third_party/typescriptServices.js'
+                    ],
+                    helpers : 'src/test-helpers/*Helper.js',
                     template: require('grunt-template-jasmine-requirejs'),
                     keepRunner: true,
                     outfile: 'SpecRunner.html'
@@ -79,6 +89,6 @@ module.exports = function (grunt) {
     });
      
     grunt.registerTask('test', ['typescript:test', 'jasmine']);
-    grunt.registerTask('build', ['clean','typescript:main', 'copy']);
+    grunt.registerTask('build', ['clean', 'typescript:main', 'copy']);
     grunt.registerTask('default', ['clean', 'test', 'build']);
 };
