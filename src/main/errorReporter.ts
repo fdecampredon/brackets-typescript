@@ -1,36 +1,43 @@
 import project = require('./project');
-import Logger = require('./logger');
-import language = require('./typescript/language');
-import Services = TypeScript.Services;
 
-var logger = new Logger(),
-    classifier = new Services.TypeScriptServicesFactory().createClassifier(logger);
+//--------------------------------------------------------------------------
+//
+//  TypeScriptProject
+//
+//--------------------------------------------------------------------------
 
-export class TypeScriptErrorReporter implements brackets.InspectionProvider {
-    private typescriptProjectManager: project.TypeScriptProjectManager;
-    private errorType: typeof brackets.ErrorType;
-    
+/**
+ * TypeScript Inspection Provider
+ */
+class TypeScriptErrorReporter implements brackets.InspectionProvider {
+   
+    constructor(
+        private typescriptProjectManager: project.TypeScriptProjectManager, 
+        private errorType: typeof brackets.ErrorType
+    ) {}
+
+
+    /**
+     * name of the error reporter
+     */
     name = 'TypeScript';
     
-    
-    constructor(typescriptProjectManager: project.TypeScriptProjectManager, errorType: typeof brackets.ErrorType) {
-        this.typescriptProjectManager = typescriptProjectManager;
-        this.errorType = errorType;
-    }
-    
-    scanFile(content: string, path: string):{ errors: brackets.LintingError[];  aborted: boolean } {
-        var project = this.typescriptProjectManager.getProjectForFile(path);
-        if (!project) {
+    /**
+     * scan file
+     */
+    scanFile(content: string, path: string): { errors: brackets.LintingError[];  aborted: boolean } {
+        var project = this.typescriptProjectManager.getProjectForFile(path),
+            languageService = project && project.getLanguageService(),
+            languageServiceHost = project && project.getLanguageServiceHost(),
+            scriptSnapshot = languageServiceHost && languageServiceHost.getScriptSnapshot(path);
+        
+        if (!project || !languageService || !languageServiceHost) {
             return { errors: [],  aborted: true };
         }
-        var languageService= project.getLanguageService(),
-            languageServiceHost = project.getLanguageServiceHost(),
-            scriptSnapshot = languageServiceHost.getScriptSnapshot(path);
         
         var syntacticDiagnostics = languageService.getSyntacticDiagnostics(path),
             errors = this.diagnosticToError(syntacticDiagnostics, scriptSnapshot);
-       
-       
+        
         if (errors.length === 0) {
             var semanticDiagnostic = languageService.getSemanticDiagnostics(path);
             errors = this.diagnosticToError(semanticDiagnostic, scriptSnapshot);
@@ -42,6 +49,11 @@ export class TypeScriptErrorReporter implements brackets.InspectionProvider {
         };
     }
     
+    /**
+     * convert TypeScript Diagnostic or brackets error format
+     * @param diagnostics
+     * @param scriptSnapshot
+     */
     private diagnosticToError(diagnostics: TypeScript.Diagnostic[], scriptSnapshot: TypeScript.IScriptSnapshot): brackets.LintingError[] {
         if (!diagnostics) {
             return [];
@@ -80,3 +92,5 @@ export class TypeScriptErrorReporter implements brackets.InspectionProvider {
         });
     }   
 }
+
+export = TypeScriptErrorReporter

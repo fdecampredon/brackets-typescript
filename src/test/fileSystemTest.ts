@@ -1,33 +1,19 @@
 'use strict';
 
 import fs = require('../main/fileSystem');
-import fsMock = require('./fileSystemMock');
-import d = fsMock.d;
-import f = fsMock.f;
+import bracketsMock = require('./bracketsMock');
+import d = bracketsMock.d;
+import f = bracketsMock.f;
 
 describe('FileSystem', function() {
     
     var fileSystem: fs.IFileSystem,
-        fileSystemMock : fsMock.FileSystem,
-        rootDir: fsMock.Directory,
-        projectManager  = {
-            getAllFiles(filter? : (file: brackets.File) => boolean, includeWorkingSet? : boolean)  {
-                var deferred = $.Deferred<brackets.File[]>(),
-                    files: brackets.File[] = [];
-                rootDir.visit(entry => {
-                    if (entry.isFile) {
-                        files.push(<brackets.File> entry)
-                    }
-                    return true;
-                }, null, () => {
-                    deferred.resolve(files);    
-                })
-                return deferred.promise();
-            }
-        };
+        fileSystemMock : bracketsMock.FileSystem,
+        rootDir: bracketsMock.Directory,
+        projectManager: bracketsMock.ProjectManager
 
     beforeEach(function () {
-        rootDir = d(<fsMock.DirectoryOptions><any>{
+        rootDir = d(<bracketsMock.DirectoryOptions><any>{
             name: '/',
             children : [
                 f({
@@ -38,7 +24,7 @@ describe('FileSystem', function() {
                     name: 'file2.ts',
                     content: 'File2 content'
                 }),
-                d(<fsMock.DirectoryOptions><any>{
+                d(<bracketsMock.DirectoryOptions><any>{
                     name : 'subdir1/',
                     children: [
                         f({
@@ -47,7 +33,7 @@ describe('FileSystem', function() {
                         })
                     ]
                 }),
-                d(<fsMock.DirectoryOptions><any>{
+                d(<bracketsMock.DirectoryOptions><any>{
                     name : 'subdir2/',
                     children: [
                         f({
@@ -58,7 +44,7 @@ describe('FileSystem', function() {
                             name: 'file5.ts',
                             content: 'File5 content'
                         }),
-                        d(<fsMock.DirectoryOptions><any>{
+                        d(<bracketsMock.DirectoryOptions><any>{
                             name : 'subdir3/',
                             children: [
                                 f({
@@ -67,7 +53,7 @@ describe('FileSystem', function() {
                                 }),
                                 f({
                                     name: 'file7.ts',
-                                    content: 'File7 content'
+                                    content: 'File7 content\r\nline2\nline3\r\nline4'
                                 }),
                                 d({
                                     name: 'subdir4/',
@@ -79,7 +65,8 @@ describe('FileSystem', function() {
                 })
             ]
         });
-        fileSystemMock = new fsMock.FileSystem(rootDir);
+        fileSystemMock = new bracketsMock.FileSystem(rootDir);
+        projectManager= new bracketsMock.ProjectManager(fileSystemMock);
         fileSystem = new fs.FileSystem(fileSystemMock, projectManager);
     });
     
@@ -105,141 +92,79 @@ describe('FileSystem', function() {
             ]))
         });
         
+    });
+    
+    describe('readFile', function () {
         
-        it('should not call the projectManager getAllFiles when no \'refresh\' has occured', () => {
-            var spy = spyOn(projectManager,'getAllFiles').andCallThrough()
+        it('should return the file content', function () {
+            var content: string;
             runs(() => {
-                fileSystem.getProjectFiles();
-                fileSystem.getProjectFiles();
+                fileSystem.readFile('/subdir2/subdir3/file6.ts').then(data => content = data)    
+            });
+            
+            runs(() => {
+                expect(content).toBe('File6 content'); 
+            })
+        });  
+        
+        it('should normalize the file content', function () {
+            var content: string;
+            runs(() => {
+                fileSystem.readFile('/subdir2/subdir3/file7.ts').then(data => content = data)    
+            });
+            
+            runs(() => {
+                expect(content).toBe('File7 content\nline2\nline3\nline4'); 
+            })
+        });  
+        
+        
+        it('should return an error if underlying file system return an error', function () {
+            var content: string,
+                error: string;
+            runs(() => {
+                fileSystem.readFile('/subdir2/subdir3/file8.ts').then(data => {
+                    content = data
+                }, (e?: string, ...rest: any[]) => {
+                    error = e
+                });    
+            });
+            
+            runs(() => {
+                expect(error).toBe(bracketsMock.FILE_NOT_FOUND); 
+            })
+        }); 
+        
+        it('should cache files content', function () {
+            var spy = spyOn(fileSystemMock,'getFileForPath').andCallThrough(),
+                content: string;
+            runs(() => {
+                fileSystem.readFile('/subdir2/subdir3/file6.ts').then(data => content = data);  
+                fileSystem.readFile('/subdir2/subdir3/file6.ts').then(data => expect(data).toBe(content)) 
             });
             
             runs(() => {
                 expect(spy.callCount).toBe(1);
+                expect(content).toBe('File6 content'); 
+            })
+        }); 
+        
+        it('should update cached files when they are updated', function () {
+            var spy = spyOn(fileSystemMock,'getFileForPath').andCallThrough(),
+                content: string;
+            runs(() => {
+                fileSystem.readFile('/subdir2/subdir3/file6.ts');
+                fileSystemMock.updateFile('/subdir2/subdir3/file6.ts', 'new content')
+                fileSystem.readFile('/subdir2/subdir3/file6.ts').then(data => content = data)    
+            });
+            
+            runs(() => {
+                expect(content).toBe('new content'); 
             })
         });
     });
     
-    describe('readFile', function () {
-        
-        it('should return the file content', function () {
-            var content: string;
-            runs(() => {
-                fileSystem.readFile('/subdir2/subdir3/file6.ts').then(data => content = data)    
-            });
-            
-            runs(() => {
-                expect(content).toBe('File6 content'); 
-            })
-        });   
-        
-        
-        it('should return an error if underlying file system return an error', function () {
-            var content: string,
-                error: string;
-            runs(() => {
-                fileSystem.readFile('/subdir2/subdir3/file8.ts').then(data => {
-                    content = data
-                }, (e?: string, ...rest: any[]) => {
-                    error = e
-                });    
-            });
-            
-            runs(() => {
-                expect(error).toBe(fsMock.FILE_NOT_FOUND); 
-            })
-        }); 
-        
-        
-        it('should not call native fileSystem get Files if the File has been cached', function () {
-            var spy = spyOn(fileSystemMock,'getFileForPath').andCallThrough()
-            runs(() => {
-                fileSystem.getProjectFiles().then(()=> {
-                    fileSystem.readFile('/subdir2/subdir3/file6.ts');  
-                });
-            });
-            
-            runs(() => {
-                expect(spy.callCount).toBe(0)
-            })
-        }); 
-        
-        
-         it('should  call native fileSystem get Files if the File is not a project file', function () {
-            var spy = spyOn(fileSystemMock,'getFileForPath').andCallThrough()
-            runs(() => {
-                fileSystem.getProjectFiles().then(()=> {
-                    fileSystem.readFile('/subdir2/subdir3/file8.ts');
-                });
-            });
-            
-            runs(() => {
-                expect(spy.callCount).toBe(1)
-            })
-        }); 
-        
-    });
     
-    
-    
-    describe('readFile', function () {
-        
-        it('should return the file content', function () {
-            var content: string;
-            runs(() => {
-                fileSystem.readFile('/subdir2/subdir3/file6.ts').then(data => content = data)    
-            });
-            
-            runs(() => {
-                expect(content).toBe('File6 content'); 
-            })
-        });   
-        
-        
-        it('should return an error if underlying file system return an error', function () {
-            var content: string,
-                error: string;
-            runs(() => {
-                fileSystem.readFile('/subdir2/subdir3/file8.ts').then(data => {
-                    content = data
-                }, (e?: string, ...rest: any[]) => {
-                    error = e
-                });    
-            });
-            
-            runs(() => {
-                expect(error).toBe(fsMock.FILE_NOT_FOUND); 
-            })
-        }); 
-        
-        
-        it('should not call native fileSystem get Files if the File has been cached', function () {
-            var spy = spyOn(fileSystemMock,'getFileForPath').andCallThrough()
-            runs(() => {
-                fileSystem.getProjectFiles().then(()=> {
-                    fileSystem.readFile('/subdir2/subdir3/file6.ts');  
-                });
-            });
-            
-            runs(() => {
-                expect(spy.callCount).toBe(0)
-            })
-        }); 
-        
-        
-        it('should  call native fileSystem get Files if the File is not a project file', function () {
-            var spy = spyOn(fileSystemMock,'getFileForPath').andCallThrough()
-            runs(() => {
-                fileSystem.getProjectFiles().then(()=> {
-                    fileSystem.readFile('/subdir2/subdir3/file8.ts');
-                });
-            });
-            
-            runs(() => {
-                expect(spy.callCount).toBe(1)
-            })
-        }); 
-        
-    });
     
     
     describe('change dispatching', function () {
@@ -255,27 +180,6 @@ describe('FileSystem', function() {
             changeSpy.reset();
         });
         
-        it('should dispatch a \'refresh\' event when a refresh occurs', function () {
-            fileSystemMock.refresh(d({name : '/', children: []}));
-            expect(changeSpy.callCount).toBe(1)
-            expect(changeSpy).toHaveBeenCalledWith([{
-                kind: fs.FileChangeKind.REFRESH
-            }]);
-        });
-        
-        
-        it('should not dispatch any event after a refresh until it has been refreshed', function () {
-            fileSystemMock.refresh(d({name : '/', children: []}));
-            var file = f({
-                name: 'hello',
-                content : ''
-            }, '/hello', '/');
-            
-            fileSystemMock.addEntry(file)
-            expect(changeSpy.callCount).toBe(1)
-        });
-        
-        
         it('should dispatch an event when a file is updated', function () {
             fileSystemMock.updateFile('/subdir2/file4.ts', 'New content');
             expect(changeSpy.callCount).toBe(1);
@@ -286,7 +190,7 @@ describe('FileSystem', function() {
         });
         
         
-        it('shouldd ispatch an event when a file is deleted', function () {
+        it('should ispatch an event when a file is deleted', function () {
             fileSystemMock.deleteEntry('/subdir2/file4.ts');
             expect(changeSpy.callCount).toBe(1);
             expect(changeSpy).toHaveBeenCalledWith([{
@@ -296,7 +200,7 @@ describe('FileSystem', function() {
         });
         
         
-        it('should  dispatch an event when a file is added', function () {
+        it('should dispatch an event when a file is added', function () {
             fileSystemMock.addEntry(f({
                 name : 'file8.ts',
                 content : 'File8 Content'
@@ -335,7 +239,7 @@ describe('FileSystem', function() {
         
         
         it('should dispatch an event when a non empty directory is added', function () {
-            var dir = d(<fsMock.DirectoryOptions><any>{
+            var dir = d(<bracketsMock.DirectoryOptions><any>{
                 name: 'subdir5/',
                 children: [
                     f({
@@ -346,14 +250,14 @@ describe('FileSystem', function() {
                         name: 'file9.ts',
                         content: 'File 9 content'
                     }),
-                    d(<fsMock.DirectoryOptions><any>{
+                    d(<bracketsMock.DirectoryOptions><any>{
                         name: 'subdir6/',
                         children: [
                             f({
                                 name: 'file10.ts',
                                 content: 'File 10 content'
                             }),
-                            d(<fsMock.DirectoryOptions><any>{
+                            d(<bracketsMock.DirectoryOptions><any>{
                                 name: 'subdir7/',
                                 children: []
                             })
@@ -380,7 +284,7 @@ describe('FileSystem', function() {
         
         
         it('should not dispatch an event when an empty directory is added', function () {
-            var dir = d(<fsMock.DirectoryOptions><any>{
+            var dir = d(<bracketsMock.DirectoryOptions><any>{
                 name: 'subdir5/',
                 children: []
             });
@@ -388,8 +292,89 @@ describe('FileSystem', function() {
             
             fileSystemMock.addEntry(dir);
             expect(changeSpy.callCount).toBe(0);
-            
         });
+        
+        
+        it('should dispatch an event containing all file that have been deleted/added', function () {
+            fileSystem.readFile('/subdir2/file5.ts');
+            fileSystem.readFile('/subdir1/file3.ts');
+            fileSystemMock.refresh(d(<bracketsMock.DirectoryOptions><any>{
+                name: '/',
+                children : [
+                    f({
+                        name: 'file2.ts',
+                        content: 'File2 content has changed'
+                    }),
+                    f({
+                        name: 'file8.ts',
+                        content: 'File8 content'
+                    }),
+                    d(<bracketsMock.DirectoryOptions><any>{
+                        name : 'subdir1/',
+                        children: [
+                            f({
+                                name: 'file3.ts',
+                                content: 'File3 content'
+                            })
+                        ]
+                    }),
+                    d(<bracketsMock.DirectoryOptions><any>{
+                        name : 'subdir2/',
+                        children: [
+                            f({
+                                name: 'file4.ts',
+                                content: 'File4 content'
+                            }),
+                            f({
+                                name: 'file5.ts',
+                                content: 'File5 content has changed'
+                            })
+                        ]
+                    }),
+                    d(<bracketsMock.DirectoryOptions><any>{
+                        name : 'subdir3/',
+                        children: [
+                            f({
+                                name: 'file6.ts',
+                                content: 'File6 content'
+                            }),
+                            f({
+                                name: 'file7.ts',
+                                content: 'File7 content\r\nline2\nline3\r\nline4'
+                            }),
+                            d({
+                                name: 'subdir4/',
+                                children: []
+                            })
+                        ]
+                    })
+                ]
+            }));
+            
+            expect(changeSpy).toHaveBeenCalledWith([{
+                kind: fs.FileChangeKind.DELETE,
+                path: '/file1.ts'
+            },{
+                kind: fs.FileChangeKind.DELETE,
+                path: '/subdir2/subdir3/file6.ts'
+            },{
+                kind: fs.FileChangeKind.DELETE,
+                path: '/subdir2/subdir3/file7.ts'
+            },{
+                kind: fs.FileChangeKind.ADD,
+                path: '/file8.ts'
+            },{
+                kind: fs.FileChangeKind.ADD,
+                path: '/subdir3/file6.ts'
+            },{
+                kind: fs.FileChangeKind.ADD,
+                path: '/subdir3/file7.ts'
+            },{
+                kind: fs.FileChangeKind.UPDATE,
+                path: '/subdir2/file5.ts'
+            }]);
+            
+        })
         
     });
     

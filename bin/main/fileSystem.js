@@ -1,7 +1,8 @@
-define(["require", "exports", './utils/signal'], function(require, exports, __signal__) {
+define(["require", "exports", './utils/signal', './utils/collections'], function(require, exports, __signal__, __collections__) {
     'use strict';
 
     var signal = __signal__;
+    var collections = __collections__;
 
     (function (FileChangeKind) {
         FileChangeKind[FileChangeKind["ADD"] = 0] = "ADD";
@@ -10,7 +11,7 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
 
         FileChangeKind[FileChangeKind["DELETE"] = 2] = "DELETE";
 
-        FileChangeKind[FileChangeKind["REFRESH"] = 3] = "REFRESH";
+        FileChangeKind[FileChangeKind["RESET"] = 3] = "RESET";
     })(exports.FileChangeKind || (exports.FileChangeKind = {}));
     var FileChangeKind = exports.FileChangeKind;
 
@@ -19,30 +20,107 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
             var _this = this;
             this.nativeFileSystem = nativeFileSystem;
             this.projectManager = projectManager;
-            this.isDirty = true;
-            this.changesHandler = function (file) {
-                if (_this.isDirty) {
-                    return;
-                }
-
+            this.filesContent = new collections.StringMap();
+            this.filesPath = [];
+            this.initialized = false;
+            this.initializationStack = [];
+            this._projectFilesChanged = new signal.Signal();
+            this.changesHandler = function (event, file) {
                 if (!file) {
-                    _this.reset();
+                    var oldPathsSet = new collections.StringSet(), oldFilesContent = _this.filesContent.clone(), oldPaths = _this.filesPath.map(function (path) {
+                        oldPathsSet.add(path);
+                        return path;
+                    });
+
+                    _this.initialized = false;
+                    _this.filesContent.clear();
+                    _this.filesPath.length = 0;
+
+                    _this.projectManager.getAllFiles().then(function (files) {
+                        var fileAdded = [], fileDeleted = [], fileUpdated = [], newPathsSet = new collections.StringSet(), promises = [];
+
+                        _this.filesPath = (files || []).map(function (file) {
+                            if (!oldPathsSet.has(file.fullPath)) {
+                                fileAdded.push(file.fullPath);
+                            }
+                            if (oldFilesContent.has(file.fullPath)) {
+                                var deferred = $.Deferred();
+                                promises.push(deferred.promise());
+                                file.read({}, function (err, content) {
+                                    if (!err) {
+                                        _this.filesContent.set(file.fullPath, content);
+                                    }
+                                    if (err || content !== oldFilesContent.get(file.fullPath)) {
+                                        fileUpdated.push(file.fullPath);
+                                    }
+                                    deferred.resolve();
+                                });
+                            }
+                            newPathsSet.add(file.fullPath);
+                            return file.fullPath;
+                        });
+
+                        oldPaths.forEach(function (path) {
+                            if (!newPathsSet.has(path)) {
+                                fileDeleted.push(path);
+                            }
+                        });
+
+                        ($.when.apply($, promises)).then(function () {
+                            var changes = fileDeleted.map(function (path) {
+                                return {
+                                    kind: FileChangeKind.DELETE,
+                                    path: path
+                                };
+                            }).concat(fileAdded.map(function (path) {
+                                return {
+                                    kind: FileChangeKind.ADD,
+                                    path: path
+                                };
+                            })).concat(fileUpdated.map(function (path) {
+                                return {
+                                    kind: FileChangeKind.UPDATE,
+                                    path: path
+                                };
+                            }));
+
+                            if (changes.length > 0) {
+                                _this.projectFilesChanged.dispatch(changes);
+                            }
+                            _this.initialized = true;
+                            _this.resolveInitializationStack();
+                        });
+                    }, function () {
+                        _this.reset();
+                    });
                 } else if (file.isFile) {
-                    _this.projectFilesChanged.dispatch([
-                        {
-                            kind: FileChangeKind.UPDATE,
-                            path: file.fullPath
-                        }
-                    ]);
+                    var dispatchUpdate = function () {
+                        _this.projectFilesChanged.dispatch([
+                            {
+                                kind: FileChangeKind.UPDATE,
+                                path: file.fullPath
+                            }
+                        ]);
+                    };
+
+                    if (_this.filesContent.has(file.fullPath)) {
+                        _this.filesContent.delete(file.fullPath);
+                        _this.readFile(file.fullPath).then(function (content) {
+                            _this.filesContent.set(file.fullPath, content);
+                        }).always(dispatchUpdate);
+                    } else {
+                        dispatchUpdate();
+                    }
                 } else if (file.isDirectory) {
                     var directory = file, children;
+
                     directory.getContents(function (err, files) {
                         if (err) {
                             _this.reset();
                         }
                         var oldFiles = {}, newFiles = {};
 
-                        _this.filesPaths.forEach(function (path) {
+                        _this.filesPath.forEach(function (path) {
                             var index = path.indexOf(directory.fullPath);
                             if (index !== -1) {
                                 var index2 = path.indexOf('/', index + directory.fullPath.length);
@@ -67,10 +145,10 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
                         for (var path in oldFiles) {
                             if (!newFiles.hasOwnProperty(path) && oldFiles.hasOwnProperty(path)) {
                                 oldFiles[path].forEach(function (path) {
-                                    var index = _this.filesPaths.indexOf(path);
+                                    var index = _this.filesPath.indexOf(path);
                                     if (index !== -1) {
-                                        _this.filesPaths.splice(index, 1);
-                                        delete _this.files[path];
+                                        _this.filesPath.splice(index, 1);
+                                        _this.filesContent.delete(path);
                                         changes.push({
                                             kind: FileChangeKind.DELETE,
                                             path: path
@@ -84,8 +162,7 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
                         for (var path in newFiles) {
                             if (newFiles.hasOwnProperty(path) && !oldFiles.hasOwnProperty(path)) {
                                 if (newFiles[path].isFile) {
-                                    _this.filesPaths.push(path);
-                                    _this.files[path] = newFiles[path];
+                                    _this.filesPath.push(path);
                                     changes.push({
                                         kind: FileChangeKind.ADD,
                                         path: path
@@ -95,8 +172,7 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
 
                                     promises.push(_this.getDirectoryFiles(newDir).then(function (files) {
                                         files.forEach(function (file) {
-                                            _this.filesPaths.push(file.fullPath);
-                                            _this.files[file.fullPath] = newFiles[file.fullPath];
+                                            _this.filesPath.push(file.fullPath);
                                             changes.push({
                                                 kind: FileChangeKind.ADD,
                                                 path: file.fullPath
@@ -108,22 +184,18 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
                         }
                         ;
 
-                        if (promises.length > 0) {
-                            ($.when.apply($, promises)).then(function () {
-                                if (changes.length > 0) {
-                                    _this.projectFilesChanged.dispatch(changes);
-                                }
-                            }, function () {
-                                _this.reset();
-                            });
-                        } else if (changes.length > 0) {
-                            _this.projectFilesChanged.dispatch(changes);
-                        }
+                        ($.when.apply($, promises)).then(function () {
+                            if (changes.length > 0) {
+                                _this.projectFilesChanged.dispatch(changes);
+                            }
+                        }, function () {
+                            _this.reset();
+                        });
                     });
                 }
             };
-            this._projectFilesChanged = new signal.Signal();
             nativeFileSystem.on('change', this.changesHandler);
+            this.init();
         }
         Object.defineProperty(FileSystem.prototype, "projectFilesChanged", {
             get: function () {
@@ -136,44 +208,44 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
         FileSystem.prototype.getProjectFiles = function () {
             var _this = this;
             var deferred = $.Deferred();
-
-            if (!this.isDirty) {
-                deferred.resolve(this.filesPaths);
-            } else {
-                this.projectManager.getAllFiles().then(function (files) {
-                    if (!files) {
-                        files = [];
-                    }
-                    _this.files = {};
-                    _this.filesPaths = files.map(function (file) {
-                        _this.files[file.fullPath] = file;
-                        return file.fullPath;
-                    });
-                    _this.isDirty = false;
-                    deferred.resolve(_this.filesPaths);
-                });
-            }
-
+            this.addToInitializatioStack(function () {
+                return deferred.resolve(_this.filesPath);
+            });
             return deferred.promise();
         };
 
         FileSystem.prototype.readFile = function (path) {
-            var result = $.Deferred(), file;
-            if (!this.isDirty && this.files.hasOwnProperty(path)) {
-                file = this.files[path];
-            } else {
-                file = this.nativeFileSystem.getFileForPath(path);
-            }
-
-            file.read({}, function (err, content) {
-                if (err) {
-                    result.reject(err);
+            var _this = this;
+            var result = $.Deferred();
+            this.addToInitializatioStack(function () {
+                if (_this.filesContent.has(path)) {
+                    result.resolve(_this.filesContent.get(path));
                 } else {
-                    result.resolve(content);
+                    var file = _this.nativeFileSystem.getFileForPath(path);
+                    file.read({}, function (err, content) {
+                        if (err) {
+                            result.reject(err);
+                        } else {
+                            content = content && _this.normalizeText(content);
+                            _this.filesContent.set(path, content);
+                            result.resolve(content);
+                        }
+                    });
                 }
             });
-
             return result.promise();
+        };
+
+        FileSystem.prototype.reset = function () {
+            this.initialized = false;
+            this.filesContent.clear();
+            this.filesPath.length = 0;
+            this.init();
+            this._projectFilesChanged.dispatch([
+                {
+                    kind: FileChangeKind.RESET
+                }
+            ]);
         };
 
         FileSystem.prototype.dispose = function () {
@@ -181,15 +253,30 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
             this._projectFilesChanged.clear();
         };
 
-        FileSystem.prototype.reset = function () {
-            this.isDirty = true;
-            this.files = null;
-            this.filesPaths = null;
-            this.projectFilesChanged.dispatch([
-                {
-                    kind: FileChangeKind.REFRESH
-                }
-            ]);
+        FileSystem.prototype.init = function () {
+            var _this = this;
+            this.projectManager.getAllFiles().then(function (files) {
+                _this.filesPath = files ? files.map(function (file) {
+                    return file.fullPath;
+                }) : [];
+                _this.initialized = true;
+                _this.resolveInitializationStack();
+            });
+        };
+
+        FileSystem.prototype.addToInitializatioStack = function (callback) {
+            if (this.initialized) {
+                callback();
+            } else {
+                this.initializationStack.push(callback);
+            }
+        };
+
+        FileSystem.prototype.resolveInitializationStack = function () {
+            this.initializationStack.forEach(function (callback) {
+                return callback();
+            });
+            this.initializationStack.length = 0;
         };
 
         FileSystem.prototype.getDirectoryFiles = function (directory) {
@@ -204,6 +291,10 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
                 deferred.resolve(files);
             });
             return deferred.promise();
+        };
+
+        FileSystem.prototype.normalizeText = function (text) {
+            return text.replace(/\r\n/g, "\n");
         };
         return FileSystem;
     })();

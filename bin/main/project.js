@@ -1,32 +1,38 @@
-define(["require", "exports", './fileSystem', './workingSet', './typescript/coreService', './typescript/script', './typescript/language', './typeScriptUtils'], function(require, exports, __fileSystem__, __ws__, __coreService__, __script__, __language__, __utils__) {
-    var fileSystem = __fileSystem__;
+define(["require", "exports", './fileSystem', './workingSet', './typescript/coreService', './typescript/script', './typescript/language', './typeScriptUtils', './utils/collections'], function(require, exports, __fs__, __ws__, __coreService__, __script__, __language__, __utils__, __collections__) {
+    var fs = __fs__;
     var ws = __ws__;
     var coreService = __coreService__;
     var script = __script__;
     var language = __language__;
     var utils = __utils__;
+    var collections = __collections__;
     var Services = TypeScript.Services;
 
     var TypeScriptProjectManager = (function () {
-        function TypeScriptProjectManager(fileSystemService, workingSet, typeScriptProjectFactory) {
+        function TypeScriptProjectManager(fileSystem, workingSet) {
             var _this = this;
+            this.fileSystem = fileSystem;
+            this.workingSet = workingSet;
             this.filesChangeHandler = function (changeRecords) {
                 changeRecords.forEach(function (record) {
-                    if (record.kind === fileSystem.FileChangeKind.REFRESH) {
+                    if (record.kind === fs.FileChangeKind.RESET) {
                         _this.disposeProjects();
                         _this.createProjects();
-                    } else if (isTypeScriptProjectConfigFile(record.path)) {
+                        return false;
+                    } else if (utils.isTypeScriptProjectConfigFile(record.path)) {
                         switch (record.kind) {
-                            case fileSystem.FileChangeKind.DELETE:
+                            case fs.FileChangeKind.DELETE:
                                 if (_this.projectMap[record.path]) {
                                     _this.projectMap[record.path].dispose();
                                     delete _this.projectMap[record.path];
                                 }
                                 break;
-                            case fileSystem.FileChangeKind.ADD:
+
+                            case fs.FileChangeKind.ADD:
                                 _this.createProjectFromFile(record.path);
                                 break;
-                            case fileSystem.FileChangeKind.UPDATE:
+
+                            case fs.FileChangeKind.UPDATE:
                                 _this.retrieveConfig(record.path).then(function (config) {
                                     if (config) {
                                         if (_this.projectMap[record.path]) {
@@ -39,19 +45,17 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                                 break;
                         }
                     }
+                    return true;
                 });
             };
-            this.fileSystemService = fileSystemService;
-            this.typeScriptProjectFactory = typeScriptProjectFactory;
-            this.workingSet = workingSet;
         }
         TypeScriptProjectManager.prototype.init = function () {
             this.createProjects();
-            this.fileSystemService.projectFilesChanged.add(this.filesChangeHandler);
+            this.fileSystem.projectFilesChanged.add(this.filesChangeHandler);
         };
 
         TypeScriptProjectManager.prototype.dispose = function () {
-            this.fileSystemService.projectFilesChanged.remove(this.filesChangeHandler);
+            this.fileSystem.projectFilesChanged.remove(this.filesChangeHandler);
             this.disposeProjects();
         };
 
@@ -74,8 +78,8 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         TypeScriptProjectManager.prototype.createProjects = function () {
             var _this = this;
             this.projectMap = {};
-            this.fileSystemService.getProjectFiles().then(function (paths) {
-                paths.filter(isTypeScriptProjectConfigFile).forEach(_this.createProjectFromFile, _this);
+            this.fileSystem.getProjectFiles().then(function (paths) {
+                paths.filter(utils.isTypeScriptProjectConfigFile).forEach(_this.createProjectFromFile, _this);
             });
         };
 
@@ -98,14 +102,18 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
 
         TypeScriptProjectManager.prototype.createProjectFromConfig = function (configFilePath, config) {
             if (config) {
-                this.projectMap[configFilePath] = this.typeScriptProjectFactory(PathUtils.directory(configFilePath), config, this.fileSystemService, this.workingSet);
+                this.projectMap[configFilePath] = this.newProject(PathUtils.directory(configFilePath), config);
             } else {
                 this.projectMap[configFilePath] = null;
             }
         };
 
+        TypeScriptProjectManager.prototype.newProject = function (baseDir, config) {
+            return new TypeScriptProject(baseDir, config, this.fileSystem, this.workingSet);
+        };
+
         TypeScriptProjectManager.prototype.retrieveConfig = function (configFilePath) {
-            return this.fileSystemService.readFile(configFilePath).then(function (content) {
+            return this.fileSystem.readFile(configFilePath).then(function (content) {
                 var config;
                 try  {
                     config = JSON.parse(content);
@@ -114,12 +122,12 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                 }
 
                 if (config) {
-                    for (var property in exports.typeScriptProjectConfigDefault) {
-                        if (exports.typeScriptProjectConfigDefault.hasOwnProperty(property) && !config.hasOwnProperty(property)) {
-                            (config)[property] = (exports.typeScriptProjectConfigDefault)[config];
+                    for (var property in utils.typeScriptProjectConfigDefault) {
+                        if (!config.hasOwnProperty(property)) {
+                            config[property] = utils.typeScriptProjectConfigDefault[property];
                         }
                     }
-                    if (!exports.validateTypeScriptProjectConfig(config)) {
+                    if (!utils.validateTypeScriptProjectConfig(config)) {
                         config = null;
                     }
                 }
@@ -130,66 +138,36 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
     })();
     exports.TypeScriptProjectManager = TypeScriptProjectManager;
 
-    function isTypeScriptProjectConfigFile(path) {
-        return path && path.substr(path.lastIndexOf('/') + 1, path.length) === utils.PROJECT_CONFIG_FILE_NAME;
-    }
-
-    function validateTypeScriptProjectConfig(config) {
-        if (!config) {
-            return false;
-        }
-        if (!config.sources || !Array.isArray(config.sources) || !config.sources.every(function (sourceItem) {
-            return typeof sourceItem === 'string';
-        })) {
-            return false;
-        }
-        if (!(config.outDir && typeof config.outDir === 'string') && !(config.outFile && typeof config.outFile === 'string')) {
-            return false;
-        }
-        return true;
-    }
-    exports.validateTypeScriptProjectConfig = validateTypeScriptProjectConfig;
-
-    exports.typeScriptProjectConfigDefault = {
-        compileOnSave: false,
-        propagateEnumConstants: false,
-        removeComments: false,
-        allowAutomaticSemicolonInsertion: true,
-        noLib: false,
-        target: 'es3',
-        module: 'none',
-        mapSource: false,
-        declaration: false,
-        useCaseSensitiveFileResolution: false,
-        allowBool: false,
-        allowImportModule: false,
-        noImplicitAny: false
-    };
-
     (function (ProjectFileKind) {
         ProjectFileKind[ProjectFileKind["NONE"] = 0] = "NONE";
+
         ProjectFileKind[ProjectFileKind["SOURCE"] = 1] = "SOURCE";
+
         ProjectFileKind[ProjectFileKind["REFERENCE"] = 2] = "REFERENCE";
     })(exports.ProjectFileKind || (exports.ProjectFileKind = {}));
     var ProjectFileKind = exports.ProjectFileKind;
 
     var TypeScriptProject = (function () {
-        function TypeScriptProject(baseDirectory, config, fileSystemService, workingSet, languageServiceHostFactory) {
+        function TypeScriptProject(baseDirectory, config, fileSystem, workingSet) {
             var _this = this;
+            this.baseDirectory = baseDirectory;
+            this.config = config;
+            this.fileSystem = fileSystem;
+            this.workingSet = workingSet;
             this.filesChangeHandler = function (changeRecords) {
                 changeRecords.forEach(function (record) {
                     switch (record.kind) {
-                        case fileSystem.FileChangeKind.ADD:
-                            if (_this.isProjectSourceFile(record.path) || _this.missingFiles[record.path]) {
+                        case fs.FileChangeKind.ADD:
+                            if (_this.isProjectSourceFile(record.path) || _this.missingFiles.has(record.path)) {
                                 _this.addFile(record.path);
                             }
                             break;
-                        case fileSystem.FileChangeKind.DELETE:
+                        case fs.FileChangeKind.DELETE:
                             if (_this.files.hasOwnProperty(record.path)) {
                                 _this.removeFile(record.path);
                             }
                             break;
-                        case fileSystem.FileChangeKind.UPDATE:
+                        case fs.FileChangeKind.UPDATE:
                             if (_this.files.hasOwnProperty(record.path)) {
                                 _this.updateFile(record.path);
                             }
@@ -228,20 +206,19 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                     }
                 });
             };
-            this.baseDirectory = baseDirectory;
-            this.config = config;
-            this.fileSystemService = fileSystemService;
-            this.workingSet = workingSet;
-            this.languageServiceHostFactory = languageServiceHostFactory;
             this.collectFiles().then(function () {
-                return _this.createLanguageServiceHost();
+                _this.createLanguageServiceHost();
+                _this.workingSet.files.forEach(function (path) {
+                    if (_this.files.hasOwnProperty(path)) {
+                        _this.languageServiceHost.setScriptIsOpen(path, true);
+                    }
+                });
+                _this.workingSet.workingSetChanged.add(_this.workingSetChangedHandler);
+                _this.workingSet.documentEdited.add(_this.documentEditedHandler);
+                _this.fileSystem.projectFilesChanged.add(_this.filesChangeHandler);
             }, function () {
-                console.log("fuck");
+                return console.log('todo');
             });
-
-            this.fileSystemService.projectFilesChanged.add(this.filesChangeHandler);
-            this.workingSet.workingSetChanged.add(this.workingSetChangedHandler);
-            this.workingSet.documentEdited.add(this.documentEditedHandler);
         }
         TypeScriptProject.prototype.getLanguageService = function () {
             return this.languageService;
@@ -256,7 +233,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         };
 
         TypeScriptProject.prototype.dispose = function () {
-            this.fileSystemService.projectFilesChanged.remove(this.filesChangeHandler);
+            this.fileSystem.projectFilesChanged.remove(this.filesChangeHandler);
             this.workingSet.workingSetChanged.remove(this.workingSetChangedHandler);
             this.workingSet.documentEdited.remove(this.documentEditedHandler);
         };
@@ -277,9 +254,9 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         TypeScriptProject.prototype.collectFiles = function () {
             var _this = this;
             this.files = {};
-            this.missingFiles = {};
+            this.missingFiles = new collections.StringSet();
             this.references = {};
-            return this.fileSystemService.getProjectFiles().then(function (paths) {
+            return this.fileSystem.getProjectFiles().then(function (paths) {
                 var promises = [];
                 paths.filter(function (path) {
                     return _this.isProjectSourceFile(path);
@@ -306,14 +283,14 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
             var _this = this;
             if (!this.files.hasOwnProperty(path)) {
                 this.files[path] = null;
-                return this.fileSystemService.readFile(path).then(function (content) {
+                return this.fileSystem.readFile(path).then(function (content) {
                     var promises = [];
                     if (content === null || content === undefined) {
-                        _this.missingFiles[path] = true;
+                        _this.missingFiles.add(path);
                         delete _this.files[path];
                         return null;
                     }
-                    delete _this.missingFiles[path];
+                    _this.missingFiles.remove(path);
                     _this.files[path] = content;
                     _this.getReferencedOrImportedFiles(path).forEach(function (referencedPath) {
                         promises.push(_this.addFile(referencedPath));
@@ -334,8 +311,8 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                 this.getReferencedOrImportedFiles(path).forEach(function (referencedPath) {
                     _this.removeReference(path, referencedPath);
                 });
-                if (this.references[path] && Object.keys(this.references[path]).length > 0) {
-                    this.missingFiles[path] = true;
+                if (this.references[path] && this.references[path].keys.length > 0) {
+                    this.missingFiles.add(path);
                 }
                 if (this.languageServiceHost) {
                     this.languageServiceHost.removeScript(path);
@@ -346,7 +323,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
 
         TypeScriptProject.prototype.updateFile = function (path) {
             var _this = this;
-            this.fileSystemService.readFile(path).then(function (content) {
+            this.fileSystem.readFile(path).then(function (content) {
                 var oldPathMap = {};
                 _this.getReferencedOrImportedFiles(path).forEach(function (path) {
                     return oldPathMap[path] = true;
@@ -372,9 +349,9 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
 
         TypeScriptProject.prototype.addReference = function (path, referencedPath) {
             if (!this.references[referencedPath]) {
-                this.references[referencedPath] = {};
+                this.references[referencedPath] = new collections.StringSet();
             }
-            this.references[referencedPath][path] = true;
+            this.references[referencedPath].add(path);
         };
 
         TypeScriptProject.prototype.removeReference = function (path, referencedPath) {
@@ -382,8 +359,8 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
             if (!fileRefs) {
                 this.removeFile(referencedPath);
             }
-            delete fileRefs[path];
-            if (Object.keys(fileRefs).length === 0) {
+            fileRefs.remove(path);
+            if (fileRefs.keys.length === 0) {
                 delete this.references[referencedPath];
                 this.removeFile(referencedPath);
             }
@@ -401,7 +378,6 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         };
 
         TypeScriptProject.prototype.createLanguageServiceHost = function () {
-            var _this = this;
             var compilationSettings = new TypeScript.CompilationSettings(), moduleType = this.config.module.toLowerCase();
             compilationSettings.propagateEnumConstants = this.config.propagateEnumConstants;
             compilationSettings.removeComments = this.config.removeComments;
@@ -420,17 +396,11 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
 
             compilationSettings.moduleGenTarget = moduleType === 'none' ? TypeScript.ModuleGenTarget.Unspecified : (moduleType === 'amd' ? TypeScript.ModuleGenTarget.Asynchronous : TypeScript.ModuleGenTarget.Synchronous);
 
-            this.languageServiceHost = this.languageServiceHostFactory(compilationSettings, this.getFiles());
+            this.languageServiceHost = new language.LanguageServiceHost(compilationSettings, this.getFiles());
             if (!compilationSettings.noLib) {
                 this.addDefaultLibrary();
             }
             this.languageService = new Services.TypeScriptServicesFactory().createPullLanguageService(this.languageServiceHost);
-
-            this.workingSet.files.forEach(function (path) {
-                if (_this.files.hasOwnProperty(path)) {
-                    _this.languageServiceHost.setScriptIsOpen(path, true);
-                }
-            });
         };
 
         TypeScriptProject.prototype.addDefaultLibrary = function () {
@@ -439,11 +409,4 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         return TypeScriptProject;
     })();
     exports.TypeScriptProject = TypeScriptProject;
-
-    function typeScriptProjectFactory(baseDirectory, config, fileSystemService, workingSet) {
-        return new TypeScriptProject(baseDirectory, config, fileSystemService, workingSet, function (settings, files) {
-            return new language.LanguageServiceHost(settings, files);
-        });
-    }
-    exports.typeScriptProjectFactory = typeScriptProjectFactory;
 });

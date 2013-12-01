@@ -12,7 +12,7 @@ import fs = require('./fileSystem');
 import ws = require('./workingSet');
 import project = require('./project');
 import codeHint = require('./codeHint');
-import errorReporter = require('./errorReporter');
+import TypeScriptErrorReporter = require('./errorReporter');
 import qe = require('./quickEdit');
 import commentsHelper = require('./commentsHelper');
 import signal = require('./utils/signal');
@@ -53,13 +53,13 @@ function init(conf: {
 	});
     
     //Create warpers
-    var fileSystemService: any = new fs.FileSystem(FileSystem, ProjectManager),
+    var fileSystem = new fs.FileSystem(FileSystem, ProjectManager),
         workingSet = new ws.WorkingSet(DocumentManager);
     
     // create project manager, and different brackets services
-    var projectManager = new project.TypeScriptProjectManager(fileSystemService, workingSet, project.typeScriptProjectFactory),
+    var projectManager = new project.TypeScriptProjectManager(fileSystem, workingSet),
         codeHintProvider = new codeHint.TypeScriptCodeHintProvider(projectManager),
-        lintingProvider = new errorReporter.TypeScriptErrorReporter(projectManager, CodeInspection.Type),
+        errorReporter = new TypeScriptErrorReporter(projectManager, CodeInspection.Type),
         quickEditProvider = new qe.TypeScriptQuickEditProvider(projectManager);
     
         
@@ -68,7 +68,7 @@ function init(conf: {
 
     CodeHintManager.registerHintProvider(codeHintProvider, ['typescript'], 0);
     
-    CodeInspection.register('typescript', lintingProvider); 
+    CodeInspection.register('typescript', errorReporter); 
     
     EditorManager.registerInlineEditProvider(quickEditProvider.typeScriptInlineEditorProvider);
    

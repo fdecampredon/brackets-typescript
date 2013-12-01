@@ -255,9 +255,9 @@ describe('WorkingSet', function (): void {
             ]);
         });
         
-        it('should not notify when a document that is not in the working set have been edited ', function () {
-            //stupid case to see if event handling works properly
-            var doc = documentManagerMock.getDocument('/unknowpath');
+        it('should notify when a document that has been added to the working set has been edited', function () {
+            documentManagerMock.addFile('/path/file5.ts');
+            var doc = documentManagerMock.getDocument('/path/file5.ts');
             $(doc).triggerHandler('change', [doc, {
                 from : {
                     ch: 0,
@@ -267,13 +267,34 @@ describe('WorkingSet', function (): void {
                     ch: 0,
                     line: 0,
                 },
-                text : ['hello'],
+                text : ['world'],
                 removed: null
             }]);
             
+            
+            expect(spy.callCount).toBe(1);
+            expect(spy).toHaveBeenCalledWith([
+                {
+                    path: '/path/file5.ts',
+                    from : {
+                        ch: 0,
+                        line: 0
+                    },
+                    to: {
+                        ch: 0,
+                        line: 0,
+                    },
+                    text: 'world',
+                    removed: ''
+                }
+            ]);
+        });
+        
+        it('should not notify when a document that has been removed from the working set have been edited ', function () {
+         
            
             documentManagerMock.removeFile('/path/file1.ts');
-            doc = documentManagerMock.getDocument('/path/file1.ts');
+            var doc = documentManagerMock.getDocument('/path/file1.ts');
             
             $(doc).triggerHandler('change', [doc, {
                 from : {

@@ -1,23 +1,18 @@
-define(["require", "exports", './logger'], function(require, exports, __Logger__) {
+define(["require", "exports"], function(require, exports) {
     
-    var Logger = __Logger__;
-    
-    var Services = TypeScript.Services;
-
-    var logger = new Logger(), classifier = new Services.TypeScriptServicesFactory().createClassifier(logger);
 
     var TypeScriptErrorReporter = (function () {
         function TypeScriptErrorReporter(typescriptProjectManager, errorType) {
-            this.name = 'TypeScript';
             this.typescriptProjectManager = typescriptProjectManager;
             this.errorType = errorType;
+            this.name = 'TypeScript';
         }
         TypeScriptErrorReporter.prototype.scanFile = function (content, path) {
-            var project = this.typescriptProjectManager.getProjectForFile(path);
-            if (!project) {
+            var project = this.typescriptProjectManager.getProjectForFile(path), languageService = project && project.getLanguageService(), languageServiceHost = project && project.getLanguageServiceHost(), scriptSnapshot = languageServiceHost && languageServiceHost.getScriptSnapshot(path);
+
+            if (!project || !languageService || !languageServiceHost) {
                 return { errors: [], aborted: true };
             }
-            var languageService = project.getLanguageService(), languageServiceHost = project.getLanguageServiceHost(), scriptSnapshot = languageServiceHost.getScriptSnapshot(path);
 
             var syntacticDiagnostics = languageService.getSyntacticDiagnostics(path), errors = this.diagnosticToError(syntacticDiagnostics, scriptSnapshot);
 
@@ -71,5 +66,7 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
         };
         return TypeScriptErrorReporter;
     })();
-    exports.TypeScriptErrorReporter = TypeScriptErrorReporter;
+
+    
+    return TypeScriptErrorReporter;
 });

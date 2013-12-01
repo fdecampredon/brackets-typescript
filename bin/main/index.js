@@ -1,4 +1,4 @@
-define(["require", "exports", './mode', './fileSystem', './workingSet', './project', './codeHint', './errorReporter', './quickEdit', './commentsHelper', './utils/signal', './logger'], function(require, exports, __typeScriptModeFactory__, __fs__, __ws__, __project__, __codeHint__, __errorReporter__, __qe__, __commentsHelper__, __signal__, __logger__) {
+define(["require", "exports", './mode', './fileSystem', './workingSet', './project', './codeHint', './errorReporter', './quickEdit', './commentsHelper', './utils/signal', './logger'], function(require, exports, __typeScriptModeFactory__, __fs__, __ws__, __project__, __codeHint__, __TypeScriptErrorReporter__, __qe__, __commentsHelper__, __signal__, __logger__) {
     'use strict';
 
     var typeScriptModeFactory = __typeScriptModeFactory__;
@@ -6,7 +6,7 @@ define(["require", "exports", './mode', './fileSystem', './workingSet', './proje
     var ws = __ws__;
     var project = __project__;
     var codeHint = __codeHint__;
-    var errorReporter = __errorReporter__;
+    var TypeScriptErrorReporter = __TypeScriptErrorReporter__;
     var qe = __qe__;
     var commentsHelper = __commentsHelper__;
     var signal = __signal__;
@@ -27,15 +27,15 @@ define(["require", "exports", './mode', './fileSystem', './workingSet', './proje
             lineComment: ['//']
         });
 
-        var fileSystemService = new fs.FileSystem(FileSystem, ProjectManager), workingSet = new ws.WorkingSet(DocumentManager);
+        var fileSystem = new fs.FileSystem(FileSystem, ProjectManager), workingSet = new ws.WorkingSet(DocumentManager);
 
-        var projectManager = new project.TypeScriptProjectManager(fileSystemService, workingSet, project.typeScriptProjectFactory), codeHintProvider = new codeHint.TypeScriptCodeHintProvider(projectManager), lintingProvider = new errorReporter.TypeScriptErrorReporter(projectManager, CodeInspection.Type), quickEditProvider = new qe.TypeScriptQuickEditProvider(projectManager);
+        var projectManager = new project.TypeScriptProjectManager(fileSystem, workingSet), codeHintProvider = new codeHint.TypeScriptCodeHintProvider(projectManager), errorReporter = new TypeScriptErrorReporter(projectManager, CodeInspection.Type), quickEditProvider = new qe.TypeScriptQuickEditProvider(projectManager);
 
         projectManager.init();
 
         CodeHintManager.registerHintProvider(codeHintProvider, ['typescript'], 0);
 
-        CodeInspection.register('typescript', lintingProvider);
+        CodeInspection.register('typescript', errorReporter);
 
         EditorManager.registerInlineEditProvider(quickEditProvider.typeScriptInlineEditorProvider);
 

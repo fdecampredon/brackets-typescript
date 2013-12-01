@@ -27,7 +27,6 @@ define(["require", "exports"], function(require, exports) {
         };
 
         Logger.prototype.log = function (s) {
-            console.log(s);
         };
         return Logger;
     })();
