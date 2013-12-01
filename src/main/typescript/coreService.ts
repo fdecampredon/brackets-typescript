@@ -1,7 +1,7 @@
 import Logger = require('../logger');
-import Services = TypeScript.Services;
+import TypeScriptServicesFactory = TypeScript.Services.TypeScriptServicesFactory;
 
-var coreService = new Services.TypeScriptServicesFactory().createCoreServices({
+var coreService = new TypeScriptServicesFactory().createCoreServices({
     logger: new Logger()
 });
 

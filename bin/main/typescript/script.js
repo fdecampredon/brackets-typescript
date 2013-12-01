@@ -1,7 +1,7 @@
 define(["require", "exports"], function(require, exports) {
     var ScriptInfo = (function () {
         function ScriptInfo(fileName, content, isOpen, byteOrderMark) {
-            if (typeof isOpen === "undefined") { isOpen = true; }
+            if (typeof isOpen === "undefined") { isOpen = false; }
             if (typeof byteOrderMark === "undefined") { byteOrderMark = TypeScript.ByteOrderMark.None; }
             this.version = 1;
             this.editRanges = [];
@@ -95,9 +95,4 @@ define(["require", "exports"], function(require, exports) {
         return ScriptSnapshot;
     })();
     exports.ScriptSnapshot = ScriptSnapshot;
-
-    function getScriptSnapShot(path, content) {
-        return new ScriptSnapshot(new ScriptInfo(path, content));
-    }
-    exports.getScriptSnapShot = getScriptSnapShot;
 });

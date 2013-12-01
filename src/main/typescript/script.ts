@@ -8,7 +8,7 @@
     public byteOrderMark: TypeScript.ByteOrderMark;
     
 
-    constructor(fileName: string, content: string, isOpen = true, byteOrderMark: TypeScript.ByteOrderMark = TypeScript.ByteOrderMark.None) {
+    constructor(fileName: string, content: string, isOpen = false, byteOrderMark: TypeScript.ByteOrderMark = TypeScript.ByteOrderMark.None) {
         this.fileName = fileName;
         this.content = content;
         this.isOpen = isOpen;
@@ -105,9 +105,4 @@ export class ScriptSnapshot implements TypeScript.IScriptSnapshot {
     public getTextChangeRangeSinceVersion(scriptVersion: number): TypeScript.TextChangeRange {
         return this.scriptInfo.getTextChangeRangeBetweenVersions(scriptVersion, this.version);
     }
-}
- 
- 
-export function getScriptSnapShot(path: string, content: string): TypeScript.IScriptSnapshot {
-    return new ScriptSnapshot(new ScriptInfo(path, content));
 }

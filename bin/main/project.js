@@ -208,7 +208,11 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                 });
             };
             this.collectFiles().then(function () {
+                _this.compilationSettings = _this.createCompilationSettings();
                 _this.createLanguageServiceHost();
+                if (!_this.compilationSettings.noLib) {
+                    _this.addDefaultLibrary();
+                }
                 _this.workingSet.files.forEach(function (path) {
                     var script = _this.projectScripts.get(path);
                     if (script) {
@@ -219,9 +223,17 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                 _this.workingSet.documentEdited.add(_this.documentEditedHandler);
                 _this.fileSystem.projectFilesChanged.add(_this.filesChangeHandler);
             }, function () {
-                return console.log('todo');
+                console.log('Errors in collecting project files');
             });
         }
+        TypeScriptProject.prototype.getCompilationSettings = function () {
+            return this.compilationSettings;
+        };
+
+        TypeScriptProject.prototype.getScripts = function () {
+            return this.projectScripts;
+        };
+
         TypeScriptProject.prototype.getLanguageService = function () {
             return this.languageService;
         };
@@ -233,8 +245,6 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         };
 
         TypeScriptProject.prototype.update = function (config) {
-            this.config = config;
-            this.collectFiles();
         };
 
         TypeScriptProject.prototype.getProjectFileKind = function (path) {
@@ -269,7 +279,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
             var _this = this;
             this.projectScripts = new collections.StringMap();
             this.missingFiles = new collections.StringSet();
-            this.references = {};
+            this.references = new collections.StringMap();
             return this.fileSystem.getProjectFiles().then(function (paths) {
                 var promises = [];
                 paths.filter(function (path) {
@@ -305,7 +315,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                         return null;
                     }
                     _this.missingFiles.remove(path);
-                    _this.projectScripts.set(path, new script.ScriptInfo(path, content, false));
+                    _this.projectScripts.set(path, _this.createScriptInfo(path, content));
                     _this.getReferencedOrImportedFiles(path).forEach(function (referencedPath) {
                         promises.push(_this.addFile(referencedPath));
                         _this.addReference(path, referencedPath);
@@ -322,7 +332,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                 this.getReferencedOrImportedFiles(path).forEach(function (referencedPath) {
                     _this.removeReference(path, referencedPath);
                 });
-                if (this.references[path] && this.references[path].keys.length > 0) {
+                if (this.references.has(path) && this.references.get(path).keys.length > 0) {
                     this.missingFiles.add(path);
                 }
                 this.projectScripts.delete(path);
@@ -352,20 +362,20 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         };
 
         TypeScriptProject.prototype.addReference = function (path, referencedPath) {
-            if (!this.references[referencedPath]) {
-                this.references[referencedPath] = new collections.StringSet();
+            if (!this.references.has(referencedPath)) {
+                this.references.set(referencedPath, new collections.StringSet());
             }
-            this.references[referencedPath].add(path);
+            this.references.get(referencedPath).add(path);
         };
 
         TypeScriptProject.prototype.removeReference = function (path, referencedPath) {
-            var fileRefs = this.references[referencedPath];
+            var fileRefs = this.references.get(referencedPath);
             if (!fileRefs) {
                 this.removeFile(referencedPath);
             }
             fileRefs.remove(path);
             if (fileRefs.keys.length === 0) {
-                delete this.references[referencedPath];
+                this.references.delete(referencedPath);
                 this.removeFile(referencedPath);
             }
         };
@@ -377,7 +387,11 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
             });
         };
 
-        TypeScriptProject.prototype.createLanguageServiceHost = function () {
+        TypeScriptProject.prototype.createScriptInfo = function (path, content) {
+            return new script.ScriptInfo(path, content);
+        };
+
+        TypeScriptProject.prototype.createCompilationSettings = function () {
             var compilationSettings = new TypeScript.CompilationSettings(), moduleType = this.config.module.toLowerCase();
             compilationSettings.propagateEnumConstants = this.config.propagateEnumConstants;
             compilationSettings.removeComments = this.config.removeComments;
@@ -395,11 +409,11 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
             compilationSettings.codeGenTarget = this.config.target.toLowerCase() === 'es3' ? TypeScript.LanguageVersion.EcmaScript3 : TypeScript.LanguageVersion.EcmaScript5;
 
             compilationSettings.moduleGenTarget = moduleType === 'none' ? TypeScript.ModuleGenTarget.Unspecified : (moduleType === 'amd' ? TypeScript.ModuleGenTarget.Asynchronous : TypeScript.ModuleGenTarget.Synchronous);
+            return compilationSettings;
+        };
 
-            this.languageServiceHost = new language.LanguageServiceHost(compilationSettings, this.projectScripts);
-            if (!compilationSettings.noLib) {
-                this.addDefaultLibrary();
-            }
+        TypeScriptProject.prototype.createLanguageServiceHost = function () {
+            this.languageServiceHost = new language.LanguageServiceHost(this.compilationSettings, this.projectScripts);
             this.languageService = new Services.TypeScriptServicesFactory().createPullLanguageService(this.languageServiceHost);
         };
 

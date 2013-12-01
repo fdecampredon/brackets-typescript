@@ -17,6 +17,9 @@ import Services = TypeScript.Services;
 
 
 
+
+
+
 /**
  * The main facade class of the extentions, responsible to create / destroy / update projects
  * by observing config files in the files of the opened brackets folder
@@ -315,7 +318,11 @@ export class TypeScriptProject {
         private workingSet: ws.IWorkingSet
     ) {
         this.collectFiles().then(() => {
+            this.compilationSettings =  this.createCompilationSettings();
             this.createLanguageServiceHost();
+            if (!this.compilationSettings.noLib) {
+                this.addDefaultLibrary();
+            }
             this.workingSet.files.forEach((path: string) => {
                 var script = this.projectScripts.get(path);
                 if (script) {
@@ -325,12 +332,21 @@ export class TypeScriptProject {
             this.workingSet.workingSetChanged.add(this.workingSetChangedHandler);
             this.workingSet.documentEdited.add(this.documentEditedHandler);
             this.fileSystem.projectFilesChanged.add(this.filesChangeHandler);
-        }, () => console.log('todo'));
+        },() => { 
+            //TODO handle errors;
+            console.log('Errors in collecting project files');
+        });
     }
     
     //-------------------------------
     //  variables
     //-------------------------------
+    
+    /**
+     * the compilation settings extracted from the project config file
+     */
+    
+    private compilationSettings: TypeScript.CompilationSettings;
     
     /**
      * Map path to content
@@ -340,14 +356,13 @@ export class TypeScriptProject {
     /**
      * store file references
      */
-    private references: { [path: string]: collections.StringSet };
+    private references: collections.StringMap<collections.StringSet>;
     
     /**
      * a set containing path of file referenced but not found
      */
     private missingFiles: collections.StringSet;
     
-        
     /**
      * the language service host associated to this project
      */
@@ -361,6 +376,22 @@ export class TypeScriptProject {
     //-------------------------------
     //  public method
     //-------------------------------
+    
+    
+    /**
+     * return  the compilation settings extracted from the project config file
+     */
+    getCompilationSettings() {
+        return this.compilationSettings;
+    }
+    
+    
+    /**
+     * get compilations settings
+     */
+    getScripts() {
+        return this.projectScripts;
+    }
     
     /**
      * return the language service associated to this project
@@ -384,8 +415,7 @@ export class TypeScriptProject {
      * @param config
      */
     update(config: TypeScriptProjectConfig): void {
-        this.config = config;
-        this.collectFiles();
+        
     }
     
     /**
@@ -443,7 +473,7 @@ export class TypeScriptProject {
     private collectFiles(): JQueryPromise<void> {
         this.projectScripts = new collections.StringMap<script.ScriptInfo>();
         this.missingFiles = new collections.StringSet();
-        this.references = {}
+        this.references = new collections.StringMap<collections.StringSet>();
         return this.fileSystem.getProjectFiles().then((paths: string[]) => {
             var promises: JQueryPromise<any>[] = [];
             paths
@@ -484,7 +514,7 @@ export class TypeScriptProject {
                     return null;
                 }
                 this.missingFiles.remove(path);
-                this.projectScripts.set(path, new script.ScriptInfo(path, content, false));
+                this.projectScripts.set(path, this.createScriptInfo(path, content));
                 this.getReferencedOrImportedFiles(path).forEach((referencedPath: string) => {
                     promises.push(this.addFile(referencedPath));
                     this.addReference(path, referencedPath);
@@ -504,7 +534,7 @@ export class TypeScriptProject {
             this.getReferencedOrImportedFiles(path).forEach((referencedPath: string) => {
                 this.removeReference(path, referencedPath);
             });
-            if (this.references[path] && this.references[path].keys.length > 0) {
+            if (this.references.has(path) && this.references.get(path).keys.length > 0) {
                 this.missingFiles.add(path);
             }   
             this.projectScripts.delete(path);
@@ -541,10 +571,10 @@ export class TypeScriptProject {
      * @param referencedPath the path of the file referenced
      */
     private addReference(path: string, referencedPath: string) {
-        if (!this.references[referencedPath]) {
-            this.references[referencedPath] = new collections.StringSet();
+        if (!this.references.has(referencedPath)) {
+            this.references.set(referencedPath, new collections.StringSet());
         }
-        this.references[referencedPath].add(path)
+        this.references.get(referencedPath).add(path)
     }
     
     /**
@@ -553,13 +583,13 @@ export class TypeScriptProject {
      * @param referencedPath the path of the file referenced
      */
     private removeReference(path: string, referencedPath: string) {
-        var fileRefs = this.references[referencedPath];
+        var fileRefs = this.references.get(referencedPath);
         if (!fileRefs) {
             this.removeFile(referencedPath);
         }
         fileRefs.remove(path);
         if (fileRefs.keys.length === 0) {
-            delete this.references[referencedPath];
+            this.references.delete(referencedPath);
             this.removeFile(referencedPath);
         }   
     }
@@ -573,11 +603,19 @@ export class TypeScriptProject {
         return this.config.sources.some(pattern => utils.minimatch(path, pattern));
     }
     
+    /**
+     * create a scriptInfo
+     * @param path
+     * @param content
+     */
+    private createScriptInfo(path: string, content: string): script.ScriptInfo {
+         return new script.ScriptInfo(path, content)
+    }
  
     /**
-     * create the language service according to the file
+     * create compilation settings from project config
      */
-    private createLanguageServiceHost(): void {
+    private createCompilationSettings() : TypeScript.CompilationSettings {
         var compilationSettings = new TypeScript.CompilationSettings(),
             moduleType = this.config.module.toLowerCase();
         compilationSettings.propagateEnumConstants = this.config.propagateEnumConstants;
@@ -602,16 +640,14 @@ export class TypeScriptProject {
                                                     (  moduleType === 'amd' ?
                                                         TypeScript.ModuleGenTarget.Asynchronous:
                                                         TypeScript.ModuleGenTarget.Synchronous );
-   
-       
-       
-        this.languageServiceHost = new language.LanguageServiceHost(compilationSettings, this.projectScripts);
-        if (!compilationSettings.noLib) {
-            this.addDefaultLibrary();
-        }
+        return compilationSettings
+    }
+    /**
+     * create the language service according to the file
+     */
+    private createLanguageServiceHost(): void {
+        this.languageServiceHost = new language.LanguageServiceHost(this.compilationSettings, this.projectScripts);
         this.languageService = new Services.TypeScriptServicesFactory().createPullLanguageService(this.languageServiceHost);
- 
-        
     }
     
     /**
@@ -683,7 +719,6 @@ export class TypeScriptProject {
                 }
                 var minChar = this.getIndexFromPos(record.path, record.from),
                     limChar = this.getIndexFromPos(record.path, record.to);
-                
                 
                 this.projectScripts.get(record.path).editContent(minChar, limChar, record.text);
             }
