@@ -1,5 +1,6 @@
-define(["require", "exports", './utils/signal'], function(require, exports, __signal__) {
+define(["require", "exports", './utils/signal', './utils/collections'], function(require, exports, __signal__, __collections__) {
     var signal = __signal__;
+    var collections = __collections__;
 
     (function (WorkingSetChangeKind) {
         WorkingSetChangeKind[WorkingSetChangeKind["ADD"] = 0] = "ADD";
@@ -13,7 +14,7 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
             this.documentManager = documentManager;
             this._workingSetChanged = new signal.Signal();
             this._documentEdited = new signal.Signal();
-            this._files = {};
+            this.filesMap = new collections.StringMap();
             this.workingSetAddHandler = function (event, file) {
                 _this.addDocument(file.fullPath);
                 _this.workingSetChanged.dispatch({
@@ -84,6 +85,14 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
                 return file.fullPath;
             }));
         }
+        Object.defineProperty(WorkingSet.prototype, "files", {
+            get: function () {
+                return this.filesMap.keys;
+            },
+            enumerable: true,
+            configurable: true
+        });
+
         Object.defineProperty(WorkingSet.prototype, "workingSetChanged", {
             get: function () {
                 return this._workingSetChanged;
@@ -100,28 +109,6 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
             configurable: true
         });
 
-        Object.defineProperty(WorkingSet.prototype, "files", {
-            get: function () {
-                return Object.keys(this._files);
-            },
-            enumerable: true,
-            configurable: true
-        });
-
-        WorkingSet.prototype.setFiles = function (files) {
-            var _this = this;
-            for (var path in this._files) {
-                if (this._files.hasOwnProperty(path)) {
-                    this.removeDocument(path);
-                }
-            }
-            if (files) {
-                files.forEach(function (file) {
-                    return _this.addDocument(file);
-                });
-            }
-        };
-
         WorkingSet.prototype.dispose = function () {
             $(this.documentManager).off('workingSetAdd', this.workingSetAddHandler);
             $(this.documentManager).off('workingSetAddList', this.workingSetAddListHandler);
@@ -130,27 +117,42 @@ define(["require", "exports", './utils/signal'], function(require, exports, __si
             this.setFiles(null);
         };
 
+        WorkingSet.prototype.setFiles = function (files) {
+            var _this = this;
+            this.files.forEach(function (path) {
+                return _this.removeDocument(path);
+            });
+            if (files) {
+                files.forEach(function (path) {
+                    return _this.addDocument(path);
+                });
+            }
+        };
+
         WorkingSet.prototype.addDocument = function (path) {
             var _this = this;
             this.documentManager.getDocumentForPath(path).then(function (document) {
                 if (!document) {
                     throw new Error('??? should not happen');
                 }
-                if (_this._files[path]) {
+                if (_this.filesMap.has(path)) {
                     _this.removeDocument(path);
                 }
-                _this._files[document.file.fullPath] = document;
+                _this.filesMap.set(document.file.fullPath, document);
+                console.log('setting :\'' + document.file.fullPath + '\'');
                 $(document).on('change', _this.documentChangesHandler);
+            }, function (err) {
+                throw new Error(err);
             });
         };
 
         WorkingSet.prototype.removeDocument = function (path) {
-            var document = this._files[path];
+            var document = this.filesMap.get(path);
             if (!document) {
                 return;
             }
             $(document).off('change', this.documentChangesHandler);
-            delete this._files[path];
+            this.filesMap.delete(path);
         };
         return WorkingSet;
     })();

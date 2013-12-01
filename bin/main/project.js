@@ -13,6 +13,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
             var _this = this;
             this.fileSystem = fileSystem;
             this.workingSet = workingSet;
+            this.projectMap = new collections.StringMap();
             this.filesChangeHandler = function (changeRecords) {
                 changeRecords.forEach(function (record) {
                     if (record.kind === fs.FileChangeKind.RESET) {
@@ -22,9 +23,9 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                     } else if (utils.isTypeScriptProjectConfigFile(record.path)) {
                         switch (record.kind) {
                             case fs.FileChangeKind.DELETE:
-                                if (_this.projectMap[record.path]) {
-                                    _this.projectMap[record.path].dispose();
-                                    delete _this.projectMap[record.path];
+                                if (_this.projectMap.has(record.path)) {
+                                    _this.projectMap.get(record.path).dispose();
+                                    _this.projectMap.delete(record.path);
                                 }
                                 break;
 
@@ -35,8 +36,8 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                             case fs.FileChangeKind.UPDATE:
                                 _this.retrieveConfig(record.path).then(function (config) {
                                     if (config) {
-                                        if (_this.projectMap[record.path]) {
-                                            _this.projectMap[record.path].update(config);
+                                        if (_this.projectMap.has(record.path)) {
+                                            _this.projectMap.get(record.path).update(config);
                                         } else {
                                             _this.createProjectFromConfig(record.path, config);
                                         }
@@ -60,24 +61,29 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         };
 
         TypeScriptProjectManager.prototype.getProjectForFile = function (path) {
-            for (var configPath in this.projectMap) {
-                if (this.projectMap[configPath].getProjectFileKind(path) === ProjectFileKind.SOURCE) {
-                    return this.projectMap[configPath];
+            var projects = this.projectMap.values, project = null;
+
+            projects.some(function (tsProject) {
+                if (tsProject.getProjectFileKind(path) === ProjectFileKind.SOURCE) {
+                    project = tsProject;
+                    return true;
                 }
+            });
+
+            if (!project) {
+                projects.some(function (tsProject) {
+                    if (tsProject.getProjectFileKind(path) === ProjectFileKind.REFERENCE) {
+                        project = tsProject;
+                        return true;
+                    }
+                });
             }
 
-            for (var configPath in this.projectMap) {
-                if (this.projectMap[configPath].getProjectFileKind(path) === ProjectFileKind.REFERENCE) {
-                    return this.projectMap[configPath];
-                }
-            }
-
-            return null;
+            return project;
         };
 
         TypeScriptProjectManager.prototype.createProjects = function () {
             var _this = this;
-            this.projectMap = {};
             this.fileSystem.getProjectFiles().then(function (paths) {
                 paths.filter(utils.isTypeScriptProjectConfigFile).forEach(_this.createProjectFromFile, _this);
             });
@@ -85,12 +91,10 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
 
         TypeScriptProjectManager.prototype.disposeProjects = function () {
             var projectMap = this.projectMap;
-            for (var path in projectMap) {
-                if (projectMap.hasOwnProperty(path) && projectMap[path]) {
-                    projectMap[path].dispose();
-                }
-            }
-            this.projectMap = {};
+            projectMap.keys.forEach(function (path) {
+                return projectMap.get(path).dispose();
+            });
+            this.projectMap.clear();
         };
 
         TypeScriptProjectManager.prototype.createProjectFromFile = function (configFilePath) {
@@ -102,9 +106,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
 
         TypeScriptProjectManager.prototype.createProjectFromConfig = function (configFilePath, config) {
             if (config) {
-                this.projectMap[configFilePath] = this.newProject(PathUtils.directory(configFilePath), config);
-            } else {
-                this.projectMap[configFilePath] = null;
+                this.projectMap.set(configFilePath, this.newProject(PathUtils.directory(configFilePath), config));
             }
         };
 

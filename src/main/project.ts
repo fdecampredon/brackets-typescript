@@ -23,6 +23,9 @@ import Services = TypeScript.Services;
  */
 export class TypeScriptProjectManager {
     
+    //-------------------------------
+    //  constructor
+    //-------------------------------
     
     /**
      * @param fileSystem the fileSystem wrapper used by the projectManager
@@ -34,10 +37,18 @@ export class TypeScriptProjectManager {
         private workingSet: ws.IWorkingSet
     ) {}
     
+    //-------------------------------
+    //  variables
+    //-------------------------------
+    
     /**
      * a map containing the projects 
      */
-    private projectMap: { [path:string]: TypeScriptProject };
+    private projectMap = new collections.StringMap<TypeScriptProject>();
+    
+    //-------------------------------
+    // Public methods
+    //------------------------------- 
     
     
     /**
@@ -65,29 +76,37 @@ export class TypeScriptProjectManager {
      * @param path the path of the typesrcript file for which project are looked fo
      */
     getProjectForFile(path: string): TypeScriptProject {
+        var projects = this.projectMap.values,
+            project : TypeScriptProject = null;
         //first we check for a project that have tha file as source 
-        for (var configPath in this.projectMap) {
-            if (this.projectMap[configPath].getProjectFileKind(path) === ProjectFileKind.SOURCE) {
-                return this.projectMap[configPath];
+        projects.some(tsProject  => {
+            if (tsProject.getProjectFileKind(path) === ProjectFileKind.SOURCE) {
+                project = tsProject;
+                return true;
             }
-        }
+        });
         
-        //then we check for a project that just reference the file
-        for (var configPath in this.projectMap) {
-            if (this.projectMap[configPath].getProjectFileKind(path) === ProjectFileKind.REFERENCE) {
-                return this.projectMap[configPath];
-            }
+        if (!project) {
+            projects.some(tsProject  => {
+                if (tsProject.getProjectFileKind(path) === ProjectFileKind.REFERENCE) {
+                    project = tsProject;
+                    return true;
+                }
+            });
         }
         
         //TODO return a kind of "single file project" if no project are found
-        return null;
+        return project;
     }
+    
+    //-------------------------------
+    //  Private methods
+    //------------------------------- 
     
     /**
      * find bracketsTypescript config files and create a project for each file founds
      */
     private createProjects():void {
-        this.projectMap = {}; 
         this.fileSystem.getProjectFiles().then((paths: string[]) => {
             paths
                 .filter(utils.isTypeScriptProjectConfigFile)
@@ -99,13 +118,9 @@ export class TypeScriptProjectManager {
      * dispose every projects created by the project Manager
      */
     private disposeProjects():void {
-        var projectMap = this.projectMap ;
-        for (var path in projectMap) {
-            if (projectMap.hasOwnProperty(path) && projectMap[path]) {
-                projectMap[path].dispose();
-            }
-        }
-        this.projectMap = {};
+        var projectMap = this.projectMap;
+        projectMap.keys.forEach(path =>  projectMap.get(path).dispose())
+        this.projectMap.clear();
     }
     
     /**
@@ -125,10 +140,8 @@ export class TypeScriptProjectManager {
      */
     private createProjectFromConfig(configFilePath: string, config : TypeScriptProjectConfig) {
         if (config) {
-            this.projectMap[configFilePath] = this.newProject(PathUtils.directory(configFilePath), config);
-        } else {
-            this.projectMap[configFilePath] = null;
-        }
+            this.projectMap.set(configFilePath, this.newProject(PathUtils.directory(configFilePath), config));
+        } 
     }
 
 
@@ -166,6 +179,12 @@ export class TypeScriptProjectManager {
         });
     }
     
+    
+    //-------------------------------
+    //  Events Handler
+    //------------------------------- 
+    
+    
     /**
      * handle changes in the file system, update / delete / create project accordingly
      */
@@ -180,9 +199,9 @@ export class TypeScriptProjectManager {
                 switch (record.kind) { 
                     // a config file has been deleted detele the project
                     case fs.FileChangeKind.DELETE:
-                        if (this.projectMap[record.path]) {
-                            this.projectMap[record.path].dispose();
-                            delete this.projectMap[record.path];
+                        if (this.projectMap.has(record.path)) {
+                            this.projectMap.get(record.path).dispose();
+                            this.projectMap.delete(record.path);
                         }
                         break;
                         
@@ -194,9 +213,9 @@ export class TypeScriptProjectManager {
                     case fs.FileChangeKind.UPDATE:
                         this.retrieveConfig(record.path).then((config : TypeScriptProjectConfig) => {
                             if (config) {
-                                if(this.projectMap[record.path]) {
+                                if(this.projectMap.has(record.path)) {
                                     //config file has been updated create the project
-                                    this.projectMap[record.path].update(config);
+                                    this.projectMap.get(record.path).update(config);
                                 } else {
                                     // this config file was already present, but was invalid, now create the project
                                     // with the obtained valid config file
