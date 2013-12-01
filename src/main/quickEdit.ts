@@ -26,20 +26,19 @@ export class TypeScriptQuickEditProvider {
         if (!project) {
             return null;
         }
-        var languageHost = project.getLanguageServiceHost(),
-            languageService = project.getLanguageService();
-        if (!languageHost || !languageService) {
+        var languageService = project.getLanguageService();
+        if (!languageService) {
             return null;
         }
-        var position = languageHost.lineColToPosition(currentPath, pos.line, pos.ch),
+        var position = project.getIndexFromPos(currentPath, pos),
             definitions = languageService.getDefinitionAtPosition(currentPath, position);
         if (!definitions || definitions.length === 0) {
             return null;
         }
         
         var inlineEditorRanges  = definitions.map(definition => {
-            var startPos = languageHost.postionToLineAndCol(definition.fileName, definition.minChar),
-                endPos = languageHost.postionToLineAndCol(definition.fileName, definition.limChar);
+            var startPos = project.indexToPosition(definition.fileName, definition.minChar),
+                endPos = project.indexToPosition(definition.fileName, definition.limChar);
             return {
                 path: definition.fileName,
                 name: (definition.containerName ? (definition.containerName + '.') : '') + definition.name,

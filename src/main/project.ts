@@ -30,7 +30,6 @@ export class TypeScriptProjectManager {
     /**
      * @param fileSystem the fileSystem wrapper used by the projectManager
      * @param workingSet the working set wrapper used by the projectManager
-     * @param typeScriptProjectFactory the factory used by the projectManager to create TypeScriptProject
      */
     constructor(
         private fileSystem: fs.IFileSystem, 
@@ -299,6 +298,16 @@ export enum ProjectFileKind {
  */
 export class TypeScriptProject {
     
+    //-------------------------------
+    //  constructor
+    //-------------------------------
+     
+    /**
+     * @param baseDirectory the baseDirectory of the project
+     * @param config the project config file
+     * @param fileSystem the fileSystem wrapper used by the project
+     * @param workingSet the working set wrapper used by the project
+     */
     constructor(
         private baseDirectory: string,
         private config: TypeScriptProjectConfig, 
@@ -308,8 +317,9 @@ export class TypeScriptProject {
         this.collectFiles().then(() => {
             this.createLanguageServiceHost();
             this.workingSet.files.forEach((path: string) => {
-                if (this.files.hasOwnProperty(path)) {
-                    this.languageServiceHost.setScriptIsOpen(path, true);
+                var script = this.projectScripts.get(path);
+                if (script) {
+                    script.isOpen = true;
                 }
             });
             this.workingSet.workingSetChanged.add(this.workingSetChangedHandler);
@@ -318,11 +328,14 @@ export class TypeScriptProject {
         }, () => console.log('todo'));
     }
     
+    //-------------------------------
+    //  variables
+    //-------------------------------
     
     /**
      * Map path to content
      */
-    private files: { [path: string]: string };
+    private projectScripts: collections.StringMap<script.ScriptInfo>;//{ [path: string]: string };
     
     /**
      * store file references
@@ -334,10 +347,20 @@ export class TypeScriptProject {
      */
     private missingFiles: collections.StringSet;
     
+        
+    /**
+     * the language service host associated to this project
+     */
+    private languageServiceHost: language.LanguageServiceHost;
+    
     /**
      * the language service associated to this project
      */
     private languageService: Services.ILanguageService;
+    
+    //-------------------------------
+    //  public method
+    //-------------------------------
     
     /**
      * return the language service associated to this project
@@ -345,26 +368,8 @@ export class TypeScriptProject {
     getLanguageService(): Services.ILanguageService {
         return this.languageService;
     }
-    
-    /**
-     * the language service host associated to this project
-     */
-    private languageServiceHost: language.ILanguageServiceHost;
-    
-    /**
-     * return the language service hosts associated to this project
-     */
-    getLanguageServiceHost(): language.ILanguageServiceHost {
-        return this.languageServiceHost;
-    }
-    
-    /**
-     * return a Map path to content
-     */
-    getFiles(): { [path: string]: string } {
-        return $.extend({}, this.files);
-    }
-    
+
+ 
     /**
      * dispose the project
      */
@@ -388,7 +393,7 @@ export class TypeScriptProject {
      * @param path
      */
     getProjectFileKind(path: string): ProjectFileKind {
-        if (this.files.hasOwnProperty(path)) {
+        if (this.projectScripts.has(path)) {
             return this.isProjectSourceFile(path) ? ProjectFileKind.SOURCE :  ProjectFileKind.REFERENCE;
         } else {
             return ProjectFileKind.NONE
@@ -396,10 +401,47 @@ export class TypeScriptProject {
     }
     
     /**
+     * return an index from a positon in line/char
+     * @param path the path of the file
+     * @param position the position
+     */
+    getIndexFromPos(path: string, position: ws.Position): number {
+        var script = this.projectScripts.get(path);
+        if (script) {
+            return script.lineMap.getPosition(position.line, position.ch)
+        }
+        return -1;
+    }
+    
+    
+    /**
+     * return a positon in line/char from an index
+     * @param path the path of the file
+     * @param index the index
+     */
+    indexToPosition(path: string, index: number): ws.Position {
+        var script = this.projectScripts.get(path);
+        if (script) {
+            var tsPosition = script.getLineAndColForPositon(index);
+            return {
+                ch: tsPosition.character,
+                line: tsPosition.line
+            }
+        }
+        return null;
+    }
+
+    
+    
+    //-------------------------------
+    //  private methods
+    //-------------------------------
+    
+    /**
      * retrive files content for path described in the config
      */
     private collectFiles(): JQueryPromise<void> {
-        this.files = {};
+        this.projectScripts = new collections.StringMap<script.ScriptInfo>();
         this.missingFiles = new collections.StringSet();
         this.references = {}
         return this.fileSystem.getProjectFiles().then((paths: string[]) => {
@@ -416,10 +458,10 @@ export class TypeScriptProject {
      * @param path
      */
     private getReferencedOrImportedFiles(path: string): string[] {
-        if (!this.files[path]) {
+        if (!this.projectScripts.has(path)) {
             return []
         }
-        var preProcessedFileInfo = coreService.getPreProcessedFileInfo(path, script.getScriptSnapShot(path, this.files[path]));
+        var preProcessedFileInfo = coreService.getPreProcessedFileInfo(path, new script.ScriptSnapshot(this.projectScripts.get(path)));
         return preProcessedFileInfo.referencedFiles.map(fileRefence => {
             return PathUtils.makePathAbsolute(fileRefence.path, path);
         }).concat(preProcessedFileInfo.importedFiles.map(fileRefence => {
@@ -432,24 +474,21 @@ export class TypeScriptProject {
      * @param path
      */
     private addFile(path: string): JQueryPromise<void>  {
-        if (!this.files.hasOwnProperty(path)) {
-            this.files[path] = null;
+        if (!this.projectScripts.has(path)) {
+            this.projectScripts.set(path, null);
             return this.fileSystem.readFile(path).then((content: string) => {
                 var promises: JQueryPromise<any>[] = [];
                 if (content === null || content === undefined) {
                     this.missingFiles.add(path);
-                    delete this.files[path];
+                    this.projectScripts.delete(path);
                     return null;
                 }
                 this.missingFiles.remove(path);
-                this.files[path] = content;
+                this.projectScripts.set(path, new script.ScriptInfo(path, content, false));
                 this.getReferencedOrImportedFiles(path).forEach((referencedPath: string) => {
                     promises.push(this.addFile(referencedPath));
                     this.addReference(path, referencedPath);
                 });
-                if (this.languageServiceHost) {
-                    this.languageServiceHost.addScript(path, content);
-                }
                 return $.when.apply($,promises);
             });
         }
@@ -461,17 +500,14 @@ export class TypeScriptProject {
      * @param path
      */
     private removeFile(path: string) {
-        if (this.files.hasOwnProperty(path)) {
+        if (this.projectScripts.has(path)) {
             this.getReferencedOrImportedFiles(path).forEach((referencedPath: string) => {
                 this.removeReference(path, referencedPath);
             });
             if (this.references[path] && this.references[path].keys.length > 0) {
                 this.missingFiles.add(path);
             }   
-            if (this.languageServiceHost) {
-                this.languageServiceHost.removeScript(path);
-            }
-            delete this.files[path];
+            this.projectScripts.delete(path);
         }
     }
     
@@ -483,10 +519,10 @@ export class TypeScriptProject {
         this.fileSystem.readFile(path).then((content: string) => {
             var oldPathMap: { [path: string]: boolean } = {};
             this.getReferencedOrImportedFiles(path).forEach(path => oldPathMap[path] = true);
-            this.files[path] = content;
+            this.projectScripts.get(path).updateContent(content);
             this.getReferencedOrImportedFiles(path).forEach((referencedPath: string) => {
                 delete oldPathMap[referencedPath];
-                if (!this.files.hasOwnProperty(referencedPath)) {
+                if (!this.projectScripts.has(referencedPath)) {
                     this.addFile(referencedPath);
                     this.addReference(path, referencedPath);
                 }
@@ -496,9 +532,6 @@ export class TypeScriptProject {
                 this.removeReference(path, referencedPath);
             });
             
-            if (this.languageServiceHost) {
-                this.languageServiceHost.updateScript(path, content);
-            }
         });
     }
     
@@ -540,81 +573,7 @@ export class TypeScriptProject {
         return this.config.sources.some(pattern => utils.minimatch(path, pattern));
     }
     
-    
-    /**
-     * handle changes in the fileSystem
-     */
-    private filesChangeHandler = (changeRecords: fs.ChangeRecord[]) => {
-        changeRecords.forEach(record => {
-            switch (record.kind) { 
-                case fs.FileChangeKind.ADD:
-                    if (this.isProjectSourceFile(record.path) || this.missingFiles.has(record.path)) {
-                        this.addFile(record.path);
-                    }
-                    break;
-                case fs.FileChangeKind.DELETE:
-                    if (this.files.hasOwnProperty(record.path)) {
-                        this.removeFile(record.path);
-                    }
-                    break;
-                case fs.FileChangeKind.UPDATE:
-                    if (this.files.hasOwnProperty(record.path)) {
-                        this.updateFile(record.path);
-                    }
-                    break;
-            }
-        });
-    }
-    
-    /**
-     * handle changes in the workingSet
-     */
-    private workingSetChangedHandler = (changeRecord:  ws.ChangeRecord) => {
-        switch (changeRecord.kind) { 
-            case ws.WorkingSetChangeKind.ADD:
-                changeRecord.paths.forEach((path: string) => {
-                    if (this.files.hasOwnProperty(path)) {
-                        this.languageServiceHost.setScriptIsOpen(path, true);
-                    }
-                });
-                break;
-            case ws.WorkingSetChangeKind.REMOVE:
-                changeRecord.paths.forEach((path: string) => {
-                    if (this.files.hasOwnProperty(path)) {
-                        this.languageServiceHost.setScriptIsOpen(path, false);
-                        this.updateFile(path);
-                    }
-                });
-                break;
-        }
-    }
-    
-    /**
-     * handle document edition
-     */
-    private documentEditedHandler = (records: ws.DocumentChangeDescriptor[]) => {
-        records.forEach((record: ws.DocumentChangeDescriptor) => {
-            if (this.files.hasOwnProperty(record.path)) {
-                if (!record.from || !record.to) {
-                    this.updateFile(record.path);
-                }
-                var minChar = this.getIndexFromPos(record.path, record.from),
-                    limChar = this.getIndexFromPos(record.path, record.to);
-                
-                this.languageServiceHost.editScript(record.path, minChar, limChar, record.text);
-            }
-        });
-    }
-    
-    /**
-     * return an index from a positon in line/char
-     * @param path the path of the file
-     * @param position the position
-     */
-    private getIndexFromPos(path: string, position: ws.Position) {
-        return this.languageServiceHost.lineColToPosition(path, position.line, position.ch);
-    }
-    
+ 
     /**
      * create the language service according to the file
      */
@@ -644,7 +603,9 @@ export class TypeScriptProject {
                                                         TypeScript.ModuleGenTarget.Asynchronous:
                                                         TypeScript.ModuleGenTarget.Synchronous );
    
-        this.languageServiceHost = new language.LanguageServiceHost(compilationSettings, this.getFiles());
+       
+       
+        this.languageServiceHost = new language.LanguageServiceHost(compilationSettings, this.projectScripts);
         if (!compilationSettings.noLib) {
             this.addDefaultLibrary();
         }
@@ -659,5 +620,76 @@ export class TypeScriptProject {
     private addDefaultLibrary() {
         this.addFile(utils.DEFAULT_LIB_LOCATION)
     }
+    
+    //-------------------------------
+    //  Events Handler
+    //-------------------------------
+    
+    /**
+     * handle changes in the fileSystem
+     */
+    private filesChangeHandler = (changeRecords: fs.ChangeRecord[]) => {
+        changeRecords.forEach(record => {
+            switch (record.kind) { 
+                case fs.FileChangeKind.ADD:
+                    if (this.isProjectSourceFile(record.path) || this.missingFiles.has(record.path)) {
+                        this.addFile(record.path);
+                    }
+                    break;
+                case fs.FileChangeKind.DELETE:
+                    if (this.projectScripts.has(record.path)) {
+                        this.removeFile(record.path);
+                    }
+                    break;
+                case fs.FileChangeKind.UPDATE:
+                    if (this.projectScripts.has(record.path)) {
+                        this.updateFile(record.path);
+                    }
+                    break;
+            }
+        });
+    }
+    
+    /**
+     * handle changes in the workingSet
+     */
+    private workingSetChangedHandler = (changeRecord:  ws.ChangeRecord) => {
+        switch (changeRecord.kind) { 
+            case ws.WorkingSetChangeKind.ADD:
+                changeRecord.paths.forEach((path: string) => {
+                    if (this.projectScripts.has(path)) {
+                       this.projectScripts.get(path).isOpen = true;
+                    }
+                });
+                break;
+            case ws.WorkingSetChangeKind.REMOVE:
+                changeRecord.paths.forEach((path: string) => {
+                    if (this.projectScripts.has(path)) {
+                       this.projectScripts.get(path).isOpen = false;
+                    }
+                });
+                break;
+        }
+    }
+    
+    /**
+     * handle document edition
+     */
+    private documentEditedHandler = (records: ws.DocumentChangeDescriptor[]) => {
+        records.forEach((record: ws.DocumentChangeDescriptor) => {
+            if (this.projectScripts.has(record.path)) {
+                if (!record.from || !record.to) {
+                    this.updateFile(record.path);
+                }
+                var minChar = this.getIndexFromPos(record.path, record.from),
+                    limChar = this.getIndexFromPos(record.path, record.to);
+                
+                
+                this.projectScripts.get(record.path).editContent(minChar, limChar, record.text);
+            }
+        });
+    }
+    
+   
 }
 

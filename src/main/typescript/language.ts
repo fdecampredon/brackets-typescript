@@ -1,100 +1,28 @@
 import Logger = require('../logger');
 import script = require('./script');
+import collections = require('../utils/collections');
 import Services = TypeScript.Services;
 
 
-export interface ILanguageServiceHost extends Services.ILanguageServiceHost {
-    addScript(path: string, content: string): void;
-    updateScript(path: string, content: string): void;
-    editScript(path: string, minChar: number, limChar: number, newText: string): void;
-    removeScript(path: string): void;
-    lineColToPosition(path: string, line :number, col:number): number;
-    postionToLineAndCol(path: string, position: number): TypeScript.ILineAndCharacter
-    setScriptIsOpen(path: string, isOpen: boolean): void
-
-}
-    
 
 
-export class LanguageServiceHost extends Logger implements ILanguageServiceHost {
 
 
-    private files: { [fileName: string]: script.ScriptInfo; } = {};
-    private settings: TypeScript.CompilationSettings;
+export class LanguageServiceHost extends Logger implements Services.ILanguageServiceHost {
 
-    constructor(settings: TypeScript.CompilationSettings, files?: { [path: string]: string; }) {
+
+
+    constructor(
+        private settings: TypeScript.CompilationSettings, 
+        private files?: collections.StringMap<script.ScriptInfo>
+    ) {
         super();
         this.settings = settings;
-        if (typeof files !== 'undefined') {
-            for (var path in files) {
-                if(files.hasOwnProperty(path)) {
-                    this.addScript(path, files[path]);
-                }
-            }
-        }
     }
-    
-    //LanguageServiceHost implementations
-
-    addScript(path: string, content: string) {
-        var scriptInfo = new script.ScriptInfo(path, content);
-        this.files[path] = scriptInfo;
-    }
-
-    updateScript(path: string, content: string) {
-        var script = this.files[path];
-        if (script) {
-            script.updateContent(content);
-            return;
-        }
-        this.addScript(path, content);
-    }
-
-    editScript(path: string, minChar: number, limChar: number, newText: string) {
-        var script = this.files[path];
-        if (script) {
-            script.editContent(minChar, limChar, newText);
-            return;
-        }
-        throw new Error("No script with name '" + path + "'");
-    }
-
-    removeScript(path: string) {
-        delete this.files[path];
-    }
-
-    lineColToPosition(path: string, line : number, col: number): number {
-        var script = this.files[path];
-        if (script) {
-            var position = script.getPositionFromLine(line, col);
-            if (!isNaN(position)) {
-                return position;
-            }
-        }
-        return -1;
-    }
-    
-    postionToLineAndCol(path: string, position: number): TypeScript.ILineAndCharacter {
-        var script = this.files[path];
-        if (script) {
-            return script.getLineAndColForPositon(position);
-        }
-        return null;
-    }
-
-    setScriptIsOpen(path: string, isOpen:boolean) {
-        var script = this.files[path];
-        if (script) {
-            script.isOpen =true
-        }
-    }
-    
     
     // TypeScript.IReferenceResolverHost
-    
-    
     getScriptSnapshot(path: string): TypeScript.IScriptSnapshot {
-        var scriptInfo = this.files[path];
+        var scriptInfo = this.files.get(path);
         if (scriptInfo) {
             return new script.ScriptSnapshot(scriptInfo) 
         }
@@ -106,7 +34,7 @@ export class LanguageServiceHost extends Logger implements ILanguageServiceHost 
     }
     
     fileExists(path: string): boolean {
-        return !!this.files[path];
+        return this.files.has(path)
     }
         
     directoryExists(path: string): boolean {
@@ -125,11 +53,11 @@ export class LanguageServiceHost extends Logger implements ILanguageServiceHost 
     }
 
     getScriptFileNames(): string[] {
-        return Object.keys(this.files);
+        return this.files.keys;
     }
 
     getScriptVersion(path: string): number {
-        var scriptInfo =  this.files[path];
+        var scriptInfo = this.files.get(path);
         if (scriptInfo) {
             return scriptInfo.version;
         }
@@ -137,7 +65,7 @@ export class LanguageServiceHost extends Logger implements ILanguageServiceHost 
     }
 
     getScriptIsOpen(path: string): boolean {
-        var scriptInfo =  this.files[path];
+        var scriptInfo =  this.files.get(path);
         if (scriptInfo) {
             return scriptInfo.isOpen;
         }
@@ -145,7 +73,7 @@ export class LanguageServiceHost extends Logger implements ILanguageServiceHost 
     }
     
     getScriptByteOrderMark(path: string): TypeScript.ByteOrderMark {
-        var scriptInfo =  this.files[path];
+        var scriptInfo =  this.files.get(path);
         if (scriptInfo) {
             return scriptInfo.byteOrderMark;
         }

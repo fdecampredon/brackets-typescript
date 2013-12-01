@@ -97,14 +97,14 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
                     return;
                 }
 
-                var languageService = project.getLanguageService(), languageServiceHost = project.getLanguageServiceHost(), position = _this.editor.getCursorPos();
+                var languageService = project.getLanguageService(), position = _this.editor.getCursorPos();
 
-                if (!languageService || !languageService) {
+                if (!languageService) {
                     deferred.resolve({ hints: [] });
                     return;
                 }
 
-                var filePosition = languageServiceHost.lineColToPosition(currentFilePath, position.line, position.ch), completionInfo = languageService.getCompletionsAtPosition(currentFilePath, filePosition, true), entries = completionInfo && completionInfo.entries;
+                var filePosition = project.getIndexFromPos(currentFilePath, position), completionInfo = languageService.getCompletionsAtPosition(currentFilePath, filePosition, true), entries = completionInfo && completionInfo.entries;
 
                 if (!entries) {
                     deferred.resolve({ hints: [] });

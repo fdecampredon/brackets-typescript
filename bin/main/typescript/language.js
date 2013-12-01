@@ -7,77 +7,19 @@ var __extends = this.__extends || function (d, b) {
 define(["require", "exports", '../logger', './script'], function(require, exports, __Logger__, __script__) {
     var Logger = __Logger__;
     var script = __script__;
+    
     var Services = TypeScript.Services;
 
     var LanguageServiceHost = (function (_super) {
         __extends(LanguageServiceHost, _super);
         function LanguageServiceHost(settings, files) {
             _super.call(this);
-            this.files = {};
             this.settings = settings;
-            if (typeof files !== 'undefined') {
-                for (var path in files) {
-                    if (files.hasOwnProperty(path)) {
-                        this.addScript(path, files[path]);
-                    }
-                }
-            }
+            this.files = files;
+            this.settings = settings;
         }
-        LanguageServiceHost.prototype.addScript = function (path, content) {
-            var scriptInfo = new script.ScriptInfo(path, content);
-            this.files[path] = scriptInfo;
-        };
-
-        LanguageServiceHost.prototype.updateScript = function (path, content) {
-            var script = this.files[path];
-            if (script) {
-                script.updateContent(content);
-                return;
-            }
-            this.addScript(path, content);
-        };
-
-        LanguageServiceHost.prototype.editScript = function (path, minChar, limChar, newText) {
-            var script = this.files[path];
-            if (script) {
-                script.editContent(minChar, limChar, newText);
-                return;
-            }
-            throw new Error("No script with name '" + path + "'");
-        };
-
-        LanguageServiceHost.prototype.removeScript = function (path) {
-            delete this.files[path];
-        };
-
-        LanguageServiceHost.prototype.lineColToPosition = function (path, line, col) {
-            var script = this.files[path];
-            if (script) {
-                var position = script.getPositionFromLine(line, col);
-                if (!isNaN(position)) {
-                    return position;
-                }
-            }
-            return -1;
-        };
-
-        LanguageServiceHost.prototype.postionToLineAndCol = function (path, position) {
-            var script = this.files[path];
-            if (script) {
-                return script.getLineAndColForPositon(position);
-            }
-            return null;
-        };
-
-        LanguageServiceHost.prototype.setScriptIsOpen = function (path, isOpen) {
-            var script = this.files[path];
-            if (script) {
-                script.isOpen = true;
-            }
-        };
-
         LanguageServiceHost.prototype.getScriptSnapshot = function (path) {
-            var scriptInfo = this.files[path];
+            var scriptInfo = this.files.get(path);
             if (scriptInfo) {
                 return new script.ScriptSnapshot(scriptInfo);
             }
@@ -89,7 +31,7 @@ define(["require", "exports", '../logger', './script'], function(require, export
         };
 
         LanguageServiceHost.prototype.fileExists = function (path) {
-            return !!this.files[path];
+            return this.files.has(path);
         };
 
         LanguageServiceHost.prototype.directoryExists = function (path) {
@@ -105,11 +47,11 @@ define(["require", "exports", '../logger', './script'], function(require, export
         };
 
         LanguageServiceHost.prototype.getScriptFileNames = function () {
-            return Object.keys(this.files);
+            return this.files.keys;
         };
 
         LanguageServiceHost.prototype.getScriptVersion = function (path) {
-            var scriptInfo = this.files[path];
+            var scriptInfo = this.files.get(path);
             if (scriptInfo) {
                 return scriptInfo.version;
             }
@@ -117,7 +59,7 @@ define(["require", "exports", '../logger', './script'], function(require, export
         };
 
         LanguageServiceHost.prototype.getScriptIsOpen = function (path) {
-            var scriptInfo = this.files[path];
+            var scriptInfo = this.files.get(path);
             if (scriptInfo) {
                 return scriptInfo.isOpen;
             }
@@ -125,7 +67,7 @@ define(["require", "exports", '../logger', './script'], function(require, export
         };
 
         LanguageServiceHost.prototype.getScriptByteOrderMark = function (path) {
-            var scriptInfo = this.files[path];
+            var scriptInfo = this.files.get(path);
             if (scriptInfo) {
                 return scriptInfo.byteOrderMark;
             }

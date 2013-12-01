@@ -27,20 +27,18 @@ class TypeScriptErrorReporter implements brackets.InspectionProvider {
      */
     scanFile(content: string, path: string): { errors: brackets.LintingError[];  aborted: boolean } {
         var project = this.typescriptProjectManager.getProjectForFile(path),
-            languageService = project && project.getLanguageService(),
-            languageServiceHost = project && project.getLanguageServiceHost(),
-            scriptSnapshot = languageServiceHost && languageServiceHost.getScriptSnapshot(path);
+            languageService = project && project.getLanguageService();
         
-        if (!project || !languageService || !languageServiceHost) {
+        if (!project || !languageService) {
             return { errors: [],  aborted: true };
         }
         
         var syntacticDiagnostics = languageService.getSyntacticDiagnostics(path),
-            errors = this.diagnosticToError(syntacticDiagnostics, scriptSnapshot);
+            errors = this.diagnosticToError(syntacticDiagnostics);
         
         if (errors.length === 0) {
             var semanticDiagnostic = languageService.getSemanticDiagnostics(path);
-            errors = this.diagnosticToError(semanticDiagnostic, scriptSnapshot);
+            errors = this.diagnosticToError(semanticDiagnostic);
         }
         
         return { 
@@ -54,7 +52,7 @@ class TypeScriptErrorReporter implements brackets.InspectionProvider {
      * @param diagnostics
      * @param scriptSnapshot
      */
-    private diagnosticToError(diagnostics: TypeScript.Diagnostic[], scriptSnapshot: TypeScript.IScriptSnapshot): brackets.LintingError[] {
+    private diagnosticToError(diagnostics: TypeScript.Diagnostic[]): brackets.LintingError[] {
         if (!diagnostics) {
             return [];
         }

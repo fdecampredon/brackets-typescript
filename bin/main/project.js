@@ -165,12 +165,12 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                             }
                             break;
                         case fs.FileChangeKind.DELETE:
-                            if (_this.files.hasOwnProperty(record.path)) {
+                            if (_this.projectScripts.has(record.path)) {
                                 _this.removeFile(record.path);
                             }
                             break;
                         case fs.FileChangeKind.UPDATE:
-                            if (_this.files.hasOwnProperty(record.path)) {
+                            if (_this.projectScripts.has(record.path)) {
                                 _this.updateFile(record.path);
                             }
                             break;
@@ -181,16 +181,15 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                 switch (changeRecord.kind) {
                     case ws.WorkingSetChangeKind.ADD:
                         changeRecord.paths.forEach(function (path) {
-                            if (_this.files.hasOwnProperty(path)) {
-                                _this.languageServiceHost.setScriptIsOpen(path, true);
+                            if (_this.projectScripts.has(path)) {
+                                _this.projectScripts.get(path).isOpen = true;
                             }
                         });
                         break;
                     case ws.WorkingSetChangeKind.REMOVE:
                         changeRecord.paths.forEach(function (path) {
-                            if (_this.files.hasOwnProperty(path)) {
-                                _this.languageServiceHost.setScriptIsOpen(path, false);
-                                _this.updateFile(path);
+                            if (_this.projectScripts.has(path)) {
+                                _this.projectScripts.get(path).isOpen = false;
                             }
                         });
                         break;
@@ -198,21 +197,22 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
             };
             this.documentEditedHandler = function (records) {
                 records.forEach(function (record) {
-                    if (_this.files.hasOwnProperty(record.path)) {
+                    if (_this.projectScripts.has(record.path)) {
                         if (!record.from || !record.to) {
                             _this.updateFile(record.path);
                         }
                         var minChar = _this.getIndexFromPos(record.path, record.from), limChar = _this.getIndexFromPos(record.path, record.to);
 
-                        _this.languageServiceHost.editScript(record.path, minChar, limChar, record.text);
+                        _this.projectScripts.get(record.path).editContent(minChar, limChar, record.text);
                     }
                 });
             };
             this.collectFiles().then(function () {
                 _this.createLanguageServiceHost();
                 _this.workingSet.files.forEach(function (path) {
-                    if (_this.files.hasOwnProperty(path)) {
-                        _this.languageServiceHost.setScriptIsOpen(path, true);
+                    var script = _this.projectScripts.get(path);
+                    if (script) {
+                        script.isOpen = true;
                     }
                 });
                 _this.workingSet.workingSetChanged.add(_this.workingSetChangedHandler);
@@ -224,14 +224,6 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         }
         TypeScriptProject.prototype.getLanguageService = function () {
             return this.languageService;
-        };
-
-        TypeScriptProject.prototype.getLanguageServiceHost = function () {
-            return this.languageServiceHost;
-        };
-
-        TypeScriptProject.prototype.getFiles = function () {
-            return $.extend({}, this.files);
         };
 
         TypeScriptProject.prototype.dispose = function () {
@@ -246,16 +238,36 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         };
 
         TypeScriptProject.prototype.getProjectFileKind = function (path) {
-            if (this.files.hasOwnProperty(path)) {
+            if (this.projectScripts.has(path)) {
                 return this.isProjectSourceFile(path) ? ProjectFileKind.SOURCE : ProjectFileKind.REFERENCE;
             } else {
                 return ProjectFileKind.NONE;
             }
         };
 
+        TypeScriptProject.prototype.getIndexFromPos = function (path, position) {
+            var script = this.projectScripts.get(path);
+            if (script) {
+                return script.lineMap.getPosition(position.line, position.ch);
+            }
+            return -1;
+        };
+
+        TypeScriptProject.prototype.indexToPosition = function (path, index) {
+            var script = this.projectScripts.get(path);
+            if (script) {
+                var tsPosition = script.getLineAndColForPositon(index);
+                return {
+                    ch: tsPosition.character,
+                    line: tsPosition.line
+                };
+            }
+            return null;
+        };
+
         TypeScriptProject.prototype.collectFiles = function () {
             var _this = this;
-            this.files = {};
+            this.projectScripts = new collections.StringMap();
             this.missingFiles = new collections.StringSet();
             this.references = {};
             return this.fileSystem.getProjectFiles().then(function (paths) {
@@ -270,10 +282,10 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         };
 
         TypeScriptProject.prototype.getReferencedOrImportedFiles = function (path) {
-            if (!this.files[path]) {
+            if (!this.projectScripts.has(path)) {
                 return [];
             }
-            var preProcessedFileInfo = coreService.getPreProcessedFileInfo(path, script.getScriptSnapShot(path, this.files[path]));
+            var preProcessedFileInfo = coreService.getPreProcessedFileInfo(path, new script.ScriptSnapshot(this.projectScripts.get(path)));
             return preProcessedFileInfo.referencedFiles.map(function (fileRefence) {
                 return PathUtils.makePathAbsolute(fileRefence.path, path);
             }).concat(preProcessedFileInfo.importedFiles.map(function (fileRefence) {
@@ -283,24 +295,21 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
 
         TypeScriptProject.prototype.addFile = function (path) {
             var _this = this;
-            if (!this.files.hasOwnProperty(path)) {
-                this.files[path] = null;
+            if (!this.projectScripts.has(path)) {
+                this.projectScripts.set(path, null);
                 return this.fileSystem.readFile(path).then(function (content) {
                     var promises = [];
                     if (content === null || content === undefined) {
                         _this.missingFiles.add(path);
-                        delete _this.files[path];
+                        _this.projectScripts.delete(path);
                         return null;
                     }
                     _this.missingFiles.remove(path);
-                    _this.files[path] = content;
+                    _this.projectScripts.set(path, new script.ScriptInfo(path, content, false));
                     _this.getReferencedOrImportedFiles(path).forEach(function (referencedPath) {
                         promises.push(_this.addFile(referencedPath));
                         _this.addReference(path, referencedPath);
                     });
-                    if (_this.languageServiceHost) {
-                        _this.languageServiceHost.addScript(path, content);
-                    }
                     return $.when.apply($, promises);
                 });
             }
@@ -309,17 +318,14 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
 
         TypeScriptProject.prototype.removeFile = function (path) {
             var _this = this;
-            if (this.files.hasOwnProperty(path)) {
+            if (this.projectScripts.has(path)) {
                 this.getReferencedOrImportedFiles(path).forEach(function (referencedPath) {
                     _this.removeReference(path, referencedPath);
                 });
                 if (this.references[path] && this.references[path].keys.length > 0) {
                     this.missingFiles.add(path);
                 }
-                if (this.languageServiceHost) {
-                    this.languageServiceHost.removeScript(path);
-                }
-                delete this.files[path];
+                this.projectScripts.delete(path);
             }
         };
 
@@ -330,10 +336,10 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                 _this.getReferencedOrImportedFiles(path).forEach(function (path) {
                     return oldPathMap[path] = true;
                 });
-                _this.files[path] = content;
+                _this.projectScripts.get(path).updateContent(content);
                 _this.getReferencedOrImportedFiles(path).forEach(function (referencedPath) {
                     delete oldPathMap[referencedPath];
-                    if (!_this.files.hasOwnProperty(referencedPath)) {
+                    if (!_this.projectScripts.has(referencedPath)) {
                         _this.addFile(referencedPath);
                         _this.addReference(path, referencedPath);
                     }
@@ -342,10 +348,6 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                 Object.keys(oldPathMap).forEach(function (referencedPath) {
                     _this.removeReference(path, referencedPath);
                 });
-
-                if (_this.languageServiceHost) {
-                    _this.languageServiceHost.updateScript(path, content);
-                }
             });
         };
 
@@ -375,10 +377,6 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
             });
         };
 
-        TypeScriptProject.prototype.getIndexFromPos = function (path, position) {
-            return this.languageServiceHost.lineColToPosition(path, position.line, position.ch);
-        };
-
         TypeScriptProject.prototype.createLanguageServiceHost = function () {
             var compilationSettings = new TypeScript.CompilationSettings(), moduleType = this.config.module.toLowerCase();
             compilationSettings.propagateEnumConstants = this.config.propagateEnumConstants;
@@ -398,7 +396,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
 
             compilationSettings.moduleGenTarget = moduleType === 'none' ? TypeScript.ModuleGenTarget.Unspecified : (moduleType === 'amd' ? TypeScript.ModuleGenTarget.Asynchronous : TypeScript.ModuleGenTarget.Synchronous);
 
-            this.languageServiceHost = new language.LanguageServiceHost(compilationSettings, this.getFiles());
+            this.languageServiceHost = new language.LanguageServiceHost(compilationSettings, this.projectScripts);
             if (!compilationSettings.noLib) {
                 this.addDefaultLibrary();
             }

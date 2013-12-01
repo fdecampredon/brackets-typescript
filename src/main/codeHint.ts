@@ -114,15 +114,14 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
             }
             
             var languageService = project.getLanguageService(), 
-                languageServiceHost = project.getLanguageServiceHost(),
                 position = this.editor.getCursorPos();
             
-            if(!languageService || !languageService) {
+            if(!languageService) {
                  deferred.resolve({hints : []});
                 return;
             }
        
-            var filePosition = languageServiceHost.lineColToPosition(currentFilePath, position.line, position.ch),
+            var filePosition = project.getIndexFromPos(currentFilePath, position),
                 completionInfo = languageService.getCompletionsAtPosition(currentFilePath, filePosition, true),
                 entries = completionInfo && completionInfo.entries;
             
