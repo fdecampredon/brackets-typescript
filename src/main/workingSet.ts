@@ -243,9 +243,8 @@ export class WorkingSet implements IWorkingSet {
                 this.removeDocument(path);
             }
             this.filesMap.set(document.file.fullPath, document);
-            console.log('setting :\'' + document.file.fullPath+'\'');
             $(document).on('change', this.documentChangesHandler);
-        }, (err) => {
+        }, (err?: string) => {
             throw new Error(err);
         });
     }

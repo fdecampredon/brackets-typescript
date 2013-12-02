@@ -190,6 +190,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                         changeRecord.paths.forEach(function (path) {
                             if (_this.projectScripts.has(path)) {
                                 _this.projectScripts.get(path).isOpen = false;
+                                _this.updateFile(path);
                             }
                         });
                         break;

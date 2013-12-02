@@ -139,7 +139,6 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
                     _this.removeDocument(path);
                 }
                 _this.filesMap.set(document.file.fullPath, document);
-                console.log('setting :\'' + document.file.fullPath + '\'');
                 $(document).on('change', _this.documentChangesHandler);
             }, function (err) {
                 throw new Error(err);

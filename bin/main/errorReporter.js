@@ -8,23 +8,27 @@ define(["require", "exports"], function(require, exports) {
             this.name = 'TypeScript';
         }
         TypeScriptErrorReporter.prototype.scanFile = function (content, path) {
-            var project = this.typescriptProjectManager.getProjectForFile(path), languageService = project && project.getLanguageService();
+            try  {
+                var project = this.typescriptProjectManager.getProjectForFile(path), languageService = project && project.getLanguageService();
 
-            if (!project || !languageService) {
+                if (!project || !languageService) {
+                    return { errors: [], aborted: true };
+                }
+
+                var syntacticDiagnostics = languageService.getSyntacticDiagnostics(path), errors = this.diagnosticToError(syntacticDiagnostics);
+
+                if (errors.length === 0) {
+                    var semanticDiagnostic = languageService.getSemanticDiagnostics(path);
+                    errors = this.diagnosticToError(semanticDiagnostic);
+                }
+
+                return {
+                    errors: errors,
+                    aborted: false
+                };
+            } catch (e) {
                 return { errors: [], aborted: true };
             }
-
-            var syntacticDiagnostics = languageService.getSyntacticDiagnostics(path), errors = this.diagnosticToError(syntacticDiagnostics);
-
-            if (errors.length === 0) {
-                var semanticDiagnostic = languageService.getSemanticDiagnostics(path);
-                errors = this.diagnosticToError(semanticDiagnostic);
-            }
-
-            return {
-                errors: errors,
-                aborted: false
-            };
         };
 
         TypeScriptErrorReporter.prototype.diagnosticToError = function (diagnostics) {

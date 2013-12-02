@@ -383,7 +383,6 @@ describe('TypeScriptProject', function () {
            
             createProject('/', {
                 sources : [
-                    '../file1.ts',
                     'src/**/*ts'
                 ]
             });
@@ -417,7 +416,6 @@ describe('TypeScriptProject', function () {
         it('should create a compilations settings', function () {
             createProject('/', {
                 sources : [
-                    '../file1.ts',
                     'src/**/*ts'
                 ]
             });
@@ -427,7 +425,6 @@ describe('TypeScriptProject', function () {
         it('should create a language service', function () {
             createProject('/', {
                 sources : [
-                    '../file1.ts',
                     'src/**/*ts'
                 ]
             });
@@ -442,25 +439,73 @@ describe('TypeScriptProject', function () {
     
     
     describe('file edition', function () {
-        //todo write tests
-        
-        /*
-    
-        it('should create a languageService host passing the CompilationSettings extracted from the config, and the files collected', function () {
-             
+        beforeEach(function () {
+            fileSystemMock.setFiles({
+                '/src/file1.ts': ''
+            });
             
+            workingSetMock.files = [
+                '/src/file1.ts'
+            ]
+           
+            createProject('/', {
+                sources : [
+                    'src/**/*ts'
+                ]
+            });
         });
         
-        
+      
         it('should edit a script when a document corresponding to a project file\'s is edited', function () {
+            workingSetMock.documentEdited.dispatch([{
+                path: '/src/file1.ts',
+                from: {
+                    ch: 0,
+                    line: 0
+                },
+                to: {
+                    ch: 0,
+                    line: 0,
+                },
+                text: 'console.log(\'hello world\')',
+                removed: ''
+            }]);
+            expect(typeScriptProject.getScripts().get('/src/file1.ts').content).toBe('console.log(\'hello world\')');
             
-          
+            workingSetMock.documentEdited.dispatch([{
+                path: '/src/file1.ts',
+                from: {
+                    ch: 8,
+                    line: 0
+                },
+                to: {
+                    ch: 11,
+                    line: 0,
+                },
+                text: 'warn',
+                removed: ''
+            }]);
+            expect(typeScriptProject.getScripts().get('/src/file1.ts').content).toBe('console.warn(\'hello world\')');
         });
         
         
         it('should revert a file when a document have been closed without saving', function () {
-           
-        });*/
+           workingSetMock.documentEdited.dispatch([{
+                path: '/src/file1.ts',
+                from: {
+                    ch: 0,
+                    line: 0
+                },
+                to: {
+                    ch: 0,
+                    line: 0,
+                },
+                text: 'console.log(\'hello world\')',
+                removed: ''
+            }]);
+            workingSetMock.removeFiles(['/src/file1.ts']);
+            expect(typeScriptProject.getScripts().get('/src/file1.ts').content).toBe('');
+        });
     });
     
         

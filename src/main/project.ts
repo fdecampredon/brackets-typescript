@@ -694,14 +694,15 @@ export class TypeScriptProject {
             case ws.WorkingSetChangeKind.ADD:
                 changeRecord.paths.forEach((path: string) => {
                     if (this.projectScripts.has(path)) {
-                       this.projectScripts.get(path).isOpen = true;
+                        this.projectScripts.get(path).isOpen = true;
                     }
                 });
                 break;
             case ws.WorkingSetChangeKind.REMOVE:
                 changeRecord.paths.forEach((path: string) => {
                     if (this.projectScripts.has(path)) {
-                       this.projectScripts.get(path).isOpen = false;
+                        this.projectScripts.get(path).isOpen = false;
+                        this.updateFile(path);
                     }
                 });
                 break;

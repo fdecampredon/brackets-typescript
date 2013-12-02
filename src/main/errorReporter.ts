@@ -26,25 +26,29 @@ class TypeScriptErrorReporter implements brackets.InspectionProvider {
      * scan file
      */
     scanFile(content: string, path: string): { errors: brackets.LintingError[];  aborted: boolean } {
-        var project = this.typescriptProjectManager.getProjectForFile(path),
-            languageService = project && project.getLanguageService();
-        
-        if (!project || !languageService) {
+        try { 
+            var project = this.typescriptProjectManager.getProjectForFile(path),
+                languageService = project && project.getLanguageService();
+            
+            if (!project || !languageService) {
+                return { errors: [],  aborted: true };
+            }
+            
+            var syntacticDiagnostics = languageService.getSyntacticDiagnostics(path),
+                errors = this.diagnosticToError(syntacticDiagnostics);
+            
+            if (errors.length === 0) {
+                var semanticDiagnostic = languageService.getSemanticDiagnostics(path);
+                errors = this.diagnosticToError(semanticDiagnostic);
+            }
+            
+            return { 
+                errors: errors, 
+                aborted: false
+            };
+        } catch(e) {
             return { errors: [],  aborted: true };
         }
-        
-        var syntacticDiagnostics = languageService.getSyntacticDiagnostics(path),
-            errors = this.diagnosticToError(syntacticDiagnostics);
-        
-        if (errors.length === 0) {
-            var semanticDiagnostic = languageService.getSemanticDiagnostics(path);
-            errors = this.diagnosticToError(semanticDiagnostic);
-        }
-        
-        return { 
-            errors: errors, 
-            aborted: false
-        };
     }
     
     /**
