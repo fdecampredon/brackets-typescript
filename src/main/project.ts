@@ -317,25 +317,7 @@ export class TypeScriptProject {
         private fileSystem: fs.IFileSystem,
         private workingSet: ws.IWorkingSet
     ) {
-        this.collectFiles().then(() => {
-            this.compilationSettings =  this.createCompilationSettings();
-            this.createLanguageServiceHost();
-            if (!this.compilationSettings.noLib) {
-                this.addDefaultLibrary();
-            }
-            this.workingSet.files.forEach((path: string) => {
-                var script = this.projectScripts.get(path);
-                if (script) {
-                    script.isOpen = true;
-                }
-            });
-            this.workingSet.workingSetChanged.add(this.workingSetChangedHandler);
-            this.workingSet.documentEdited.add(this.documentEditedHandler);
-            this.fileSystem.projectFilesChanged.add(this.filesChangeHandler);
-        },() => { 
-            //TODO handle errors;
-            console.log('Errors in collecting project files');
-        });
+        this.init();
     }
     
     //-------------------------------
@@ -415,7 +397,30 @@ export class TypeScriptProject {
      * @param config
      */
     update(config: TypeScriptProjectConfig): void {
+        this.config = config;
+        this.init();
+        //for the moment simply reinitialize the project
         
+        /*var oldConfig = this.config;
+        this.config = config;
+        if (
+            oldConfig.sources.some(source => config.sources.indexOf(source) === -1) ||
+            config.sources.some(source => oldConfig.sources.indexOf(source) === -1) 
+        ) {
+            this.collectFiles();
+        }
+        
+        this.compilationSettings = this.createCompilationSettings();
+        if (this.languageServiceHost) {
+            this.languageServiceHost.settings = this.compilationSettings
+        }
+        if (config.noLib !== oldConfig.noLib) {
+            if (config.noLib) {
+                this.removeDefaultLibrary();
+            } else {
+                this.addDefaultLibrary();
+            }
+        }*/
     }
     
     /**
@@ -466,6 +471,32 @@ export class TypeScriptProject {
     //-------------------------------
     //  private methods
     //-------------------------------
+    
+    /**
+     * initialize the project
+     */
+    private init() {
+        this.collectFiles().then(() => {
+            this.compilationSettings =  this.createCompilationSettings();
+            this.createLanguageServiceHost();
+            if (!this.compilationSettings.noLib) {
+                this.addDefaultLibrary();
+            }
+            this.workingSet.files.forEach((path: string) => {
+                var script = this.projectScripts.get(path);
+                if (script) {
+                    script.isOpen = true;
+                }
+            });
+            this.workingSet.workingSetChanged.add(this.workingSetChangedHandler);
+            this.workingSet.documentEdited.add(this.documentEditedHandler);
+            this.fileSystem.projectFilesChanged.add(this.filesChangeHandler);
+        },() => { 
+            //TODO handle errors;
+            console.log('Errors in collecting project files');
+        });
+    }
+    
     
     /**
      * retrive files content for path described in the config
@@ -655,6 +686,14 @@ export class TypeScriptProject {
      */
     private addDefaultLibrary() {
         this.addFile(utils.DEFAULT_LIB_LOCATION)
+    }
+    
+    
+    /**
+     * add the default library
+     */
+    private removeDefaultLibrary() {
+        this.removeFile(utils.DEFAULT_LIB_LOCATION)
     }
     
     //-------------------------------

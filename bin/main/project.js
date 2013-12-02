@@ -208,24 +208,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                     }
                 });
             };
-            this.collectFiles().then(function () {
-                _this.compilationSettings = _this.createCompilationSettings();
-                _this.createLanguageServiceHost();
-                if (!_this.compilationSettings.noLib) {
-                    _this.addDefaultLibrary();
-                }
-                _this.workingSet.files.forEach(function (path) {
-                    var script = _this.projectScripts.get(path);
-                    if (script) {
-                        script.isOpen = true;
-                    }
-                });
-                _this.workingSet.workingSetChanged.add(_this.workingSetChangedHandler);
-                _this.workingSet.documentEdited.add(_this.documentEditedHandler);
-                _this.fileSystem.projectFilesChanged.add(_this.filesChangeHandler);
-            }, function () {
-                console.log('Errors in collecting project files');
-            });
+            this.init();
         }
         TypeScriptProject.prototype.getCompilationSettings = function () {
             return this.compilationSettings;
@@ -246,6 +229,8 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         };
 
         TypeScriptProject.prototype.update = function (config) {
+            this.config = config;
+            this.init();
         };
 
         TypeScriptProject.prototype.getProjectFileKind = function (path) {
@@ -274,6 +259,28 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                 };
             }
             return null;
+        };
+
+        TypeScriptProject.prototype.init = function () {
+            var _this = this;
+            this.collectFiles().then(function () {
+                _this.compilationSettings = _this.createCompilationSettings();
+                _this.createLanguageServiceHost();
+                if (!_this.compilationSettings.noLib) {
+                    _this.addDefaultLibrary();
+                }
+                _this.workingSet.files.forEach(function (path) {
+                    var script = _this.projectScripts.get(path);
+                    if (script) {
+                        script.isOpen = true;
+                    }
+                });
+                _this.workingSet.workingSetChanged.add(_this.workingSetChangedHandler);
+                _this.workingSet.documentEdited.add(_this.documentEditedHandler);
+                _this.fileSystem.projectFilesChanged.add(_this.filesChangeHandler);
+            }, function () {
+                console.log('Errors in collecting project files');
+            });
         };
 
         TypeScriptProject.prototype.collectFiles = function () {
@@ -420,6 +427,10 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
 
         TypeScriptProject.prototype.addDefaultLibrary = function () {
             this.addFile(utils.DEFAULT_LIB_LOCATION);
+        };
+
+        TypeScriptProject.prototype.removeDefaultLibrary = function () {
+            this.removeFile(utils.DEFAULT_LIB_LOCATION);
         };
         return TypeScriptProject;
     })();

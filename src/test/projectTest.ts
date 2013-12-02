@@ -17,7 +17,6 @@ describe('TypeScriptProject', function () {
     })
     
     function createProject(baseDir: string, config: project.TypeScriptProjectConfig) {
-        
         typeScriptProject = new project.TypeScriptProject(
             baseDir, 
             $.extend({}, utils.typeScriptProjectConfigDefault, config),
@@ -35,14 +34,19 @@ describe('TypeScriptProject', function () {
         fileSystemMock.dispose();
         workingSetMock.dispose();
     });
-    
+       
+    function expectToBeEqualArray(actual: any[], expected: any[]) {
+        expect(actual.sort()).toEqual(expected.sort());
+    }
 
+    function testWorkingSetOpenCorrespondance() {
+        typeScriptProject.getScripts().keys.forEach(path => {
+            expect(typeScriptProject.getScripts().get(path).isOpen).toBe(workingSetMock.files.indexOf(path) !== -1);
+        });
+    }
     
     describe('script collections', function () {
-        
-        function  expectToBeEqualArray(actual: any[], expected: any[]) {
-            expect(actual.sort()).toEqual(expected.sort());
-        }
+     
         
         it('should collect every files in the file system corresponding to the \'sources\' section of the given config', function () {
             fileSystemMock.setFiles({
@@ -317,6 +321,42 @@ describe('TypeScriptProject', function () {
             ]); 
         });
     });
+    
+    
+    it('should add the default library if noLib is not specified or false', function () {
+        fileSystemMock.setFiles({
+            '/src/file1.ts': '',
+            '/lib.d.ts': ''
+        });
+        
+        utils.DEFAULT_LIB_LOCATION = '/lib.d.ts';
+        
+        createProject('/', {
+            sources : [
+                'src/**/*ts'
+            ]
+        });
+        
+        expect(typeScriptProject.getScripts().has('/lib.d.ts')).toBe(true);
+    });
+    
+    it('should not add the default library if noLib is not specified or false', function () {
+        fileSystemMock.setFiles({
+            '/src/file1.ts': '',
+            '/lib.d.ts': ''
+        });
+        
+        utils.DEFAULT_LIB_LOCATION = '/lib.d.ts';
+        
+        createProject('/', {
+            sources : [
+                'src/**/*ts'
+            ],
+            noLib: true
+        });
+        
+        expect(typeScriptProject.getScripts().has('/lib.d.ts')).toNotBe(true);
+    });
  
     describe('getProjectFileKind', function () {
         it('should return \'SOURCE\' if the file path match the \'sources\' section of the given config', function () {
@@ -363,6 +403,7 @@ describe('TypeScriptProject', function () {
             
             expect(typeScriptProject.getProjectFileKind('/other/file2.ts')).toBe(project.ProjectFileKind.NONE);
         });
+        
     });
     
     
@@ -388,11 +429,6 @@ describe('TypeScriptProject', function () {
             });
         });
         
-        function testWorkingSetOpenCorrespondance() {
-            typeScriptProject.getScripts().keys.forEach(path => {
-                expect(typeScriptProject.getScripts().get(path).isOpen).toBe(workingSetMock.files.indexOf(path) !== -1);
-            });
-        }
         
         it('should mark as \'open\' every file of the working set', function () {
             testWorkingSetOpenCorrespondance();
@@ -434,7 +470,105 @@ describe('TypeScriptProject', function () {
     
     
     describe('config update', function () {
-        //todo not implemented
+        beforeEach(function () {
+            fileSystemMock.setFiles({
+                '/src/file1.ts': '',
+                '/src/file2.ts': '',
+                '/src2/file3.ts': '',
+                '/src2/file4.ts': '',
+                '/src2/file5.ts': '',
+                '/lib.d.ts': ''
+            });
+            
+            
+            utils.DEFAULT_LIB_LOCATION = '/lib.d.ts';
+        
+            
+            workingSetMock.files = [
+                '/src/file1.ts',
+                '/src/file2.ts',
+                '/src2/file3.ts',
+                '/src2/file4.ts'
+            ]
+            
+            createProject('/', {
+                sources : [
+                    'src/**/*ts'
+                ]
+            });
+        });
+        
+        function updateProject(config: project.TypeScriptProjectConfig) {
+            typeScriptProject.update(
+                $.extend({}, utils.typeScriptProjectConfigDefault, config)
+            );
+        };
+        
+        it('should update the compiler settings', function () {
+            updateProject({
+                sources : [
+                    'src/**/*ts'
+                ],
+                target: 'es5'
+            });
+            
+            expect(typeScriptProject.getCompilationSettings().codeGenTarget).toBe(TypeScript.LanguageVersion.EcmaScript5)
+        })
+        
+        it('should recolect files if source section have changed', function () {
+            updateProject({
+                sources : [
+                    'src2/**/*ts'
+                ]
+            });
+            
+            expectToBeEqualArray(typeScriptProject.getScripts().keys,[
+                '/src2/file3.ts',
+                '/src2/file4.ts',
+                '/src2/file5.ts',
+                '/lib.d.ts'
+            ]);
+            
+            testWorkingSetOpenCorrespondance();
+        })
+        
+        it('should remove the default library if noLib has been set to false', function () {
+            updateProject({
+                sources : [
+                    'src/**/*ts'
+                ],
+                noLib: true
+            });
+            
+            expectToBeEqualArray(typeScriptProject.getScripts().keys,[
+                '/src/file1.ts',
+                '/src/file2.ts'
+            ]);
+            
+        });
+        
+        it('should reopen the default library if noLib has been set to true', function () {
+            updateProject({
+                sources : [
+                    'src/**/*ts'
+                ],
+                noLib: true
+            });
+            
+            
+            updateProject({
+                sources : [
+                    'src/**/*ts'
+                ]
+            });
+            
+            expectToBeEqualArray(typeScriptProject.getScripts().keys,[
+                '/src/file1.ts',
+                '/src/file2.ts',
+                '/lib.d.ts'
+            ]);
+            
+        });
     });
     
     

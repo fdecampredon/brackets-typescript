@@ -13,8 +13,8 @@ export class LanguageServiceHost extends Logger implements Services.ILanguageSer
 
 
     constructor(
-        private settings: TypeScript.CompilationSettings, 
-        private files?: collections.StringMap<script.ScriptInfo>
+        public settings: TypeScript.CompilationSettings, 
+        public files?: collections.StringMap<script.ScriptInfo>
     ) {
         super();
         this.settings = settings;
