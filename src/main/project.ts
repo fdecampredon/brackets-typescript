@@ -17,9 +17,6 @@ import Services = TypeScript.Services;
 
 
 
-
-
-
 /**
  * The main facade class of the extentions, responsible to create / destroy / update projects
  * by observing config files in the files of the opened brackets folder

@@ -1,11 +1,10 @@
 'use strict';
 
-declare module immediate {
-    function setImmediate(expression: any, ...args: any[]): number;
-    function clearImmediate(handle: number): void;
-}
 
-var immediateImpl: typeof immediate;
+var immediateImpl: {
+    setImmediate(expression: any, ...args: any[]): number;
+    clearImmediate(handle: number): void;
+};
 
 interface Task {
     handle: number;

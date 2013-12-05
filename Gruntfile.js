@@ -31,16 +31,6 @@ module.exports = function (grunt) {
         clean : {
             folder : ['bin', 'test-bin']
         },
-        copy : {
-            main: {
-                expand: true,
-                cwd: 'src/templates',
-                src: '**',
-                dest: 'bin/templates',
-                flatten: true,
-                filter: 'isFile'
-            }
-        },
         typescript: {
             main: {
                 src: ['src/declarations/*.d.ts', 'src/main/**/*.ts'],
@@ -89,6 +79,6 @@ module.exports = function (grunt) {
     });
      
     grunt.registerTask('test', ['typescript:test', 'jasmine']);
-    grunt.registerTask('build', ['clean', 'typescript:main', 'copy']);
+    grunt.registerTask('build', ['clean', 'typescript:main']);
     grunt.registerTask('default', ['clean', 'test', 'build']);
 };

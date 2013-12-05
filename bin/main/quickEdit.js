@@ -1,6 +1,5 @@
-define(["require", "exports", './utils/immediate'], function(require, exports, __immediate__) {
+define(["require", "exports"], function(require, exports) {
     
-    var immediate = __immediate__;
 
     var DocumentManager = brackets.getModule('document/DocumentManager'), MultiRangeInlineEditor = brackets.getModule('editor/MultiRangeInlineEditor').MultiRangeInlineEditor;
 

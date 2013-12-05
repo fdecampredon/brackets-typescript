@@ -5,11 +5,187 @@ import Logger = require('./logger');
 import language = require('./typescript/language');
 import immediate = require('./utils/immediate');
 import Services = TypeScript.Services;
+import ScriptElementKind =  Services.ScriptElementKind;
+import ScriptElementKindModifier =  Services.ScriptElementKindModifier;
+
+
+//--------------------------------------------------------------------------
+//
+//  HintService
+//
+//--------------------------------------------------------------------------
+
+
+
+/**
+ * enum representing the different kind of hint
+ */
+export enum HintKind {
+    DEFAULT,
+    CLASS,
+    INTERFACE,
+    ENUM,
+    MODULE,
+    VARIABLE,
+    METHOD,
+    FUNCTION,
+    KEYWORD
+}
+
+/**
+ * interface representing a hint
+ */
+export interface Hint {
+    name: string;
+    type: string;
+    kind: HintKind;
+}
+
+/**
+ * Service returning hint for a given file
+ */
+export class HintService {
+    
+    constructor(
+        private typescriptProjectManager: project.TypeScriptProjectManager
+    ) {}
+    
+    /**
+     * 
+     * Return a list of hint for a given file and position
+     * 
+     * @param path path of the file
+     * @param position position in the file
+     * @param currentToken if given filter the hint to match this token
+     */
+    getHintsAtPositon(path: string, position: CodeMirror.Position, currentToken: string) : Hint[] {
+        var project: project.TypeScriptProject = this.typescriptProjectManager.getProjectForFile(path);
+        
+        if (!project) {
+            return null;
+        }
+        
+        var languageService = project.getLanguageService()
+        
+        if(!languageService) {
+            return null;
+        }
+   
+        var index = project.getIndexFromPos(path, position),
+            completionInfo = languageService.getCompletionsAtPosition(path, index, true),
+            entries = completionInfo && completionInfo.entries;
+        
+        if(!entries) {
+            return null;
+        }
+        
+        if (currentToken) {
+            entries = entries.filter(entry => {
+                return entry.name && entry.name.toLowerCase().indexOf(currentToken.toLowerCase()) === 0;
+            });
+        }
+    
+        entries.sort(function(entry1, entry2) {
+            var name1 = entry1 && entry1.name.toLowerCase(),
+                name2 = entry2 && entry2.name.toLowerCase();
+            if(name1 < name2) {
+                return -1;
+            }
+            else if(name1 > name2) {
+                return 1;
+            }
+            else {
+                return 0;
+            }
+        });
+        
+        
+        
+        var hints = entries.map(entry => {
+            var entryInfo = languageService.getCompletionEntryDetails(currentToken, index, entry.name),
+                hint = {
+                    name: entry.name,
+                    kind: HintKind.DEFAULT,
+                    type: entryInfo ? entryInfo.type : ''
+                };
+           
+        
+            switch(entry.kind) {
+                case ScriptElementKind.unknown:
+                case ScriptElementKind.primitiveType:
+                case ScriptElementKind.scriptElement:
+                    break;
+                case ScriptElementKind.keyword:
+                    hint.kind = HintKind.KEYWORD;
+                    break;
+                    
+                case ScriptElementKind.classElement:
+                    hint.kind = HintKind.CLASS;
+                    break;
+                case ScriptElementKind.interfaceElement:
+                    hint.kind = HintKind.INTERFACE;
+                    break;
+                case ScriptElementKind.enumElement:
+                    hint.kind = HintKind.ENUM;
+                    break;
+                case ScriptElementKind.moduleElement:
+                    hint.kind = HintKind.MODULE;
+                    break;
+                    
+                    
+                case ScriptElementKind.memberVariableElement:
+                case ScriptElementKind.variableElement:
+                case ScriptElementKind.localVariableElement:
+                case ScriptElementKind.parameterElement:
+                    hint.kind = HintKind.VARIABLE;
+                    break;
+                
+                
+                case ScriptElementKind.memberFunctionElement:
+                case ScriptElementKind.functionElement:
+                case ScriptElementKind.localFunctionElement:
+                    hint.kind = HintKind.FUNCTION;
+                    break;
+                
+                    
+                case ScriptElementKind.typeParameterElement:
+                case ScriptElementKind.constructorImplementationElement:
+                case ScriptElementKind.constructSignatureElement:
+                case ScriptElementKind.callSignatureElement:
+                case ScriptElementKind.indexSignatureElement:
+                case ScriptElementKind.memberGetAccessorElement:
+                case ScriptElementKind.memberSetAccessorElement:
+                    console.log('untreated case ' + entry.kind);
+                    break;
+            }
+            
+            return hint;
+        });
+        
+        return hints;
+    }
+}
+
+
+//--------------------------------------------------------------------------
+//
+//  TypeScriptCodeHintProvider
+//
+//--------------------------------------------------------------------------
+
+declare var Mustache: any;
 
 var logger = new Logger(),
     classifier = new Services.TypeScriptServicesFactory().createClassifier(logger),
-    //TODO externalize that
-    StringUtils  = brackets.getModule("utils/StringUtils");
+    _ = brackets.getModule('thirdparty/lodash');
+
+var HINT_TEMPLATE = '<span class="cm-s-default">\
+                            <span style="display: inline-block" class="{{class_type}}">\
+                                <span style="font-weight: bold">{{match}}</span>\
+                                <span>{{suffix}}</span>\
+                            <span>\
+                    </span>'
+    
 
 interface Token { 
     string: string; 
@@ -17,29 +193,13 @@ interface Token {
     position: number;
 }
 
-
-function isFunctionElement(kind: string): boolean {
-    switch (kind) {
-        case Services.ScriptElementKind.callSignatureElement:
-        case Services.ScriptElementKind.constructorImplementationElement:
-        case Services.ScriptElementKind.constructSignatureElement:
-        case Services.ScriptElementKind.functionElement:
-        case Services.ScriptElementKind.localFunctionElement:
-        case Services.ScriptElementKind.memberFunctionElement:
-            return true;
-        default:
-            return false;
-    }
-}
-    
-
 export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
-    private typescriptProjectManager: project.TypeScriptProjectManager;
     private lastUsedToken: Token;
     private editor: brackets.Editor;
     
-    constructor(typescriptProjectManager: project.TypeScriptProjectManager) {
-        this.typescriptProjectManager = typescriptProjectManager;
+    constructor(
+        private hintService: HintService
+    ) {
     }
     
     hasHints(editor : brackets.Editor, implicitChar : string): boolean {
@@ -96,7 +256,6 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
                     case TokenClass.Punctuation: 
                         if (implicitChar && this.lastUsedToken.string !== '.' || this.lastUsedToken.classification !== TokenClass.Punctuation) {
                             deferred.resolve({hints : []});
-                            return;
                         }
                         this.lastUsedToken = null;
                     default:
@@ -104,130 +263,25 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
                 }
             }
             
-            
-            var currentFilePath: string = this.editor.document.file.fullPath,
-                project: project.TypeScriptProject = this.typescriptProjectManager.getProjectForFile(this.editor.document.file.fullPath);
-            
-            if (!project) {
-                deferred.resolve({ hints: []});
-                return;
-            }
-            
-            var languageService = project.getLanguageService(), 
+            var currentFilePath: string = this.editor.document.file.fullPath, 
                 position = this.editor.getCursorPos();
             
-            if(!languageService) {
-                 deferred.resolve({hints : []});
-                return;
-            }
-       
-            var filePosition = project.getIndexFromPos(currentFilePath, position),
-                completionInfo = languageService.getCompletionsAtPosition(currentFilePath, filePosition, true),
-                entries = completionInfo && completionInfo.entries;
+            var hints = this.hintService.getHintsAtPositon(currentFilePath, position, this.lastUsedToken && this.lastUsedToken.string)
             
-            if(!entries) {
+            if (!hints || hints.length === 0) {
                 deferred.resolve({hints : []});
                 return;
             }
-            
-            if (this.lastUsedToken && entries) {
-                entries = entries.filter(entry => {
-                    return entry.name && entry.name.toLowerCase().indexOf(this.lastUsedToken.string.toLowerCase()) === 0;
-                });
-                if (entries.length === 1 && entries[0].name === this.lastUsedToken.string) {
-                    deferred.resolve({hints : []});
-                    return;
-                }
-            }
-            entries = entries && entries.sort(function(entry1, entry2) {
-                
-                var name1 = entry1 && entry1.name.toLowerCase(),
-                    name2 = entry2 && entry2.name.toLowerCase();
-                if(name1 < name2) {
-                    return -1;
-                }
-                else if(name1 > name2) {
-                    return 1;
-                }
-                else {
-                    return 0;
-                }
-            });
-            
-            
-            var hints = entries && entries.map(entry => {
-                var entryInfo = languageService.getCompletionEntryDetails(currentFilePath, filePosition, entry.name),
-                    hint = this.hintTextFromInfo(entryInfo),
-                    $hintObj = $('<span>'),
-                    delimiter = '',
-                    hintCssClass: string;
-                
-                if (entry.kind === Services.ScriptElementKind.keyword) {
-                    
-                    switch (entry.name) {
-                        case 'number':
-                        case 'void':
-                        case 'bool':
-                        case 'boolean':
-                            hintCssClass = 'variable';
-                            break;
-                        case 'static':
-                        case 'public':
-                        case 'private':
-                        case 'export':
-                        case 'get':
-                        case 'set':
-                            hintCssClass = 'qualifier';
-                        
-                        case 'class':
-                        case 'function':
-                        case 'module':
-                        case 'var':
-                            hintCssClass = 'def';
-                            break;
-                        default:
-                            hintCssClass = 'keyword';
-                            break;
-                    }
-                } else {
-                    hintCssClass = 'variable';
-                }
-                
-                var $inner = $('<span>').addClass('cm-' + hintCssClass);
-                $hintObj = $hintObj
-                            .addClass('cm-s-default')
-                            .append($inner);
-                
-                // highlight the matched portion of each hint
-                if (this.lastUsedToken) {
-                    var match   = StringUtils.htmlEscape(hint.slice(0,  this.lastUsedToken.string.length)),
-                        suffix  = StringUtils.htmlEscape(hint.slice(this.lastUsedToken.string.length));
-                    $inner
-                        .append(delimiter)
-                        .append($('<span>')
-                            .append(match)
-                            .css('font-weight', 'bold'))
-                        .append(suffix + delimiter)
-                } else {
-                    $inner.text(delimiter + hint + delimiter);
-                }
-                $hintObj.data('entry', entry);
-                
-                return $hintObj;
-            });
-            
             deferred.resolve({
-                hints : hints || [],
+                hints: hints.map(this.hintToJQuery, this),
                 selectInitial: !!implicitChar
-            });
-            
+            })
         });
         return deferred;
     }
     
-    insertHint(hint: JQuery):void {
-        var entry: Services.CompletionEntry = hint.data('entry'),
-            text = entry.name,
+    insertHint($hintObj: JQuery):void {
+        var hint: Hint = $hintObj.data('hint'),
             position = this.editor.getCursorPos(),
             startPos = !this.lastUsedToken ? 
                             position : 
@@ -242,7 +296,70 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
                             ch : this.lastUsedToken.position + this.lastUsedToken.string.length
                         };
         
-        this.editor.document.replaceRange(text, startPos, endPos);
+        
+        this.editor.document.replaceRange(hint.name, startPos, endPos);
+    }
+    
+    
+    
+
+
+    private hintToJQuery(hint: Hint): JQuery {
+        var text = hint.name,
+            match: string,
+            suffix: string,
+            class_type= '';
+        switch(hint.kind) {
+            
+            case HintKind.KEYWORD:
+                switch (hint.name) {
+                    case 'static':
+                    case 'public':
+                    case 'private':
+                    case 'export':
+                    case 'get':
+                    case 'set':
+                        class_type = 'cm-qualifier';
+                        break;
+                    case 'class':
+                    case 'function':
+                    case 'module':
+                    case 'var':
+                        class_type = 'cm-def';
+                        break;
+                    default:
+                        class_type = 'cm-keyword';
+                        break;
+                }
+                break;
+            case HintKind.METHOD:
+            case HintKind.FUNCTION:
+                text += hint.type ?  hint.type : ''; 
+                break;
+            default:
+                text += hint.type ? ' - ' + hint.type : ''; 
+                break;
+        }
+   
+        // highlight the matched portion of each hint
+        if (this.lastUsedToken) {
+            match   = _.escape(text.slice(0,  this.lastUsedToken.string.length));
+            suffix  = _.escape(text.slice(this.lastUsedToken.string.length));
+           
+        } else {
+            match = '';
+            suffix = text
+        }
+        
+        
+        var result = $(Mustache.render(HINT_TEMPLATE, {
+            classifier: classifier,
+            match: match,
+            suffix: suffix,
+            class_type: class_type
+        })); 
+        result.data('hint', hint)
+        return result;
     }
     
     private getCurrentToken(editor: brackets.Editor): Token  {
@@ -264,18 +381,5 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
             currentPos += entry.length;
         }
         return null;
-    }
-    
-    private hintTextFromInfo(entryInfo : Services.CompletionEntryDetails): string {
-        if (!entryInfo) {
-            return 'bla'
-        }
-        var text = entryInfo.name;
-        if (isFunctionElement(entryInfo.kind)) {
-            text += entryInfo.type || '';
-        } else if(entryInfo.type && entryInfo.type !== entryInfo.name) {
-            text += ' : ' + entryInfo.type;
-        }
-        return text;
     }
 }

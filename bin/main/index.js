@@ -29,14 +29,16 @@ define(["require", "exports", './mode', './fileSystem', './workingSet', './proje
 
         var fileSystem = new fs.FileSystem(FileSystem, ProjectManager), workingSet = new ws.WorkingSet(DocumentManager);
 
-        var projectManager = new project.TypeScriptProjectManager(fileSystem, workingSet), codeHintProvider = new codeHint.TypeScriptCodeHintProvider(projectManager), errorReporter = new TypeScriptErrorReporter(projectManager, CodeInspection.Type), quickEditProvider = new qe.TypeScriptQuickEditProvider(projectManager);
-
+        var projectManager = new project.TypeScriptProjectManager(fileSystem, workingSet);
         projectManager.init();
 
+        var hintService = new codeHint.HintService(projectManager), codeHintProvider = new codeHint.TypeScriptCodeHintProvider(hintService);
         CodeHintManager.registerHintProvider(codeHintProvider, ['typescript'], 0);
 
+        var errorReporter = new TypeScriptErrorReporter(projectManager, CodeInspection.Type);
         CodeInspection.register('typescript', errorReporter);
 
+        var quickEditProvider = new qe.TypeScriptQuickEditProvider(projectManager);
         EditorManager.registerInlineEditProvider(quickEditProvider.typeScriptInlineEditorProvider);
 
         commentsHelper.init(new signal.DomSignalWrapper($("#editor-holder")[0], "keydown", true));

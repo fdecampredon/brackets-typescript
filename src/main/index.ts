@@ -56,22 +56,26 @@ function init(conf: {
     var fileSystem = new fs.FileSystem(FileSystem, ProjectManager),
         workingSet = new ws.WorkingSet(DocumentManager);
     
-    // create project manager, and different brackets services
-    var projectManager = new project.TypeScriptProjectManager(fileSystem, workingSet),
-        codeHintProvider = new codeHint.TypeScriptCodeHintProvider(projectManager),
-        errorReporter = new TypeScriptErrorReporter(projectManager, CodeInspection.Type),
-        quickEditProvider = new qe.TypeScriptQuickEditProvider(projectManager);
+    // project manager
+    var projectManager = new project.TypeScriptProjectManager(fileSystem, workingSet);
+    projectManager.init();
+        
     
         
-    // initialize
-    projectManager.init();
-
+    // code hint
+    var hintService = new codeHint.HintService(projectManager),
+        codeHintProvider = new codeHint.TypeScriptCodeHintProvider(hintService);
     CodeHintManager.registerHintProvider(codeHintProvider, ['typescript'], 0);
     
+    //error provider
+    var errorReporter = new TypeScriptErrorReporter(projectManager, CodeInspection.Type);
     CodeInspection.register('typescript', errorReporter); 
     
+    //quickEdit
+    var quickEditProvider = new qe.TypeScriptQuickEditProvider(projectManager);
     EditorManager.registerInlineEditProvider(quickEditProvider.typeScriptInlineEditorProvider);
-   
+
+    //comments helper
     commentsHelper.init(new signal.DomSignalWrapper<KeyboardEvent>($("#editor-holder")[0], "keydown", true));
 
 }

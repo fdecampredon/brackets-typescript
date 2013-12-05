@@ -6,26 +6,136 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
     
     var immediate = __immediate__;
     var Services = TypeScript.Services;
+    var ScriptElementKind = Services.ScriptElementKind;
+    var ScriptElementKindModifier = Services.ScriptElementKindModifier;
 
-    var logger = new Logger(), classifier = new Services.TypeScriptServicesFactory().createClassifier(logger), StringUtils = brackets.getModule("utils/StringUtils");
+    (function (HintKind) {
+        HintKind[HintKind["DEFAULT"] = 0] = "DEFAULT";
+        HintKind[HintKind["CLASS"] = 1] = "CLASS";
+        HintKind[HintKind["INTERFACE"] = 2] = "INTERFACE";
+        HintKind[HintKind["ENUM"] = 3] = "ENUM";
+        HintKind[HintKind["MODULE"] = 4] = "MODULE";
+        HintKind[HintKind["VARIABLE"] = 5] = "VARIABLE";
+        HintKind[HintKind["METHOD"] = 6] = "METHOD";
+        HintKind[HintKind["FUNCTION"] = 7] = "FUNCTION";
+        HintKind[HintKind["KEYWORD"] = 8] = "KEYWORD";
+    })(exports.HintKind || (exports.HintKind = {}));
+    var HintKind = exports.HintKind;
 
-    function isFunctionElement(kind) {
-        switch (kind) {
-            case Services.ScriptElementKind.callSignatureElement:
-            case Services.ScriptElementKind.constructorImplementationElement:
-            case Services.ScriptElementKind.constructSignatureElement:
-            case Services.ScriptElementKind.functionElement:
-            case Services.ScriptElementKind.localFunctionElement:
-            case Services.ScriptElementKind.memberFunctionElement:
-                return true;
-            default:
-                return false;
+    var HintService = (function () {
+        function HintService(typescriptProjectManager) {
+            this.typescriptProjectManager = typescriptProjectManager;
         }
-    }
+        HintService.prototype.getHintsAtPositon = function (path, position, currentToken) {
+            var project = this.typescriptProjectManager.getProjectForFile(path);
+
+            if (!project) {
+                return null;
+            }
+
+            var languageService = project.getLanguageService();
+
+            if (!languageService) {
+                return null;
+            }
+
+            var index = project.getIndexFromPos(path, position), completionInfo = languageService.getCompletionsAtPosition(path, index, true), entries = completionInfo && completionInfo.entries;
+
+            if (!entries) {
+                return null;
+            }
+
+            if (currentToken) {
+                entries = entries.filter(function (entry) {
+                    return entry.name && entry.name.toLowerCase().indexOf(currentToken.toLowerCase()) === 0;
+                });
+            }
+
+            entries.sort(function (entry1, entry2) {
+                var name1 = entry1 && entry1.name.toLowerCase(), name2 = entry2 && entry2.name.toLowerCase();
+                if (name1 < name2) {
+                    return -1;
+                } else if (name1 > name2) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            });
+
+            var hints = entries.map(function (entry) {
+                var entryInfo = languageService.getCompletionEntryDetails(currentToken, index, entry.name), hint = {
+                    name: entry.name,
+                    kind: HintKind.DEFAULT,
+                    type: entryInfo ? entryInfo.type : ''
+                };
+
+                switch (entry.kind) {
+                    case ScriptElementKind.unknown:
+                    case ScriptElementKind.primitiveType:
+                    case ScriptElementKind.scriptElement:
+                        break;
+                    case ScriptElementKind.keyword:
+                        hint.kind = HintKind.KEYWORD;
+                        break;
+
+                    case ScriptElementKind.classElement:
+                        hint.kind = HintKind.CLASS;
+                        break;
+                    case ScriptElementKind.interfaceElement:
+                        hint.kind = HintKind.INTERFACE;
+                        break;
+                    case ScriptElementKind.enumElement:
+                        hint.kind = HintKind.ENUM;
+                        break;
+                    case ScriptElementKind.moduleElement:
+                        hint.kind = HintKind.MODULE;
+                        break;
+
+                    case ScriptElementKind.memberVariableElement:
+                    case ScriptElementKind.variableElement:
+                    case ScriptElementKind.localVariableElement:
+                    case ScriptElementKind.parameterElement:
+                        hint.kind = HintKind.VARIABLE;
+                        break;
+
+                    case ScriptElementKind.memberFunctionElement:
+                    case ScriptElementKind.functionElement:
+                    case ScriptElementKind.localFunctionElement:
+                        hint.kind = HintKind.FUNCTION;
+                        break;
+
+                    case ScriptElementKind.typeParameterElement:
+                    case ScriptElementKind.constructorImplementationElement:
+                    case ScriptElementKind.constructSignatureElement:
+                    case ScriptElementKind.callSignatureElement:
+                    case ScriptElementKind.indexSignatureElement:
+                    case ScriptElementKind.memberGetAccessorElement:
+                    case ScriptElementKind.memberSetAccessorElement:
+                        console.log('untreated case ' + entry.kind);
+                        break;
+                }
+
+                return hint;
+            });
+
+            return hints;
+        };
+        return HintService;
+    })();
+    exports.HintService = HintService;
+
+    var logger = new Logger(), classifier = new Services.TypeScriptServicesFactory().createClassifier(logger), _ = brackets.getModule('thirdparty/lodash');
+
+    var HINT_TEMPLATE = '<span class="cm-s-default">\
+                            <span style="display: inline-block" class="{{class_type}}">\
+                                <span style="font-weight: bold">{{match}}</span>\
+                                <span>{{suffix}}</span>\
+                            <span>\
+                    </span>';
 
     var TypeScriptCodeHintProvider = (function () {
-        function TypeScriptCodeHintProvider(typescriptProjectManager) {
-            this.typescriptProjectManager = typescriptProjectManager;
+        function TypeScriptCodeHintProvider(hintService) {
+            this.hintService = hintService;
         }
         TypeScriptCodeHintProvider.prototype.hasHints = function (editor, implicitChar) {
             if (implicitChar) {
@@ -82,7 +192,6 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
                         case TokenClass.Punctuation:
                             if (implicitChar && _this.lastUsedToken.string !== '.' || _this.lastUsedToken.classification !== TokenClass.Punctuation) {
                                 deferred.resolve({ hints: [] });
-                                return;
                             }
                             _this.lastUsedToken = null;
                         default:
@@ -90,104 +199,24 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
                     }
                 }
 
-                var currentFilePath = _this.editor.document.file.fullPath, project = _this.typescriptProjectManager.getProjectForFile(_this.editor.document.file.fullPath);
+                var currentFilePath = _this.editor.document.file.fullPath, position = _this.editor.getCursorPos();
 
-                if (!project) {
+                var hints = _this.hintService.getHintsAtPositon(currentFilePath, position, _this.lastUsedToken && _this.lastUsedToken.string);
+
+                if (!hints || hints.length === 0) {
                     deferred.resolve({ hints: [] });
                     return;
                 }
-
-                var languageService = project.getLanguageService(), position = _this.editor.getCursorPos();
-
-                if (!languageService) {
-                    deferred.resolve({ hints: [] });
-                    return;
-                }
-
-                var filePosition = project.getIndexFromPos(currentFilePath, position), completionInfo = languageService.getCompletionsAtPosition(currentFilePath, filePosition, true), entries = completionInfo && completionInfo.entries;
-
-                if (!entries) {
-                    deferred.resolve({ hints: [] });
-                    return;
-                }
-
-                if (_this.lastUsedToken && entries) {
-                    entries = entries.filter(function (entry) {
-                        return entry.name && entry.name.toLowerCase().indexOf(_this.lastUsedToken.string.toLowerCase()) === 0;
-                    });
-                    if (entries.length === 1 && entries[0].name === _this.lastUsedToken.string) {
-                        deferred.resolve({ hints: [] });
-                        return;
-                    }
-                }
-                entries = entries && entries.sort(function (entry1, entry2) {
-                    var name1 = entry1 && entry1.name.toLowerCase(), name2 = entry2 && entry2.name.toLowerCase();
-                    if (name1 < name2) {
-                        return -1;
-                    } else if (name1 > name2) {
-                        return 1;
-                    } else {
-                        return 0;
-                    }
-                });
-
-                var hints = entries && entries.map(function (entry) {
-                    var entryInfo = languageService.getCompletionEntryDetails(currentFilePath, filePosition, entry.name), hint = _this.hintTextFromInfo(entryInfo), $hintObj = $('<span>'), delimiter = '', hintCssClass;
-
-                    if (entry.kind === Services.ScriptElementKind.keyword) {
-                        switch (entry.name) {
-                            case 'number':
-                            case 'void':
-                            case 'bool':
-                            case 'boolean':
-                                hintCssClass = 'variable';
-                                break;
-                            case 'static':
-                            case 'public':
-                            case 'private':
-                            case 'export':
-                            case 'get':
-                            case 'set':
-                                hintCssClass = 'qualifier';
-
-                            case 'class':
-                            case 'function':
-                            case 'module':
-                            case 'var':
-                                hintCssClass = 'def';
-                                break;
-                            default:
-                                hintCssClass = 'keyword';
-                                break;
-                        }
-                    } else {
-                        hintCssClass = 'variable';
-                    }
-
-                    var $inner = $('<span>').addClass('cm-' + hintCssClass);
-                    $hintObj = $hintObj.addClass('cm-s-default').append($inner);
-
-                    if (_this.lastUsedToken) {
-                        var match = StringUtils.htmlEscape(hint.slice(0, _this.lastUsedToken.string.length)), suffix = StringUtils.htmlEscape(hint.slice(_this.lastUsedToken.string.length));
-                        $inner.append(delimiter).append($('<span>').append(match).css('font-weight', 'bold')).append(suffix + delimiter);
-                    } else {
-                        $inner.text(delimiter + hint + delimiter);
-                    }
-                    $hintObj.data('entry', entry);
-
-                    return $hintObj;
-                });
-
                 deferred.resolve({
-                    hints: hints || [],
+                    hints: hints.map(_this.hintToJQuery, _this),
                     selectInitial: !!implicitChar
                 });
             });
             return deferred;
         };
 
-        TypeScriptCodeHintProvider.prototype.insertHint = function (hint) {
-            var entry = hint.data('entry'), text = entry.name, position = this.editor.getCursorPos(), startPos = !this.lastUsedToken ? position : {
+        TypeScriptCodeHintProvider.prototype.insertHint = function ($hintObj) {
+            var hint = $hintObj.data('hint'), position = this.editor.getCursorPos(), startPos = !this.lastUsedToken ? position : {
                 line: position.line,
                 ch: this.lastUsedToken.position
             }, endPos = !this.lastUsedToken ? position : {
@@ -195,7 +224,58 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
                 ch: this.lastUsedToken.position + this.lastUsedToken.string.length
             };
 
-            this.editor.document.replaceRange(text, startPos, endPos);
+            this.editor.document.replaceRange(hint.name, startPos, endPos);
+        };
+
+        TypeScriptCodeHintProvider.prototype.hintToJQuery = function (hint) {
+            var text = hint.name, match, suffix, class_type = '';
+            switch (hint.kind) {
+                case HintKind.KEYWORD:
+                    switch (hint.name) {
+                        case 'static':
+                        case 'public':
+                        case 'private':
+                        case 'export':
+                        case 'get':
+                        case 'set':
+                            class_type = 'cm-qualifier';
+                            break;
+                        case 'class':
+                        case 'function':
+                        case 'module':
+                        case 'var':
+                            class_type = 'cm-def';
+                            break;
+                        default:
+                            class_type = 'cm-keyword';
+                            break;
+                    }
+                    break;
+                case HintKind.METHOD:
+                case HintKind.FUNCTION:
+                    text += hint.type ? hint.type : '';
+                    break;
+                default:
+                    text += hint.type ? ' - ' + hint.type : '';
+                    break;
+            }
+
+            if (this.lastUsedToken) {
+                match = _.escape(text.slice(0, this.lastUsedToken.string.length));
+                suffix = _.escape(text.slice(this.lastUsedToken.string.length));
+            } else {
+                match = '';
+                suffix = text;
+            }
+
+            var result = $(Mustache.render(HINT_TEMPLATE, {
+                classifier: classifier,
+                match: match,
+                suffix: suffix,
+                class_type: class_type
+            }));
+            result.data('hint', hint);
+            return result;
         };
 
         TypeScriptCodeHintProvider.prototype.getCurrentToken = function (editor) {
@@ -213,19 +293,6 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
                 currentPos += entry.length;
             }
             return null;
-        };
-
-        TypeScriptCodeHintProvider.prototype.hintTextFromInfo = function (entryInfo) {
-            if (!entryInfo) {
-                return 'bla';
-            }
-            var text = entryInfo.name;
-            if (isFunctionElement(entryInfo.kind)) {
-                text += entryInfo.type || '';
-            } else if (entryInfo.type && entryInfo.type !== entryInfo.name) {
-                text += ' : ' + entryInfo.type;
-            }
-            return text;
         };
         return TypeScriptCodeHintProvider;
     })();

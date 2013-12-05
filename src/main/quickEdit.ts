@@ -1,5 +1,4 @@
 import project = require('project');
-import immediate = require('./utils/immediate')
 
 var DocumentManager = brackets.getModule('document/DocumentManager'),
     MultiRangeInlineEditor = brackets.getModule('editor/MultiRangeInlineEditor').MultiRangeInlineEditor;
