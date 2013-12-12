@@ -1,6 +1,4 @@
 define(["require", "exports"], function(require, exports) {
-    
-
     var DocumentManager = brackets.getModule('document/DocumentManager'), MultiRangeInlineEditor = brackets.getModule('editor/MultiRangeInlineEditor').MultiRangeInlineEditor;
 
     var TypeScriptQuickEditProvider = (function () {

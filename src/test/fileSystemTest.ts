@@ -10,10 +10,10 @@ describe('FileSystem', function() {
     var fileSystem: fs.IFileSystem,
         fileSystemMock : bracketsMock.FileSystem,
         rootDir: bracketsMock.Directory,
-        projectManager: bracketsMock.ProjectManager
+        projectManager: bracketsMock.ProjectManager;
 
     beforeEach(function () {
-        rootDir = d(<bracketsMock.DirectoryOptions><any>{
+        rootDir = d({
             name: '/',
             children : [
                 f({
@@ -24,7 +24,7 @@ describe('FileSystem', function() {
                     name: 'file2.ts',
                     content: 'File2 content'
                 }),
-                d(<bracketsMock.DirectoryOptions><any>{
+                d({
                     name : 'subdir1/',
                     children: [
                         f({
@@ -33,7 +33,7 @@ describe('FileSystem', function() {
                         })
                     ]
                 }),
-                d(<bracketsMock.DirectoryOptions><any>{
+                d({
                     name : 'subdir2/',
                     children: [
                         f({
@@ -44,7 +44,7 @@ describe('FileSystem', function() {
                             name: 'file5.ts',
                             content: 'File5 content'
                         }),
-                        d(<bracketsMock.DirectoryOptions><any>{
+                        d({
                             name : 'subdir3/',
                             children: [
                                 f({
@@ -239,7 +239,7 @@ describe('FileSystem', function() {
         
         
         it('should dispatch an event when a non empty directory is added', function () {
-            var dir = d(<bracketsMock.DirectoryOptions><any>{
+            var dir = d({
                 name: 'subdir5/',
                 children: [
                     f({
@@ -250,14 +250,14 @@ describe('FileSystem', function() {
                         name: 'file9.ts',
                         content: 'File 9 content'
                     }),
-                    d(<bracketsMock.DirectoryOptions><any>{
+                    d({
                         name: 'subdir6/',
                         children: [
                             f({
                                 name: 'file10.ts',
                                 content: 'File 10 content'
                             }),
-                            d(<bracketsMock.DirectoryOptions><any>{
+                            d({
                                 name: 'subdir7/',
                                 children: []
                             })
@@ -284,7 +284,7 @@ describe('FileSystem', function() {
         
         
         it('should not dispatch an event when an empty directory is added', function () {
-            var dir = d(<bracketsMock.DirectoryOptions><any>{
+            var dir = d({
                 name: 'subdir5/',
                 children: []
             });
@@ -298,7 +298,7 @@ describe('FileSystem', function() {
         it('should dispatch an event containing all file that have been deleted/added', function () {
             fileSystem.readFile('/subdir2/file5.ts');
             fileSystem.readFile('/subdir1/file3.ts');
-            fileSystemMock.refresh(d(<bracketsMock.DirectoryOptions><any>{
+            fileSystemMock.refresh(d({
                 name: '/',
                 children : [
                     f({
@@ -309,7 +309,7 @@ describe('FileSystem', function() {
                         name: 'file8.ts',
                         content: 'File8 content'
                     }),
-                    d(<bracketsMock.DirectoryOptions><any>{
+                    d({
                         name : 'subdir1/',
                         children: [
                             f({
@@ -318,7 +318,7 @@ describe('FileSystem', function() {
                             })
                         ]
                     }),
-                    d(<bracketsMock.DirectoryOptions><any>{
+                    d({
                         name : 'subdir2/',
                         children: [
                             f({
@@ -331,7 +331,7 @@ describe('FileSystem', function() {
                             })
                         ]
                     }),
-                    d(<bracketsMock.DirectoryOptions><any>{
+                    d({
                         name : 'subdir3/',
                         children: [
                             f({

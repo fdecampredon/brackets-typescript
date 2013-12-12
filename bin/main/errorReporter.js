@@ -1,12 +1,24 @@
-define(["require", "exports"], function(require, exports) {
-    
-
+define(["require", "exports", './utils/immediate'], function(require, exports, immediate) {
+    //--------------------------------------------------------------------------
+    //
+    //  TypeScriptProject
+    //
+    //--------------------------------------------------------------------------
+    /**
+    * TypeScript Inspection Provider
+    */
     var TypeScriptErrorReporter = (function () {
         function TypeScriptErrorReporter(typescriptProjectManager, errorType) {
             this.typescriptProjectManager = typescriptProjectManager;
             this.errorType = errorType;
+            /**
+            * name of the error reporter
+            */
             this.name = 'TypeScript';
         }
+        /**
+        * scan file
+        */
         TypeScriptErrorReporter.prototype.scanFile = function (content, path) {
             try  {
                 var project = this.typescriptProjectManager.getProjectForFile(path), languageService = project && project.getLanguageService();
@@ -31,6 +43,10 @@ define(["require", "exports"], function(require, exports) {
             }
         };
 
+        /**
+        * convert TypeScript Diagnostic or brackets error format
+        * @param diagnostics
+        */
         TypeScriptErrorReporter.prototype.diagnosticToError = function (diagnostics) {
             var _this = this;
             if (!diagnostics) {
@@ -40,16 +56,16 @@ define(["require", "exports"], function(require, exports) {
                 var info = diagnostic.info(), type;
 
                 switch (info.category) {
-                    case TypeScript.DiagnosticCategory.Error:
+                    case 1 /* Error */:
                         type = _this.errorType.ERROR;
                         break;
-                    case TypeScript.DiagnosticCategory.Warning:
+                    case 0 /* Warning */:
                         type = _this.errorType.WARNING;
                         break;
-                    case TypeScript.DiagnosticCategory.NoPrefix:
+                    case 3 /* NoPrefix */:
                         type = _this.errorType.ERROR;
                         break;
-                    case TypeScript.DiagnosticCategory.Message:
+                    case 2 /* Message */:
                         type = _this.errorType.META;
                         break;
                 }

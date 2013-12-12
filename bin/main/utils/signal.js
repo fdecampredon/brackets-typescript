@@ -1,6 +1,5 @@
+'use strict';
 define(["require", "exports"], function(require, exports) {
-    'use strict';
-
     var Signal = (function () {
         function Signal() {
             this.listeners = [];

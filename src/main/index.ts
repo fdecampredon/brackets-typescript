@@ -58,6 +58,9 @@ function init(conf: {
     
     // project manager
     var projectManager = new project.TypeScriptProjectManager(fileSystem, workingSet);
+        
+    //projectManager.registerService(errors.ErrorServiceFactory);    
+        
     projectManager.init();
         
     
@@ -68,8 +71,8 @@ function init(conf: {
     CodeHintManager.registerHintProvider(codeHintProvider, ['typescript'], 0);
     
     //error provider
-    var errorReporter = new TypeScriptErrorReporter(projectManager, CodeInspection.Type);
-    CodeInspection.register('typescript', errorReporter); 
+    var tsErrorReporter = new TypeScriptErrorReporter(projectManager, CodeInspection.Type);
+    CodeInspection.register('typescript', tsErrorReporter); 
     
     //quickEdit
     var quickEditProvider = new qe.TypeScriptQuickEditProvider(projectManager);

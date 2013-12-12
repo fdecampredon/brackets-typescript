@@ -2,7 +2,7 @@ define(["require", "exports"], function(require, exports) {
     var ScriptInfo = (function () {
         function ScriptInfo(fileName, content, isOpen, byteOrderMark) {
             if (typeof isOpen === "undefined") { isOpen = false; }
-            if (typeof byteOrderMark === "undefined") { byteOrderMark = TypeScript.ByteOrderMark.None; }
+            if (typeof byteOrderMark === "undefined") { byteOrderMark = 0 /* None */; }
             this.version = 1;
             this.editRanges = [];
             this.lineMap = null;
@@ -26,22 +26,28 @@ define(["require", "exports"], function(require, exports) {
         };
 
         ScriptInfo.prototype.editContent = function (minChar, limChar, newText) {
+            // Apply edits
             var prefix = this.content.substring(0, minChar);
             var middle = newText;
             var suffix = this.content.substring(limChar);
             this.setContent(prefix + middle + suffix);
 
+            // Store edit range + new length of script
             this.editRanges.push({
                 length: this.content.length,
                 textChangeRange: new TypeScript.TextChangeRange(TypeScript.TextSpan.fromBounds(minChar, limChar), newText.length)
             });
 
+            // Update version #
             this.version++;
         };
 
         ScriptInfo.prototype.getTextChangeRangeBetweenVersions = function (startVersion, endVersion) {
             if (startVersion === endVersion) {
+                // No edits!
                 return TypeScript.TextChangeRange.unchanged;
+            } else if (this.editRanges.length === 0) {
+                return null;
             }
 
             var initialEditRangeIndex = this.editRanges.length - (this.version - startVersion);

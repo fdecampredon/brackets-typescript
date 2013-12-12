@@ -7,6 +7,7 @@ describe('TypeScriptProjectManager', function () {
     var typeScriptProjectManager: project.TypeScriptProjectManager,
         fileSystemMock: FileSystemMock,
         projectSpy: {
+            init: jasmine.Spy;
             update: jasmine.Spy;
             dispose: jasmine.Spy;
         },
@@ -15,26 +16,23 @@ describe('TypeScriptProjectManager', function () {
     beforeEach(function () {
         fileSystemMock = new FileSystemMock();
         typeScriptProjectManager = new project.TypeScriptProjectManager(fileSystemMock, null);
-        projectSpy = jasmine.createSpyObj('project', ['dispose', 'update']); 
+        projectSpy = jasmine.createSpyObj('project', ['init', 'dispose', 'update']); 
         typeScriptProjectSpy = spyOn(typeScriptProjectManager, 'newProject').andCallFake(() => projectSpy);
-    })
+    });
     
     afterEach(function () {
         typeScriptProjectManager.dispose();
-    })
-    
- 
+    });
     
     it('should create a new Project for each brackets-typescript config file found', function () {
-        var dir2Config = {
+        var dirConfig = {
             module: 'amd',
             sources: [
                 './file1.ts',
                 './file2.ts'
             ],
             outDir: 'bin'
-        
-        }, dir4Config = {
+        }, dir1Config = {
             module: 'commonjs',
             sources: [
                 './file3.ts',
@@ -45,10 +43,10 @@ describe('TypeScriptProjectManager', function () {
         
         fileSystemMock.setFiles({
             'dir1/file1': '', 
-            'dir2/.brackets-typescript': JSON.stringify(dir2Config), 
+            'dir2/.brackets-typescript': JSON.stringify(dirConfig), 
             'dir2/file1': '', 
             'dir2/file2': '', 
-            'dir3/dir4/.brackets-typescript': JSON.stringify(dir4Config),
+            'dir3/dir4/.brackets-typescript': JSON.stringify(dir1Config),
             'dir3/dir4/file1': '',
             'dir3/dir4/file2': ''
         });
@@ -58,8 +56,24 @@ describe('TypeScriptProjectManager', function () {
         expect(typeScriptProjectSpy.callCount).toBe(2);
     });
     
+    it('should initialize projects with registred new instance of registred Services', function () {
+        fileSystemMock.setFiles({
+            'dir1/.brackets-typescript': JSON.stringify({
+                module: 'amd',
+                sources: [
+                    './file1.ts',
+                    './file2.ts'
+                ],
+                outDir: 'bin'
+            })
+        });
+        var service = <project.ProjectService>{};
+        typeScriptProjectManager.registerService(() => service)
+        typeScriptProjectManager.init();
+        expect(projectSpy.init).toHaveBeenCalledWith([service])
+    })
     
-     it('should not create a project if the config file is invalid JSON',  function () {
+    it('should not create a project if the config file is invalid JSON',  function () {
         fileSystemMock.setFiles({
             'dir1/.brackets-typescript': '{',
         });
@@ -198,7 +212,7 @@ describe('TypeScriptProjectManager', function () {
         expect(projectSpy.dispose.callCount).toBe(1);
     });
 
-    it('should dispose all project and reinitialize when file system is refreshed', function() {
+    it('should dispose all project and reinitialize when file system is refreshed', function () {
         fileSystemMock.setFiles({
             'dir/.brackets-typescript': JSON.stringify({
                 module: 'amd',

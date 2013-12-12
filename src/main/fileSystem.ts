@@ -334,22 +334,28 @@ export class FileSystem implements IFileSystem {
                 
                 (<JQueryPromise<any>>$.when.apply($, promises)).then(() => {
                     
-                    var changes: ChangeRecord[] = fileDeleted.map(path => {
-                        return {
+                    var changes: ChangeRecord[] = [];
+                    
+                    fileDeleted.forEach(path => {
+                        changes.push({
                             kind: FileChangeKind.DELETE,
                             path: path
-                        }
-                    }).concat(fileAdded.map(path => {
-                        return {
+                        });
+                    });
+                    
+                    fileAdded.forEach(path => {
+                        changes.push({
                             kind: FileChangeKind.ADD,
                             path: path
-                        }
-                    })).concat(fileUpdated.map(path => {
-                        return {
+                        });
+                    });
+                    
+                    fileUpdated.forEach(path => {
+                        changes.push({
                             kind: FileChangeKind.UPDATE,
                             path: path
-                        }
-                    }));
+                        });
+                    });
                 
                     if (changes.length > 0) {
                         this.projectFilesChanged.dispatch(changes);  

@@ -1,4 +1,5 @@
 import project = require('./project');
+import immediate = require('./utils/immediate');
 
 //--------------------------------------------------------------------------
 //
@@ -54,7 +55,6 @@ class TypeScriptErrorReporter implements brackets.InspectionProvider {
     /**
      * convert TypeScript Diagnostic or brackets error format
      * @param diagnostics
-     * @param scriptSnapshot
      */
     private diagnosticToError(diagnostics: TypeScript.Diagnostic[]): brackets.LintingError[] {
         if (!diagnostics) {

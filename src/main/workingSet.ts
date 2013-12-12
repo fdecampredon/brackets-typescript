@@ -104,6 +104,7 @@ export interface DocumentChangeDescriptor {
      * text that has been removed (if any)
      */
     removed: string;
+    
 }
 
 /**
@@ -134,6 +135,7 @@ export interface BracketesDocumentManager {
  */
 export interface BracketsDocument {
     file: { fullPath: string };
+    getText(): string;
 }
 
 /**
@@ -326,7 +328,7 @@ export class WorkingSet implements IWorkingSet {
      * handle 'change' on document
      */
     private documentChangesHandler = (event: any, document: BracketsDocument, change: CodeMirror.EditorChangeLinkedList) => {
-        var changesDescriptor: DocumentChangeDescriptor[] = []
+        var changesDescriptor: DocumentChangeDescriptor[] = [];
         while (change) {
             changesDescriptor.push({
                 path: document.file.fullPath,
@@ -335,7 +337,7 @@ export class WorkingSet implements IWorkingSet {
                 text: change.text && change.text.join('\n'),
                 removed: change.removed ? change.removed.join("\n") : ""
             });
-            change = change.next;
+            change = change.next; 
         }
         if (changesDescriptor.length > 0) {
             this.documentEdited.dispatch(changesDescriptor);

@@ -2,7 +2,6 @@
 
 import project = require('./project');
 import Logger = require('./logger');
-import language = require('./typescript/language');
 import immediate = require('./utils/immediate');
 import Services = TypeScript.Services;
 import ScriptElementKind =  Services.ScriptElementKind;
@@ -14,7 +13,7 @@ import ScriptElementKindModifier =  Services.ScriptElementKindModifier;
 //  HintService
 //
 //--------------------------------------------------------------------------
-
+var Xx =2
 
 
 /**
@@ -39,6 +38,7 @@ export interface Hint {
     name: string;
     type: string;
     kind: HintKind;
+    doc: string;
 }
 
 /**
@@ -102,11 +102,12 @@ export class HintService {
         
         
         var hints = entries.map(entry => {
-            var entryInfo = languageService.getCompletionEntryDetails(currentToken, index, entry.name),
+            var entryInfo = languageService.getCompletionEntryDetails(path, index, entry.name),
                 hint = {
                     name: entry.name,
                     kind: HintKind.DEFAULT,
-                    type: entryInfo ? entryInfo.type : ''
+                    type: entryInfo && entryInfo.type,
+                    doc: entryInfo && entryInfo.docComment
                 };
            
         
@@ -164,6 +165,7 @@ export class HintService {
         
         return hints;
     }
+
 }
 
 
@@ -181,27 +183,37 @@ var logger = new Logger(),
 
 var HINT_TEMPLATE = '<span class="cm-s-default">\
                             <span style="display: inline-block" class="{{class_type}}">\
-                                <span style="font-weight: bold">{{match}}</span>\
-                                <span>{{suffix}}</span>\
+                                <span style="font-weight: bold">{{match}}</span>{{suffix}}\
                             <span>\
                     </span>'
     
-
+/**
+ * token created by the typescript mode
+ */
 interface Token { 
     string: string; 
     classification: Services.TokenClass;
     position: number;
 }
 
+/**
+ * brackets hint provider for typescript
+ */
 export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
     private lastUsedToken: Token;
     private editor: brackets.Editor;
     
     constructor(
         private hintService: HintService
-    ) {
-    }
+    ) {}
     
+    /**
+     * return true if hints can be calculated for te current editor
+     * 
+     * @param editor the editor
+     * @param implicitChar determine whether the hinting request is explicit or implicit, 
+     * null if implicit, contains the last character inserted
+     */
     hasHints(editor : brackets.Editor, implicitChar : string): boolean {
         if (implicitChar) {
             var token = this.getCurrentToken(editor);
@@ -235,6 +247,10 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
         return true;
     }
     
+    /**
+     * return list of hints
+     * @param implicitChar
+     */
     getHints(implicitChar:string): JQueryDeferred<brackets.HintResult> {
         var deferred: JQueryDeferred<brackets.HintResult> = $.Deferred();
         //async so we are sure that the languageServiceHost has been updated
@@ -280,6 +296,10 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
         return deferred;
     }
     
+    /**
+     * insert hin if chosen
+     * @param $hintObj
+     */
     insertHint($hintObj: JQuery):void {
         var hint: Hint = $hintObj.data('hint'),
             position = this.editor.getCursorPos(),
@@ -303,7 +323,10 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
     
     
 
-
+    /**
+     * convert a hint to jquery object for display
+     * @param hint
+     */
     private hintToJQuery(hint: Hint): JQuery {
         var text = hint.name,
             match: string,
@@ -343,8 +366,8 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
    
         // highlight the matched portion of each hint
         if (this.lastUsedToken) {
-            match   = _.escape(text.slice(0,  this.lastUsedToken.string.length));
-            suffix  = _.escape(text.slice(this.lastUsedToken.string.length));
+            match   = text.slice(0,  this.lastUsedToken.string.length);
+            suffix  = text.slice(this.lastUsedToken.string.length);
            
         } else {
             match = '';
@@ -362,6 +385,10 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
         return result;
     }
     
+    /**
+     * retrive the current token from editor
+     * @param editor
+     */
     private getCurrentToken(editor: brackets.Editor): Token  {
         var position = editor.getCursorPos(),
             lineStr = editor.document.getLine(position.line),

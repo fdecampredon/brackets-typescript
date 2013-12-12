@@ -40,9 +40,9 @@ module.exports = function (grunt) {
                     base_path : 'src',
                     module : 'amd',
                     target: 'es5',
-                    sourcemap: false
-                    //wait for 0.9.5
-                    /*noImplicitAny: true*/
+                    sourcemap: false,
+                    comments : true,
+                    noImplicitAny: true
                 }
             },
             test: {
@@ -53,9 +53,8 @@ module.exports = function (grunt) {
                     base_path : 'src',
                     module: 'amd',
                     target: 'es5',
-                    sourcemap: false
-                    //wait for 0.9.5
-                    /*noImplicitAny: true*/
+                    sourcemap: false,
+                    noImplicitAny: true
                 }
             }
 		},

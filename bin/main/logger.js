@@ -1,32 +1,32 @@
+'use strict';
 define(["require", "exports"], function(require, exports) {
-    'use strict';
-
     var currentLogLevel = 3;
 
     var Logger = (function () {
         function Logger() {
         }
         Logger.prototype.information = function () {
-            return currentLogLevel >= Logger.Level.INFORMATION;
+            return currentLogLevel >= 0 /* INFORMATION */;
         };
 
         Logger.prototype.debug = function () {
-            return currentLogLevel >= Logger.Level.DEBUG;
+            return currentLogLevel >= 1 /* DEBUG */;
         };
 
         Logger.prototype.warning = function () {
-            return currentLogLevel >= Logger.Level.WARNING;
+            return currentLogLevel >= 2 /* WARNING */;
         };
 
         Logger.prototype.error = function () {
-            return currentLogLevel >= Logger.Level.ERROR;
+            return currentLogLevel >= 3 /* ERROR */;
         };
 
         Logger.prototype.fatal = function () {
-            return currentLogLevel >= Logger.Level.FATAL;
+            return currentLogLevel >= 4 /* FATAL */;
         };
 
         Logger.prototype.log = function (s) {
+            //console.log(s);
         };
         return Logger;
     })();
@@ -36,19 +36,19 @@ define(["require", "exports"], function(require, exports) {
         function setLogLevel(value) {
             switch (value) {
                 case "information":
-                    currentLogLevel = Level.INFORMATION;
+                    currentLogLevel = 0 /* INFORMATION */;
                     break;
                 case "debug":
-                    currentLogLevel = Level.DEBUG;
+                    currentLogLevel = 1 /* DEBUG */;
                     break;
                 case "warning":
-                    currentLogLevel = Level.WARNING;
+                    currentLogLevel = 2 /* WARNING */;
                     break;
                 case "error":
-                    currentLogLevel = Level.ERROR;
+                    currentLogLevel = 3 /* ERROR */;
                     break;
                 case "fatal":
-                    currentLogLevel = Level.FATAL;
+                    currentLogLevel = 4 /* FATAL */;
                     break;
             }
         }

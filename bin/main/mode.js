@@ -1,7 +1,5 @@
-define(["require", "exports", './logger'], function(require, exports, __Logger__) {
-    'use strict';
-
-    var Logger = __Logger__;
+'use strict';
+define(["require", "exports", './logger'], function(require, exports, Logger) {
     var Services = TypeScript.Services;
     var Formatting = TypeScript.Services.Formatting;
 
@@ -13,7 +11,7 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
 
     var LineDescriptor = (function () {
         function LineDescriptor() {
-            this.eolState = Services.EndOfLineState.Start;
+            this.eolState = 0 /* Start */;
             this.text = "";
         }
         LineDescriptor.prototype.clone = function () {
@@ -62,13 +60,15 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
         };
 
         TypeScriptMode.prototype.indent = function (lineDescriptor, textAfter) {
-            if (lineDescriptor.eolState !== Services.EndOfLineState.Start) {
-                return (CodeMirror).Pass;
+            if (lineDescriptor.eolState !== 0 /* Start */) {
+                //strange bug preven CodeMirror.Pass
+                return CodeMirror.Pass;
             }
             var text = lineDescriptor.text + "\n" + (textAfter || "fakeIdent"), position = textAfter ? text.length : text.length - 9, syntaxTree = this.getSyntaxTree(text), options = new FormattingOptions(!this.options.indentWithTabs, this.options.tabSize, this.options.indentUnit, '\n'), textSnapshot = new Formatting.TextSnapshot(TypeScript.SimpleText.fromString(text)), indent = Formatting.SingleTokenIndenter.getIndentationAmount(position, syntaxTree.sourceUnit(), textSnapshot, options);
 
             if (indent === null) {
-                return (CodeMirror).Pass;
+                //strange bug preven CodeMirror.Pass
+                return CodeMirror.Pass;
             }
             return indent;
         };
@@ -89,7 +89,7 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
         };
 
         TypeScriptMode.prototype.getSyntaxTree = function (text) {
-            return TypeScript.Parser.parse("script", TypeScript.SimpleText.fromString(text), false, new TypeScript.ParseOptions(TypeScript.LanguageVersion.EcmaScript5, true));
+            return TypeScript.Parser.parse("script", TypeScript.SimpleText.fromString(text), false, new TypeScript.ParseOptions(1 /* EcmaScript5 */, true));
         };
         return TypeScriptMode;
     })();
@@ -120,17 +120,17 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
     function getStyleForToken(token, textBefore) {
         var TokenClass = Services.TokenClass;
         switch (token.classification) {
-            case TokenClass.NumberLiteral:
+            case 6 /* NumberLiteral */:
                 return "number";
-            case TokenClass.StringLiteral:
+            case 7 /* StringLiteral */:
                 return "string";
-            case TokenClass.RegExpLiteral:
+            case 8 /* RegExpLiteral */:
                 return "string-2";
-            case TokenClass.Operator:
+            case 2 /* Operator */:
                 return "operator";
-            case TokenClass.Comment:
+            case 3 /* Comment */:
                 return "comment";
-            case TokenClass.Keyword:
+            case 1 /* Keyword */:
                 switch (token.string) {
                     case 'string':
                     case 'number':
@@ -154,11 +154,11 @@ define(["require", "exports", './logger'], function(require, exports, __Logger__
                         return 'keyword';
                 }
 
-            case TokenClass.Identifier:
+            case 5 /* Identifier */:
                 return "variable";
-            case TokenClass.Punctuation:
+            case 0 /* Punctuation */:
                 return "bracket";
-            case TokenClass.Whitespace:
+            case 4 /* Whitespace */:
             default:
                 return null;
         }

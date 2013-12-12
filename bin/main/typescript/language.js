@@ -4,10 +4,7 @@ var __extends = this.__extends || function (d, b) {
     __.prototype = b.prototype;
     d.prototype = new __();
 };
-define(["require", "exports", '../logger', './script'], function(require, exports, __Logger__, __script__) {
-    var Logger = __Logger__;
-    var script = __script__;
-    
+define(["require", "exports", '../logger', './script'], function(require, exports, Logger, script) {
     var Services = TypeScript.Services;
 
     var LanguageServiceHost = (function (_super) {
@@ -18,6 +15,7 @@ define(["require", "exports", '../logger', './script'], function(require, export
             this.files = files;
             this.settings = settings;
         }
+        // TypeScript.IReferenceResolverHost
         LanguageServiceHost.prototype.getScriptSnapshot = function (path) {
             var scriptInfo = this.files.get(path);
             if (scriptInfo) {
@@ -42,6 +40,7 @@ define(["require", "exports", '../logger', './script'], function(require, export
             return PathUtils.directory(path);
         };
 
+        //ILanguageServiceHost implementations
         LanguageServiceHost.prototype.getCompilationSettings = function () {
             return this.settings;
         };
@@ -71,7 +70,7 @@ define(["require", "exports", '../logger', './script'], function(require, export
             if (scriptInfo) {
                 return scriptInfo.byteOrderMark;
             }
-            return TypeScript.ByteOrderMark.None;
+            return 0 /* None */;
         };
 
         LanguageServiceHost.prototype.getDiagnosticsObject = function () {

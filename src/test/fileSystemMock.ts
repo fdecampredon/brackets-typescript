@@ -7,8 +7,6 @@ class FileSystem implements fs.IFileSystem {
         private files: { [path: string]: string } = {}
     ) {}
     
-   
-    
     getProjectFiles(forceRefresh?: boolean): JQueryPromise<string> {
         var deferred = $.Deferred();
         deferred.resolve(Object.keys(this.files));
@@ -17,7 +15,11 @@ class FileSystem implements fs.IFileSystem {
     
     readFile(path: string): JQueryPromise<string> {
         var deferred = $.Deferred();
-        deferred.resolve(this.files[path]);
+        if (this.files.hasOwnProperty(path)) {
+            deferred.resolve(this.files[path]);
+        } else {
+            deferred.reject('Not found');
+        }
         return deferred.promise();
     }
     

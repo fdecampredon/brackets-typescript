@@ -1,24 +1,20 @@
-define(["require", "exports", './mode', './fileSystem', './workingSet', './project', './codeHint', './errorReporter', './quickEdit', './commentsHelper', './utils/signal', './logger'], function(require, exports, __typeScriptModeFactory__, __fs__, __ws__, __project__, __codeHint__, __TypeScriptErrorReporter__, __qe__, __commentsHelper__, __signal__, __logger__) {
-    'use strict';
-
-    var typeScriptModeFactory = __typeScriptModeFactory__;
-    var fs = __fs__;
-    var ws = __ws__;
-    var project = __project__;
-    var codeHint = __codeHint__;
-    var TypeScriptErrorReporter = __TypeScriptErrorReporter__;
-    var qe = __qe__;
-    var commentsHelper = __commentsHelper__;
-    var signal = __signal__;
-    var logger = __logger__;
-
+'use strict';
+define(["require", "exports", './mode', './fileSystem', './workingSet', './project', './codeHint', './errorReporter', './quickEdit', './commentsHelper', './utils/signal', './logger'], function(require, exports, typeScriptModeFactory, fs, ws, project, codeHint, TypeScriptErrorReporter, qe, commentsHelper, signal, logger) {
+    // brackets dependency
     var LanguageManager = brackets.getModule('language/LanguageManager'), FileSystem = brackets.getModule('filesystem/FileSystem'), DocumentManager = brackets.getModule('document/DocumentManager'), ProjectManager = brackets.getModule('project/ProjectManager'), CodeHintManager = brackets.getModule('editor/CodeHintManager'), CodeInspection = brackets.getModule('language/CodeInspection'), EditorManager = brackets.getModule('editor/EditorManager');
 
+    /**
+    * The init function is the main entry point of the extention
+    * It is responsible for bootstraping, and injecting depency of the
+    * main components in the application.
+    */
     function init(conf) {
         logger.setLogLevel(conf.logLevel);
 
+        //Register the typescript mode
         CodeMirror.defineMode('typescript', typeScriptModeFactory);
 
+        //Register the language extension
         LanguageManager.defineLanguage('typescript', {
             name: 'TypeScript',
             mode: 'typescript',
@@ -27,20 +23,28 @@ define(["require", "exports", './mode', './fileSystem', './workingSet', './proje
             lineComment: ['//']
         });
 
+        //Create warpers
         var fileSystem = new fs.FileSystem(FileSystem, ProjectManager), workingSet = new ws.WorkingSet(DocumentManager);
 
+        // project manager
         var projectManager = new project.TypeScriptProjectManager(fileSystem, workingSet);
+
+        //projectManager.registerService(errors.ErrorServiceFactory);
         projectManager.init();
 
+        // code hint
         var hintService = new codeHint.HintService(projectManager), codeHintProvider = new codeHint.TypeScriptCodeHintProvider(hintService);
         CodeHintManager.registerHintProvider(codeHintProvider, ['typescript'], 0);
 
-        var errorReporter = new TypeScriptErrorReporter(projectManager, CodeInspection.Type);
-        CodeInspection.register('typescript', errorReporter);
+        //error provider
+        var tsErrorReporter = new TypeScriptErrorReporter(projectManager, CodeInspection.Type);
+        CodeInspection.register('typescript', tsErrorReporter);
 
+        //quickEdit
         var quickEditProvider = new qe.TypeScriptQuickEditProvider(projectManager);
         EditorManager.registerInlineEditProvider(quickEditProvider.typeScriptInlineEditorProvider);
 
+        //comments helper
         commentsHelper.init(new signal.DomSignalWrapper($("#editor-holder")[0], "keydown", true));
     }
 

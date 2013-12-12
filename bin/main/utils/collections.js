@@ -71,6 +71,20 @@ define(["require", "exports"], function(require, exports) {
             configurable: true
         });
 
+        Object.defineProperty(StringMap.prototype, "entries", {
+            get: function () {
+                var _this = this;
+                return Object.keys(this.map).map(function (key) {
+                    return {
+                        key: key,
+                        value: _this.map[key]
+                    };
+                });
+            },
+            enumerable: true,
+            configurable: true
+        });
+
         StringMap.prototype.clone = function () {
             var _this = this;
             var map = new StringMap();

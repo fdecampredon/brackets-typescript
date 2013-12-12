@@ -60,6 +60,15 @@ export class StringMap<T> {
         return Object.keys(this.map).map(key => this.map[key]);
     }
     
+    get entries(): { key: string; value: T }[] {
+        return Object.keys(this.map).map(key => { 
+            return { 
+                key: key, 
+                value: this.map[key] 
+            } 
+        });
+    }
+    
     clone(): StringMap<T> {
         var map = new StringMap<T>();
         this.keys.forEach(key => {

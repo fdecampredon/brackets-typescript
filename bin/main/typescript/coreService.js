@@ -1,5 +1,4 @@
-define(["require", "exports", '../logger'], function(require, exports, __Logger__) {
-    var Logger = __Logger__;
+define(["require", "exports", '../logger'], function(require, exports, Logger) {
     var TypeScriptServicesFactory = TypeScript.Services.TypeScriptServicesFactory;
 
     var coreService = new TypeScriptServicesFactory().createCoreServices({

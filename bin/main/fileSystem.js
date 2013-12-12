@@ -1,32 +1,84 @@
-define(["require", "exports", './utils/signal', './utils/collections'], function(require, exports, __signal__, __collections__) {
-    'use strict';
+'use strict';
+define(["require", "exports", './utils/signal', './utils/collections'], function(require, exports, signal, collections) {
+    
 
-    var signal = __signal__;
-    var collections = __collections__;
-
+    //--------------------------------------------------------------------------
+    //
+    //  Change record
+    //
+    //--------------------------------------------------------------------------
+    /**
+    * enum representing the kind change possible in the fileSysem
+    */
     (function (FileChangeKind) {
+        /**
+        * a file has been added
+        */
         FileChangeKind[FileChangeKind["ADD"] = 0] = "ADD";
 
+        /**
+        * a file has been updated
+        */
         FileChangeKind[FileChangeKind["UPDATE"] = 1] = "UPDATE";
 
+        /**
+        * a file has been deleted
+        */
         FileChangeKind[FileChangeKind["DELETE"] = 2] = "DELETE";
 
+        /**
+        * the project files has been reset
+        */
         FileChangeKind[FileChangeKind["RESET"] = 3] = "RESET";
     })(exports.FileChangeKind || (exports.FileChangeKind = {}));
     var FileChangeKind = exports.FileChangeKind;
 
+    
+
+    
+
+    
+
+    /**
+    * IFileSystem implementations
+    */
     var FileSystem = (function () {
+        //-------------------------------
+        //  constructor
+        //-------------------------------
         function FileSystem(nativeFileSystem, projectManager) {
             var _this = this;
             this.nativeFileSystem = nativeFileSystem;
             this.projectManager = projectManager;
+            //-------------------------------
+            //  Variables
+            //-------------------------------
+            /**
+            * map path to native files
+            */
             this.filesContent = new collections.StringMap();
+            /**
+            * cache of the paths list
+            */
             this.filesPath = [];
+            /**
+            * boolean containing the initialization state of the wrapper
+            */
             this.initialized = false;
+            /**
+            * a stack containing all the call that have been performed before initiliazation
+            */
             this.initializationStack = [];
             this._projectFilesChanged = new signal.Signal();
+            //-------------------------------
+            //  Events handler
+            //-------------------------------
+            /**
+            * handle project workspaces changes
+            */
             this.changesHandler = function (event, file) {
                 if (!file) {
+                    // a refresh event
                     var oldPathsSet = new collections.StringSet(), oldFilesContent = _this.filesContent.clone(), oldPaths = _this.filesPath.map(function (path) {
                         oldPathsSet.add(path);
                         return path;
@@ -66,23 +118,29 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
                             }
                         });
 
-                        ($.when.apply($, promises)).then(function () {
-                            var changes = fileDeleted.map(function (path) {
-                                return {
-                                    kind: FileChangeKind.DELETE,
+                        $.when.apply($, promises).then(function () {
+                            var changes = [];
+
+                            fileDeleted.forEach(function (path) {
+                                changes.push({
+                                    kind: 2 /* DELETE */,
                                     path: path
-                                };
-                            }).concat(fileAdded.map(function (path) {
-                                return {
-                                    kind: FileChangeKind.ADD,
+                                });
+                            });
+
+                            fileAdded.forEach(function (path) {
+                                changes.push({
+                                    kind: 0 /* ADD */,
                                     path: path
-                                };
-                            })).concat(fileUpdated.map(function (path) {
-                                return {
-                                    kind: FileChangeKind.UPDATE,
+                                });
+                            });
+
+                            fileUpdated.forEach(function (path) {
+                                changes.push({
+                                    kind: 1 /* UPDATE */,
                                     path: path
-                                };
-                            }));
+                                });
+                            });
 
                             if (changes.length > 0) {
                                 _this.projectFilesChanged.dispatch(changes);
@@ -94,16 +152,16 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
                         _this.reset();
                     });
                 } else if (file.isFile) {
+                    //file have been updated simply dispatch an update event and update the cache if necessary
                     var dispatchUpdate = function () {
-                        _this.projectFilesChanged.dispatch([
-                            {
-                                kind: FileChangeKind.UPDATE,
+                        _this.projectFilesChanged.dispatch([{
+                                kind: 1 /* UPDATE */,
                                 path: file.fullPath
-                            }
-                        ]);
+                            }]);
                     };
 
                     if (_this.filesContent.has(file.fullPath)) {
+                        // if the file content has been cached update the cache
                         _this.filesContent.delete(file.fullPath);
                         _this.readFile(file.fullPath).then(function (content) {
                             _this.filesContent.set(file.fullPath, content);
@@ -112,14 +170,17 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
                         dispatchUpdate();
                     }
                 } else if (file.isDirectory) {
+                    // a directory content has been changed need to make diff between cache an directory
                     var directory = file, children;
 
                     directory.getContents(function (err, files) {
                         if (err) {
+                            // an err occured reset
                             _this.reset();
                         }
                         var oldFiles = {}, newFiles = {};
 
+                        //collect all the paths in the cache
                         _this.filesPath.forEach(function (path) {
                             var index = path.indexOf(directory.fullPath);
                             if (index !== -1) {
@@ -127,6 +188,7 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
                                 if (index2 === -1) {
                                     oldFiles[path] = [path];
                                 } else {
+                                    //in case of subdir regroup the files by subdir
                                     var dirPath = path.substring(0, index2 + 1);
                                     if (!oldFiles[dirPath]) {
                                         oldFiles[dirPath] = [path];
@@ -144,13 +206,14 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
                         var changes = [];
                         for (var path in oldFiles) {
                             if (!newFiles.hasOwnProperty(path) && oldFiles.hasOwnProperty(path)) {
+                                //for each files that has been deleted add a DELETE record
                                 oldFiles[path].forEach(function (path) {
                                     var index = _this.filesPath.indexOf(path);
                                     if (index !== -1) {
                                         _this.filesPath.splice(index, 1);
                                         _this.filesContent.delete(path);
                                         changes.push({
-                                            kind: FileChangeKind.DELETE,
+                                            kind: 2 /* DELETE */,
                                             path: path
                                         });
                                     }
@@ -161,20 +224,22 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
                         var promises = [];
                         for (var path in newFiles) {
                             if (newFiles.hasOwnProperty(path) && !oldFiles.hasOwnProperty(path)) {
+                                //if a file has been added just add a ADD record
                                 if (newFiles[path].isFile) {
                                     _this.filesPath.push(path);
                                     changes.push({
-                                        kind: FileChangeKind.ADD,
+                                        kind: 0 /* ADD */,
                                         path: path
                                     });
                                 } else {
                                     var newDir = newFiles[path];
 
+                                    //if a dir has been added collect each files in this directory then for each one add an 'ADD' record
                                     promises.push(_this.getDirectoryFiles(newDir).then(function (files) {
                                         files.forEach(function (file) {
                                             _this.filesPath.push(file.fullPath);
                                             changes.push({
-                                                kind: FileChangeKind.ADD,
+                                                kind: 0 /* ADD */,
                                                 path: file.fullPath
                                             });
                                         });
@@ -184,11 +249,12 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
                         }
                         ;
 
-                        ($.when.apply($, promises)).then(function () {
+                        $.when.apply($, promises).then(function () {
                             if (changes.length > 0) {
                                 _this.projectFilesChanged.dispatch(changes);
                             }
                         }, function () {
+                            //in case of error reset
                             _this.reset();
                         });
                     });
@@ -198,6 +264,12 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
             this.init();
         }
         Object.defineProperty(FileSystem.prototype, "projectFilesChanged", {
+            //-------------------------------
+            //  IFileSystem implementation
+            //-------------------------------
+            /**
+            * @see IFileSystem.projectFilesChanged
+            */
             get: function () {
                 return this._projectFilesChanged;
             },
@@ -205,6 +277,9 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
             configurable: true
         });
 
+        /**
+        * @see IFileSystem.getProjectFiles
+        */
         FileSystem.prototype.getProjectFiles = function () {
             var _this = this;
             var deferred = $.Deferred();
@@ -214,6 +289,9 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
             return deferred.promise();
         };
 
+        /**
+        * @see IFileSystem.readFile
+        */
         FileSystem.prototype.readFile = function (path) {
             var _this = this;
             var result = $.Deferred();
@@ -236,23 +314,33 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
             return result.promise();
         };
 
+        /**
+        * @see IFileSystem.reset
+        */
         FileSystem.prototype.reset = function () {
             this.initialized = false;
             this.filesContent.clear();
             this.filesPath.length = 0;
             this.init();
-            this._projectFilesChanged.dispatch([
-                {
-                    kind: FileChangeKind.RESET
-                }
-            ]);
+            this._projectFilesChanged.dispatch([{
+                    kind: 3 /* RESET */
+                }]);
         };
 
+        /**
+        * @see IFileSystem.dispose
+        */
         FileSystem.prototype.dispose = function () {
             this.nativeFileSystem.off('change', this.changesHandler);
             this._projectFilesChanged.clear();
         };
 
+        //-------------------------------
+        //  privates methods
+        //-------------------------------
+        /**
+        * initialize the wrapper
+        */
         FileSystem.prototype.init = function () {
             var _this = this;
             this.projectManager.getAllFiles().then(function (files) {
@@ -264,6 +352,9 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
             });
         };
 
+        /**
+        * execute an operation if initialized, add to initialization stack if not
+        */
         FileSystem.prototype.addToInitializatioStack = function (callback) {
             if (this.initialized) {
                 callback();
@@ -279,6 +370,9 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
             this.initializationStack.length = 0;
         };
 
+        /**
+        * retrieves all files contained in a directory (and in subdirectory)
+        */
         FileSystem.prototype.getDirectoryFiles = function (directory) {
             var deferred = $.Deferred(), files = [];
 
@@ -293,6 +387,10 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
             return deferred.promise();
         };
 
+        /**
+        * normalize text to be conform to codemirro
+        * @param text
+        */
         FileSystem.prototype.normalizeText = function (text) {
             return text.replace(/\r\n/g, "\n");
         };

@@ -1,14 +1,17 @@
-define(["require", "exports", './logger', './utils/immediate'], function(require, exports, __Logger__, __immediate__) {
-    'use strict';
-
-    
-    var Logger = __Logger__;
-    
-    var immediate = __immediate__;
+'use strict';
+define(["require", "exports", './logger', './utils/immediate'], function(require, exports, Logger, immediate) {
     var Services = TypeScript.Services;
-    var ScriptElementKind = Services.ScriptElementKind;
-    var ScriptElementKindModifier = Services.ScriptElementKindModifier;
+    var ScriptElementKind = TypeScript.Services.ScriptElementKind;
+    var ScriptElementKindModifier = TypeScript.Services.ScriptElementKindModifier;
 
+    //--------------------------------------------------------------------------
+    //
+    //  HintService
+    //
+    //--------------------------------------------------------------------------
+    /**
+    * enum representing the different kind of hint
+    */
     (function (HintKind) {
         HintKind[HintKind["DEFAULT"] = 0] = "DEFAULT";
         HintKind[HintKind["CLASS"] = 1] = "CLASS";
@@ -22,10 +25,23 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
     })(exports.HintKind || (exports.HintKind = {}));
     var HintKind = exports.HintKind;
 
+    
+
+    /**
+    * Service returning hint for a given file
+    */
     var HintService = (function () {
         function HintService(typescriptProjectManager) {
             this.typescriptProjectManager = typescriptProjectManager;
         }
+        /**
+        *
+        * Return a list of hint for a given file and position
+        *
+        * @param path path of the file
+        * @param position position in the file
+        * @param currentToken if given filter the hint to match this token
+        */
         HintService.prototype.getHintsAtPositon = function (path, position, currentToken) {
             var project = this.typescriptProjectManager.getProjectForFile(path);
 
@@ -63,10 +79,11 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
             });
 
             var hints = entries.map(function (entry) {
-                var entryInfo = languageService.getCompletionEntryDetails(currentToken, index, entry.name), hint = {
+                var entryInfo = languageService.getCompletionEntryDetails(path, index, entry.name), hint = {
                     name: entry.name,
-                    kind: HintKind.DEFAULT,
-                    type: entryInfo ? entryInfo.type : ''
+                    kind: 0 /* DEFAULT */,
+                    type: entryInfo && entryInfo.type,
+                    doc: entryInfo && entryInfo.docComment
                 };
 
                 switch (entry.kind) {
@@ -75,33 +92,33 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
                     case ScriptElementKind.scriptElement:
                         break;
                     case ScriptElementKind.keyword:
-                        hint.kind = HintKind.KEYWORD;
+                        hint.kind = 8 /* KEYWORD */;
                         break;
 
                     case ScriptElementKind.classElement:
-                        hint.kind = HintKind.CLASS;
+                        hint.kind = 1 /* CLASS */;
                         break;
                     case ScriptElementKind.interfaceElement:
-                        hint.kind = HintKind.INTERFACE;
+                        hint.kind = 2 /* INTERFACE */;
                         break;
                     case ScriptElementKind.enumElement:
-                        hint.kind = HintKind.ENUM;
+                        hint.kind = 3 /* ENUM */;
                         break;
                     case ScriptElementKind.moduleElement:
-                        hint.kind = HintKind.MODULE;
+                        hint.kind = 4 /* MODULE */;
                         break;
 
                     case ScriptElementKind.memberVariableElement:
                     case ScriptElementKind.variableElement:
                     case ScriptElementKind.localVariableElement:
                     case ScriptElementKind.parameterElement:
-                        hint.kind = HintKind.VARIABLE;
+                        hint.kind = 5 /* VARIABLE */;
                         break;
 
                     case ScriptElementKind.memberFunctionElement:
                     case ScriptElementKind.functionElement:
                     case ScriptElementKind.localFunctionElement:
-                        hint.kind = HintKind.FUNCTION;
+                        hint.kind = 7 /* FUNCTION */;
                         break;
 
                     case ScriptElementKind.typeParameterElement:
@@ -124,34 +141,47 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
     })();
     exports.HintService = HintService;
 
+    
+
     var logger = new Logger(), classifier = new Services.TypeScriptServicesFactory().createClassifier(logger), _ = brackets.getModule('thirdparty/lodash');
 
     var HINT_TEMPLATE = '<span class="cm-s-default">\
                             <span style="display: inline-block" class="{{class_type}}">\
-                                <span style="font-weight: bold">{{match}}</span>\
-                                <span>{{suffix}}</span>\
+                                <span style="font-weight: bold">{{match}}</span>{{suffix}}\
                             <span>\
                     </span>';
 
+    
+
+    /**
+    * brackets hint provider for typescript
+    */
     var TypeScriptCodeHintProvider = (function () {
         function TypeScriptCodeHintProvider(hintService) {
             this.hintService = hintService;
         }
+        /**
+        * return true if hints can be calculated for te current editor
+        *
+        * @param editor the editor
+        * @param implicitChar determine whether the hinting request is explicit or implicit,
+        * null if implicit, contains the last character inserted
+        */
         TypeScriptCodeHintProvider.prototype.hasHints = function (editor, implicitChar) {
             if (implicitChar) {
                 var token = this.getCurrentToken(editor);
                 if (token) {
                     var TokenClass = Services.TokenClass;
                     switch (token.classification) {
-                        case TokenClass.NumberLiteral:
-                        case TokenClass.StringLiteral:
-                        case TokenClass.RegExpLiteral:
-                        case TokenClass.Operator:
-                        case TokenClass.Comment:
-                        case TokenClass.Whitespace:
+                        case 6 /* NumberLiteral */:
+                        case 7 /* StringLiteral */:
+                        case 8 /* RegExpLiteral */:
+                        case 2 /* Operator */:
+                        case 3 /* Comment */:
+                        case 4 /* Whitespace */:
                             return false;
                             break;
-                        case TokenClass.Punctuation:
+                        case 0 /* Punctuation */:
                             if (token.string !== '.') {
                                 return false;
                             }
@@ -170,10 +200,15 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
             return true;
         };
 
+        /**
+        * return list of hints
+        * @param implicitChar
+        */
         TypeScriptCodeHintProvider.prototype.getHints = function (implicitChar) {
             var _this = this;
             var deferred = $.Deferred();
 
+            //async so we are sure that the languageServiceHost has been updated
             immediate.setImmediate(function () {
                 if (deferred.state() === 'rejected') {
                     return;
@@ -183,14 +218,14 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
                 if (_this.lastUsedToken) {
                     var TokenClass = Services.TokenClass;
                     switch (_this.lastUsedToken.classification) {
-                        case TokenClass.NumberLiteral:
-                        case TokenClass.StringLiteral:
-                        case TokenClass.RegExpLiteral:
-                        case TokenClass.Operator:
-                        case TokenClass.Comment:
-                        case TokenClass.Whitespace:
-                        case TokenClass.Punctuation:
-                            if (implicitChar && _this.lastUsedToken.string !== '.' || _this.lastUsedToken.classification !== TokenClass.Punctuation) {
+                        case 6 /* NumberLiteral */:
+                        case 7 /* StringLiteral */:
+                        case 8 /* RegExpLiteral */:
+                        case 2 /* Operator */:
+                        case 3 /* Comment */:
+                        case 4 /* Whitespace */:
+                        case 0 /* Punctuation */:
+                            if (implicitChar && _this.lastUsedToken.string !== '.' || _this.lastUsedToken.classification !== 0 /* Punctuation */) {
                                 deferred.resolve({ hints: [] });
                             }
                             _this.lastUsedToken = null;
@@ -215,6 +250,10 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
             return deferred;
         };
 
+        /**
+        * insert hin if chosen
+        * @param $hintObj
+        */
         TypeScriptCodeHintProvider.prototype.insertHint = function ($hintObj) {
             var hint = $hintObj.data('hint'), position = this.editor.getCursorPos(), startPos = !this.lastUsedToken ? position : {
                 line: position.line,
@@ -227,10 +266,14 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
             this.editor.document.replaceRange(hint.name, startPos, endPos);
         };
 
+        /**
+        * convert a hint to jquery object for display
+        * @param hint
+        */
         TypeScriptCodeHintProvider.prototype.hintToJQuery = function (hint) {
             var text = hint.name, match, suffix, class_type = '';
             switch (hint.kind) {
-                case HintKind.KEYWORD:
+                case 8 /* KEYWORD */:
                     switch (hint.name) {
                         case 'static':
                         case 'public':
@@ -251,8 +294,8 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
                             break;
                     }
                     break;
-                case HintKind.METHOD:
-                case HintKind.FUNCTION:
+                case 6 /* METHOD */:
+                case 7 /* FUNCTION */:
                     text += hint.type ? hint.type : '';
                     break;
                 default:
@@ -260,9 +303,10 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
                     break;
             }
 
+            // highlight the matched portion of each hint
             if (this.lastUsedToken) {
-                match = _.escape(text.slice(0, this.lastUsedToken.string.length));
-                suffix = _.escape(text.slice(this.lastUsedToken.string.length));
+                match = text.slice(0, this.lastUsedToken.string.length);
+                suffix = text.slice(this.lastUsedToken.string.length);
             } else {
                 match = '';
                 suffix = text;
@@ -278,8 +322,12 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
             return result;
         };
 
+        /**
+        * retrive the current token from editor
+        * @param editor
+        */
         TypeScriptCodeHintProvider.prototype.getCurrentToken = function (editor) {
-            var position = editor.getCursorPos(), lineStr = editor.document.getLine(position.line), classificationResult = classifier.getClassificationsForLine(lineStr, Services.EndOfLineState.Start), currentPos = 0, linePosition = position.ch - 1;
+            var position = editor.getCursorPos(), lineStr = editor.document.getLine(position.line), classificationResult = classifier.getClassificationsForLine(lineStr, 0 /* Start */), currentPos = 0, linePosition = position.ch - 1;
 
             for (var i = 0, l = classificationResult.entries.length; i < l; i++) {
                 var entry = classificationResult.entries[i];

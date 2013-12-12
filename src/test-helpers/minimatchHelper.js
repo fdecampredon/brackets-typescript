@@ -2,11 +2,11 @@
 /*global require */
 
 (function () {
-    "use strict";
+    'use strict';
     require(
         [
-            "third_party/minimatch",
-            "bin/main/typeScriptUtils"
+            'third_party/minimatch',
+            'bin/main/typeScriptUtils'
         ],
         function (minimatch, typeScriptUtils) {
             typeScriptUtils.DEFAULT_LIB_LOCATION = require.toUrl('../../third_party/lib.d.ts');

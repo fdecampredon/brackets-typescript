@@ -16,13 +16,16 @@ describe('TypeScriptProject', function () {
         workingSetMock = new WorkingSetMock();
     })
     
-    function createProject(baseDir: string, config: project.TypeScriptProjectConfig) {
+    function createProject(baseDir: string, config: project.TypeScriptProjectConfig, init = true) {
         typeScriptProject = new project.TypeScriptProject(
             baseDir, 
             $.extend({}, utils.typeScriptProjectConfigDefault, config),
             fileSystemMock,
             workingSetMock
         );
+        if (init) {
+            typeScriptProject.init();
+        }
     };
     
      
@@ -447,6 +450,67 @@ describe('TypeScriptProject', function () {
     });
     
     
+    describe('ProjectService service', function () {
+        //todo more test here
+        it('should call run on initialization', function () {
+            createProject('/', {
+                sources : [
+                    'src/**/*ts'
+                ]
+            },false);
+            var service: { run: jasmine.Spy } = jasmine.createSpyObj('service', ['run']);
+            
+            typeScriptProject.init([<project.ProjectService><any>service]);
+            
+            expect(service.run).toHaveBeenCalledWith(true, null)
+        });
+        
+        it('should call run with appropriete deleta when projects files change', function() {
+            fileSystemMock.setFiles({
+                '/src/file1.ts': '',
+                '/src/file2.ts': '',
+                '/src/file3.ts': '',
+                '/src/file4.ts': '',
+                '/src/file5.ts': '',
+            });
+            
+            workingSetMock.files = [
+                '/src/file1.ts',
+                '/src/file2.ts'
+            ]
+           
+            createProject('/', {
+                sources : [
+                    'src/**/*ts'
+                ]
+            },false);
+            
+            
+            var service: { run: jasmine.Spy } = jasmine.createSpyObj('service', ['run']);
+            typeScriptProject.init([<project.ProjectService><any>service]);
+            
+            runs(function () {
+                fileSystemMock.removeFile('/src/file2.ts');
+                fileSystemMock.removeFile('/src/file3.ts');
+                fileSystemMock.addFile('/src/file6.ts','hello');
+                fileSystemMock.updateFile('/src/file4.ts','world');
+            });
+            
+            waits(2);
+            runs(function () {
+                expect(service.run.callCount).toBe(2);
+                expect(service.run.argsForCall[1][0]).toBe(false);
+                var delta = service.run.argsForCall[1][1]
+                expect(delta.fileDeleted).toEqual(['/src/file2.ts', '/src/file3.ts']);
+                expect(delta.fileAdded).toEqual(['/src/file6.ts']);
+                expect(delta.fileUpdated).toEqual(['/src/file4.ts']);
+            })
+                    
+        })
+    });
+    
+    
+    
     describe('language service', function () {
         //todo more test here
         it('should create a compilations settings', function () {
@@ -467,6 +531,68 @@ describe('TypeScriptProject', function () {
             expect(typeScriptProject.getLanguageService()).toNotBe(undefined);
         });
     });
+    
+    
+//    describe('getFilesDependantOfFile', function () {
+//        beforeEach(function () {
+//             fileSystemMock.setFiles({
+//                '/importedFile.ts': '',
+//                '/referencedFile.ts': 'class A {}',
+//                '/src/file1.ts': 'import test = require("../importedFile"); ',
+//                '/src/file2.ts': '///<reference path="../referencedFile.ts"/>\nvar a = new A();',
+//                '/src/file3.ts': '///<reference path="../referencedFile.ts"/>',
+//                '/src/file4.ts': 'class B {}',
+//                '/src/file5.ts': 'var b = new B();',
+//            });
+//            
+//            workingSetMock.files = [
+//                '/src/file1.ts',
+//                '/src/file2.ts'
+//            ]
+//           
+//            createProject('/', {
+//                sources : [
+//                    'src/**/*ts'
+//                ],
+//                module: 'amd'
+//            });
+//        })
+//        
+//        //todo more test here
+//        it('should retrieve all file that imports the given path', function () {
+//            expect(typeScriptProject.getFilesDependantOfFile('/importedFile.ts')).toEqual([ '/src/file1.ts']);
+//        });
+//        
+//        it('should retrive file that reference the  given path only if symbol of the file are used', function ( ) {
+//            expect(typeScriptProject.getFilesDependantOfFile('/referencedFile.ts')).toEqual(['/src/file2.ts']);
+//        });
+//        
+//        it('should retrive file that mach the \'source\' par of the config that use symbol of the given file', function ( ) {
+//            expect(typeScriptProject.getFilesDependantOfFile('/src/file4.ts')).toEqual(['/src/file5.ts']);
+//        });
+//        
+//        it('should retrive file part of the source that use symbol of the given file', function ( ) {
+//         
+//            expect(typeScriptProject.getFilesDependantOfFile('/src/file4.ts')).toEqual(['/src/file5.ts']);
+//        });
+//        
+//        it('should retrive dependencies of file that have been added', function ( ) {
+//            fileSystemMock.addFile('/src/file6.ts', 'import test = require("../importedFile");var b = new B();')
+//            expect(typeScriptProject.getFilesDependantOfFile('/importedFile.ts')).toEqual([ '/src/file1.ts', '/src/file6.ts']);
+//            expect(typeScriptProject.getFilesDependantOfFile('/src/file4.ts')).toEqual([ '/src/file5.ts', '/src/file6.ts']);
+//        });
+//        
+//        it('should remove dependencies of file that have been removed', function ( ) {
+//            fileSystemMock.removeFile('/src/file5.ts')
+//            expect(typeScriptProject.getFilesDependantOfFile('/src/file4.ts')).toEqual(null);
+//        });
+//        
+//        
+//        it('should update dependencies of file that have been updated', function ( ) {
+//            fileSystemMock.removeFile('/src/file5.ts')
+//            expect(typeScriptProject.getFilesDependantOfFile('/src/file4.ts')).toEqual(null);
+//        });
+//    });
     
     
     describe('config update', function () {
@@ -602,7 +728,8 @@ describe('TypeScriptProject', function () {
                     line: 0,
                 },
                 text: 'console.log(\'hello world\')',
-                removed: ''
+                removed: '',
+                documentText : 'console.log(\'hello world\')'
             }]);
             expect(typeScriptProject.getScripts().get('/src/file1.ts').content).toBe('console.log(\'hello world\')');
             
@@ -617,7 +744,9 @@ describe('TypeScriptProject', function () {
                     line: 0,
                 },
                 text: 'warn',
-                removed: ''
+                removed: '',
+                documentText : 'console.warn(\'hello world\')'
+                
             }]);
             expect(typeScriptProject.getScripts().get('/src/file1.ts').content).toBe('console.warn(\'hello world\')');
         });
@@ -635,7 +764,8 @@ describe('TypeScriptProject', function () {
                     line: 0,
                 },
                 text: 'console.log(\'hello world\')',
-                removed: ''
+                removed: '',
+                documentText : 'console.warn(\'hello world\')'
             }]);
             workingSetMock.removeFiles(['/src/file1.ts']);
             expect(typeScriptProject.getScripts().get('/src/file1.ts').content).toBe('');

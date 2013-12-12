@@ -1,6 +1,5 @@
+'use strict';
 define(["require", "exports"], function(require, exports) {
-    'use strict';
-
     var immediateImpl;
 
     if (typeof window.setImmediate !== 'undefined') {
@@ -28,7 +27,7 @@ define(["require", "exports"], function(require, exports) {
                 for (var _i = 0; _i < (arguments.length - 1); _i++) {
                     args[_i] = arguments[_i + 1];
                 }
-                var uidHelper = uidHelper++;
+                uidHelper++;
                 setImmediateQueue.push({
                     handle: uidHelper,
                     callBack: typeof expression === 'string' ? new Function(expression) : expression,

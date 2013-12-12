@@ -1,12 +1,19 @@
 import project = require('./project');
 
 
-// the location of the default library
+/** 
+ * the location of the default library
+ */
 export var DEFAULT_LIB_LOCATION: string;
 
-// minimatch instance
+/**
+ * minimatch instance
+ */ 
 export var minimatch: MiniMatchStatic; 
 
+/**
+ * @private
+ */
 var PROJECT_CONFIG_FILE_NAME = ".brackets-typescript";
 
 /**
@@ -15,6 +22,15 @@ var PROJECT_CONFIG_FILE_NAME = ".brackets-typescript";
  */
 export function isTypeScriptProjectConfigFile(path: string): boolean {
     return path && path.substr(path.lastIndexOf('/') + 1, path.length) === PROJECT_CONFIG_FILE_NAME;
+}
+
+
+/**
+ * helper function that return true if the given path is a typescript declaration file
+ * @param path
+ */
+export function isDeclarationFile(path: string): boolean {
+    return /.*\.d\.ts$/.test(path);
 }
 
 

@@ -51,6 +51,8 @@
         if (startVersion === endVersion) {
             // No edits!
             return TypeScript.TextChangeRange.unchanged;
+        } else if (this.editRanges.length === 0) {
+            return null;
         }
 
         var initialEditRangeIndex = this.editRanges.length - (this.version - startVersion);

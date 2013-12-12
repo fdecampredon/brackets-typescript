@@ -37,7 +37,7 @@ if (typeof window.setImmediate !== 'undefined') {
     
     immediateImpl = {
         setImmediate(expression: any, ...args: any[]): number {
-            var uidHelper = uidHelper++;
+            uidHelper++;
             setImmediateQueue.push({
                 handle: uidHelper,
                 callBack : typeof expression === 'string'? new Function(expression): expression,

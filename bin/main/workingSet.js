@@ -1,27 +1,66 @@
-define(["require", "exports", './utils/signal', './utils/collections'], function(require, exports, __signal__, __collections__) {
-    var signal = __signal__;
-    var collections = __collections__;
+define(["require", "exports", './utils/signal', './utils/collections'], function(require, exports, signal, collections) {
+    
 
+    
+
+    /**
+    * enum listing the change kind that occur in a working set
+    */
     (function (WorkingSetChangeKind) {
         WorkingSetChangeKind[WorkingSetChangeKind["ADD"] = 0] = "ADD";
         WorkingSetChangeKind[WorkingSetChangeKind["REMOVE"] = 1] = "REMOVE";
     })(exports.WorkingSetChangeKind || (exports.WorkingSetChangeKind = {}));
     var WorkingSetChangeKind = exports.WorkingSetChangeKind;
 
+    
+
+    
+
+    
+
+    
+
+    /**
+    * implementation of the IWorkingSet
+    */
     var WorkingSet = (function () {
+        //-------------------------------
+        //  constructor
+        //-------------------------------
         function WorkingSet(documentManager) {
             var _this = this;
             this.documentManager = documentManager;
+            //-------------------------------
+            //  Variables
+            //-------------------------------
+            /**
+            * internal signal for workingSetChanged
+            */
             this._workingSetChanged = new signal.Signal();
+            /**
+            * internal signal for documentEdited
+            */
             this._documentEdited = new signal.Signal();
+            /**
+            * map file to document for event handling
+            */
             this.filesMap = new collections.StringMap();
+            //-------------------------------
+            //  Events Handler
+            //-------------------------------
+            /**
+            * handle 'workingSetAdd' event
+            */
             this.workingSetAddHandler = function (event, file) {
                 _this.addDocument(file.fullPath);
                 _this.workingSetChanged.dispatch({
-                    kind: WorkingSetChangeKind.ADD,
+                    kind: 0 /* ADD */,
                     paths: [file.fullPath]
                 });
             };
+            /**
+            * handle 'workingSetAddList' event
+            */
             this.workingSetAddListHandler = function (event) {
                 var files = [];
                 for (var _i = 0; _i < (arguments.length - 1); _i++) {
@@ -33,18 +72,24 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
                 });
                 if (paths.length > 0) {
                     _this.workingSetChanged.dispatch({
-                        kind: WorkingSetChangeKind.ADD,
+                        kind: 0 /* ADD */,
                         paths: paths
                     });
                 }
             };
+            /**
+            * handle 'workingSetRemove' event
+            */
             this.workingSetRemoveHandler = function (event, file) {
                 _this.removeDocument(file.fullPath);
                 _this.workingSetChanged.dispatch({
-                    kind: WorkingSetChangeKind.REMOVE,
+                    kind: 1 /* REMOVE */,
                     paths: [file.fullPath]
                 });
             };
+            /**
+            * handle 'workingSetRemoveList' event
+            */
             this.workingSetRemoveListHandler = function (event) {
                 var files = [];
                 for (var _i = 0; _i < (arguments.length - 1); _i++) {
@@ -56,11 +101,14 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
                 });
                 if (paths.length > 0) {
                     _this.workingSetChanged.dispatch({
-                        kind: WorkingSetChangeKind.REMOVE,
+                        kind: 1 /* REMOVE */,
                         paths: paths
                     });
                 }
             };
+            /**
+            * handle 'change' on document
+            */
             this.documentChangesHandler = function (event, document, change) {
                 var changesDescriptor = [];
                 while (change) {
@@ -86,6 +134,12 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
             }));
         }
         Object.defineProperty(WorkingSet.prototype, "files", {
+            //-------------------------------
+            //  IWorkingSet implementations
+            //-------------------------------
+            /**
+            * @see IWorkingSet#files
+            */
             get: function () {
                 return this.filesMap.keys;
             },
@@ -94,6 +148,9 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
         });
 
         Object.defineProperty(WorkingSet.prototype, "workingSetChanged", {
+            /**
+            * @see IWorkingSet#workingSetChanged
+            */
             get: function () {
                 return this._workingSetChanged;
             },
@@ -102,6 +159,9 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
         });
 
         Object.defineProperty(WorkingSet.prototype, "documentEdited", {
+            /**
+            * @see IWorkingSet#documentEdited
+            */
             get: function () {
                 return this._documentEdited;
             },
@@ -109,6 +169,9 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
             configurable: true
         });
 
+        /**
+        * @see IWorkingSet#dispose
+        */
         WorkingSet.prototype.dispose = function () {
             $(this.documentManager).off('workingSetAdd', this.workingSetAddHandler);
             $(this.documentManager).off('workingSetAddList', this.workingSetAddListHandler);
@@ -117,6 +180,12 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
             this.setFiles(null);
         };
 
+        //-------------------------------
+        //  Privates methods
+        //-------------------------------
+        /**
+        * set working set files
+        */
         WorkingSet.prototype.setFiles = function (files) {
             var _this = this;
             this.files.forEach(function (path) {
@@ -129,6 +198,10 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
             }
         };
 
+        /**
+        * add a document to the working set, and add event listener on the 'change' of this workingset
+        * @param path
+        */
         WorkingSet.prototype.addDocument = function (path) {
             var _this = this;
             this.documentManager.getDocumentForPath(path).then(function (document) {
@@ -136,6 +209,7 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
                     throw new Error('??? should not happen');
                 }
                 if (_this.filesMap.has(path)) {
+                    //should not happen but just in case ...
                     _this.removeDocument(path);
                 }
                 _this.filesMap.set(document.file.fullPath, document);
@@ -145,6 +219,10 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
             });
         };
 
+        /**
+        * remove a document from working set, and add event listener on the 'change' of this workingset
+        * @param path
+        */
         WorkingSet.prototype.removeDocument = function (path) {
             var document = this.filesMap.get(path);
             if (!document) {
