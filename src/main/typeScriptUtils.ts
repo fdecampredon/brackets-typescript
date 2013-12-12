@@ -46,7 +46,7 @@ export function validateTypeScriptProjectConfig(config : project.TypeScriptProje
     if (!config.sources || !Array.isArray(config.sources) || !config.sources.every(sourceItem => typeof sourceItem === 'string')) {
         return false;
     }
-    if ( !(config.outDir && typeof config.outDir === 'string') && !(config.outFile && typeof config.outFile === 'string')) {
+    if (config.compileOnSave && !(config.outDir && typeof config.outDir === 'string') && !(config.outFile && typeof config.outFile === 'string')) {
         return false
     }
     return true;

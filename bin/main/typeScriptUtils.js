@@ -45,7 +45,7 @@ define(["require", "exports"], function(require, exports) {
         })) {
             return false;
         }
-        if (!(config.outDir && typeof config.outDir === 'string') && !(config.outFile && typeof config.outFile === 'string')) {
+        if (config.compileOnSave && !(config.outDir && typeof config.outDir === 'string') && !(config.outFile && typeof config.outFile === 'string')) {
             return false;
         }
         return true;

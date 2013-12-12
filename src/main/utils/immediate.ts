@@ -1,6 +1,17 @@
 'use strict';
 
 
+
+//--------------------------------------------------------------------------
+//
+//  Immediate
+//
+//--------------------------------------------------------------------------
+
+/**
+ * a setImmediate shim
+ */
+
 var immediateImpl: {
     setImmediate(expression: any, ...args: any[]): number;
     clearImmediate(handle: number): void;
@@ -40,7 +51,7 @@ if (typeof window.setImmediate !== 'undefined') {
             uidHelper++;
             setImmediateQueue.push({
                 handle: uidHelper,
-                callBack : typeof expression === 'string'? new Function(expression): expression,
+                callBack : typeof expression === 'string' ? new Function(expression): expression,
                 parameters: args
             });
             window.postMessage(sentinel, '*');

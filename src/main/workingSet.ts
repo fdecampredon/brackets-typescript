@@ -135,7 +135,6 @@ export interface BracketesDocumentManager {
  */
 export interface BracketsDocument {
     file: { fullPath: string };
-    getText(): string;
 }
 
 /**

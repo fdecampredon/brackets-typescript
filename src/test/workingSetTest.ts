@@ -11,7 +11,7 @@ describe('WorkingSet', function (): void {
             },
             getDocument(path: string) {
                 if (!documents[path]) {
-                    documents[path] = { file: { fullPath: path }, getText() { return '' }};
+                    documents[path] = { file: { fullPath: path }};
                 }
                 return documents[path];
             },

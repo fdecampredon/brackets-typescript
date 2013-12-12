@@ -1,66 +1,162 @@
+//--------------------------------------------------------------------------
+//
+//  StringSet
+//
+//--------------------------------------------------------------------------
+
+/**
+ * Set that only accept string as value
+ */
 export class StringSet {
+    /**
+     * internal map, null prototype object
+     */
     private map: { [path: string]: boolean };
     
-    constructor() {
-        this.map = Object.create(null)
+    /**
+     * constructor
+     * @param iterable a array of string that will be added to the set
+     */
+    constructor(iterable?: string[]) {
+        this.map = Object.create(null);
+        if (iterable) { 
+            for (var i = 0, l= iterable.length; i < l;i ++) {
+                this.add(iterable[i]);
+            }
+        }
     }
     
+    /**
+     * add a value to the set
+     * @param value
+     */
     add(value: string): void {
         this.map[value] = true;
     }
     
+    /**
+     * remove a value from the set
+     * @param value
+     */
     remove(value: string): boolean {
         return delete this.map[value];
     }
     
+    /**
+     * return true if the set contains the given value
+     * @param value
+     */
     has(value: string): boolean {
         return !!this.map[value];
     }
  
-    get keys(): string[] {
+    /**
+     * return an array containing the values of the set
+     */
+    get values(): string[] {
         return Object.keys(this.map);
     }
 }
 
-export class StringMap<T> {
-    private map: { [path: string]: T };
-    private mascot: T
+
+//--------------------------------------------------------------------------
+//
+//  StringMap
+//
+//--------------------------------------------------------------------------
+
+export interface MapEntry<T> { key: string; value: T };
     
-    constructor() {
+
+/**
+ * Map that only accept string as key
+ */
+export class StringMap<T> {
+    /**
+     * internal map, null prototype object
+     */
+    private map: { [path: string]: T };
+    
+    /**
+     * an object that allow to differenciate undefined value from a key
+     * not present in the map;
+     */
+    private mascot: T;
+    
+    /**
+     * constructor
+     * @param iterable a array of MapEntry that will be added to the map
+     */
+    constructor(iterable?: MapEntry<T>[]) {
         this.map = Object.create(null);
         this.mascot = <T>{};
+        if (iterable) { 
+            for (var i = 0, l= iterable.length; i < l;i ++) {
+                var entry = iterable[i];
+                this.set(entry.key, entry.value);
+            }
+        }
     }
     
+    /**
+     * set a value in the map
+     * @param key the key
+     * @param value the value
+     */
     set(key: string, value: T): void {
         this.map[key] = (typeof value === 'undefined' ? this.mascot : value);
     }
     
+    /**
+     * retrive a value associated to the given key
+     * @param key
+     */
     get(key: string): T {
         var value = this.map[key];
         return value === this.mascot ? undefined : value;
     }
     
+    /**
+     * delete the entry corresponding to the given key
+     * @param key
+     */
     delete(key: string): boolean {
         return delete this.map[key];
     }
     
+    /**
+     * return true if the map contains the given key
+     * @param key
+     */
     has(key: string): boolean {
         return typeof this.map[key] !== 'undefined';
     }
-    
+   
+    /**
+     * clear the map
+     */
     clear(): void {
         this.map = Object.create(null);
     }
     
+    /**
+     * return an array containing the keys of the map
+     */
     get keys() {
         return Object.keys(this.map);
     }
     
+    /**
+     * return an array containing the values of the map
+     */
     get values() {
         return Object.keys(this.map).map(key => this.map[key]);
     }
     
-    get entries(): { key: string; value: T }[] {
+    /**
+     * return an array containing the entries of the map
+     */
+    get entries(): MapEntry<T>[] {
         return Object.keys(this.map).map(key => { 
             return { 
                 key: key, 
@@ -69,11 +165,10 @@ export class StringMap<T> {
         });
     }
     
+    /**
+     * return a clone of the map
+     */
     clone(): StringMap<T> {
-        var map = new StringMap<T>();
-        this.keys.forEach(key => {
-            map.set(key, this.get(key));
-        })
-        return map;
+        return new StringMap<T>(this.entries);
     }
 }

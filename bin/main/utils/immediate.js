@@ -1,5 +1,13 @@
 'use strict';
 define(["require", "exports"], function(require, exports) {
+    //--------------------------------------------------------------------------
+    //
+    //  Immediate
+    //
+    //--------------------------------------------------------------------------
+    /**
+    * a setImmediate shim
+    */
     var immediateImpl;
 
     if (typeof window.setImmediate !== 'undefined') {

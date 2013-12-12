@@ -13,7 +13,6 @@ import ScriptElementKindModifier =  Services.ScriptElementKindModifier;
 //  HintService
 //
 //--------------------------------------------------------------------------
-var Xx =2
 
 
 /**

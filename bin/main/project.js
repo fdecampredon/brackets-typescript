@@ -449,19 +449,6 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
             return null;
         };
 
-        /**
-        * retrive all files dependant of a given file
-        * @param path the path of the given file
-        */
-        TypeScriptProject.prototype.getFilesDependantOfFile = function (path) {
-            switch (this.getProjectFileKind(path)) {
-                case 0 /* NONE */:
-                    return null;
-                default:
-                    return this.references.has(path) ? this.references.get(path).keys : null;
-            }
-        };
-
         //-------------------------------
         //  private methods
         //-------------------------------
@@ -560,7 +547,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                 this.getReferencedOrImportedFiles(path).forEach(function (referencedPath) {
                     _this.removeReference(path, referencedPath);
                 });
-                if (this.references.has(path) && this.references.get(path).keys.length > 0) {
+                if (this.references.has(path) && this.references.get(path).values.length > 0) {
                     this.missingFiles.add(path);
                 }
                 this.projectScripts.delete(path);
@@ -657,7 +644,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                 this.removeFile(referencedPath);
             }
             fileRefs.remove(path);
-            if (fileRefs.keys.length === 0) {
+            if (fileRefs.values.length === 0) {
                 this.references.delete(referencedPath);
                 this.removeFile(referencedPath);
             }

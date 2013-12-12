@@ -20,49 +20,62 @@
 module.exports = function (grunt) {
     
     'use strict';
-    var excludedGruntDeps = ['grunt-template-jasmine-requirejs'];
+    var excludeGruntDeps = ['grunt-template-jasmine-requirejs'];
     require('matchdep').filterDev('grunt-*').forEach(function (dep) {
-        if (excludedGruntDeps.indexOf(dep) === -1) {
+        if (excludeGruntDeps.indexOf(dep) === -1) {
             grunt.loadNpmTasks(dep);
         }
     });
     
     grunt.initConfig({
+        source: ['src/declarations/*.d.ts', 'src/main/**/*.ts'],
+        testSource: ['src/declarations/*.d.ts', 'src/test-declarations/*.d.ts', 'src/test/**/*.ts'],
+        localBinFolder : 'built/local/',
+        testBinFolder: 'built/test/',
+        releaseBinFolder : 'bin/',
+        
         clean : {
-            folder : ['bin', 'test-bin']
+            local : '<%= localBinFolder %>',
+            test : '<%= testBinFolder %>',
+            release : '<%= releaseBinFolder %>'
         },
+        
         typescript: {
             main: {
-                src: ['src/declarations/*.d.ts', 'src/main/**/*.ts'],
-                dest: 'bin',
-               
+                src: '<%= source %>',
+                dest: '<%= localBinFolder %>',
+                base_path : 'src/main/',
                 options: {
                     base_path : 'src',
                     module : 'amd',
                     target: 'es5',
                     sourcemap: false,
                     comments : true,
-                    noImplicitAny: true
+                    noImplicitAny: true,
+                    ignoreTypeCheck: false
                 }
             },
+            
             test: {
-                src: ['src/declarations/*.d.ts', 'src/test-declarations/*.d.ts', 'src/test/**/*.ts'],
-                dest: 'bin',
+                src: '<%= testSource %>',
+                dest: '<%= testBinFolder %>',
                 
                 options: {
                     base_path : 'src',
                     module: 'amd',
                     target: 'es5',
                     sourcemap: false,
-                    noImplicitAny: true
+                    noImplicitAny: true,
+                    ignoreTypeCheck: false
                 }
             }
 		},
+        
         jasmine: {
             test: {
                 src: 'undefined.js',
                 options: {
-                    specs: 'bin/test/**/*Test.js',
+                    specs: 'built/test/**/*Test.js',
                     vendor : [
                         'third_party/jquery.js',
                         'third_party/path-utils.js',
@@ -74,10 +87,21 @@ module.exports = function (grunt) {
                     outfile: 'SpecRunner.html'
                 }
             }
+        },
+        
+        copy: {
+            release: {
+                expand: true,
+                cwd: '<%= localBinFolder %>',
+                src: '**/*.js',
+                dest: '<%= releaseBinFolder %>'
+            }
         }
     });
      
-    grunt.registerTask('test', ['typescript:test', 'jasmine']);
-    grunt.registerTask('build', ['clean', 'typescript:main']);
-    grunt.registerTask('default', ['clean', 'test', 'build']);
+    grunt.registerTask('test', ['clean:test', 'typescript:test', 'jasmine']);
+    grunt.registerTask('build', ['clean:local', 'typescript:main']);
+    grunt.registerTask('release', ['test', 'build', 'clean:release', 'copy:release']);
+    
+    grunt.registerTask('default', ['test', 'build']);
 };

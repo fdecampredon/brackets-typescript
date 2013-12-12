@@ -2,22 +2,22 @@
 /*global define, $, brackets, window */
 
 define(function (require, exports, module) {
-    "use strict";
+    'use strict';
     require(
         [
-            "third_party/typescriptServices",
-            "third_party/minimatch",
-            "bin/main/typeScriptUtils",
-            "text!config.json"
+            'third_party/typescriptServices',
+            'third_party/minimatch',
+            'text!config.json'
         ],
-        function (typescript, minimatch, typeScriptUtils, configText) {
+        function (typescript, minimatch, configText) {
             var AppInit = brackets.getModule('utils/AppInit'),
                 config = JSON.parse(configText);
             
-            typeScriptUtils.DEFAULT_LIB_LOCATION = require.toUrl('third_party/lib.d.ts');
-            typeScriptUtils.minimatch = minimatch;
+            var bin = config.isDebug ? 'built/local/main/' : 'bin/main/';
             
-            require(["bin/main/index"], function (init) {
+            require([ bin + 'typeScriptUtils', bin + 'index'], function (typeScriptUtils, init) {
+                typeScriptUtils.DEFAULT_LIB_LOCATION = require.toUrl('third_party/lib.d.ts');
+                typeScriptUtils.minimatch = minimatch;
                 //in debug mode avoid using AppInit that catch errors ...
                 if (config.isDebug) {
                     init(config);

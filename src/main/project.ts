@@ -398,11 +398,7 @@ export interface ITypeScriptProject {
      */
     indexToPosition(path: string, index: number): ws.Position;
 
-    /**
-     * retrive all files dependant of a given file
-     * @param path the path of the given file
-     */
-    getFilesDependantOfFile(path: string): string[];
+ 
 }
 
 /**
@@ -595,18 +591,6 @@ export class TypeScriptProject implements ITypeScriptProject {
         return null;
     }
 
-    /**
-     * retrive all files dependant of a given file
-     * @param path the path of the given file
-     */
-    getFilesDependantOfFile(path: string): string[] {
-        switch(this.getProjectFileKind(path)) {
-            case ProjectFileKind.NONE:
-                return null;
-            default:
-                return this.references.has(path) ? this.references.get(path).keys : null;
-        }
-    }
     
     //-------------------------------
     //  private methods
@@ -703,7 +687,7 @@ export class TypeScriptProject implements ITypeScriptProject {
             this.getReferencedOrImportedFiles(path).forEach((referencedPath: string) => {
                 this.removeReference(path, referencedPath);
             });
-            if (this.references.has(path) && this.references.get(path).keys.length > 0) {
+            if (this.references.has(path) && this.references.get(path).values.length > 0) {
                 this.missingFiles.add(path);
             }   
             this.projectScripts.delete(path);
@@ -797,7 +781,7 @@ export class TypeScriptProject implements ITypeScriptProject {
             this.removeFile(referencedPath);
         }
         fileRefs.remove(path);
-        if (fileRefs.keys.length === 0) {
+        if (fileRefs.values.length === 0) {
             this.references.delete(referencedPath);
             this.removeFile(referencedPath);
         }   
