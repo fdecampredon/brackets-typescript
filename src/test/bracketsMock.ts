@@ -47,12 +47,12 @@ export class FileSystem {
         }
     }
     
-    dispatch(event: string, entry: FileSystemEntry) {
+    dispatch(event: string, ...args: any[]) {
         var listeners = this.listeners[event];
         if (!listeners) {
             return
         }
-        listeners.forEach(listerner => listerner.call(null, {}, entry));
+        listeners.forEach(listerner => listerner.apply(null, [{}].concat(args)));
     }
     
     refresh(dir: Directory) {
@@ -66,6 +66,33 @@ export class FileSystem {
         file.content = content;
         this.dispatch('change', file);
     }
+    
+    renameFile(path: string, newPath: string) {
+        var entry: FileSystemEntry = this.getEntryForFile(path, null),
+            dir = this.getEntryForFile(entry.parentPath, 'directory');
+        if (!entry || !dir) {
+            throw new Error('unknown dir : \'' + path + '\'');
+        }
+        
+        var newEntry: FileSystemEntry;
+        if (entry.isFile) {
+            newEntry = new File({
+                name: newPath.substr(newPath.lastIndexOf("/") + 1),
+                content: (<File>entry).content
+            });
+        } else {
+            newEntry = new Directory({
+                name: newPath.substr(newPath.lastIndexOf("/", newPath.length - 2) + 1),
+                children: (<Directory>entry).children
+            });
+        }
+        dir.remove(entry);
+        dir.add(newEntry);
+        newEntry.setParent(dir);
+        this.dispatch('rename',path, newPath);
+    }
+    
+
     
     deleteEntry(path: string) {
         var entry = this.getEntryForFile(path, null),

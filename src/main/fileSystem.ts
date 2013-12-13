@@ -96,7 +96,11 @@ export interface ChangeRecord {
  */
 export interface BracketsFileSystem{
     getFileForPath(path: string): brackets.File; 
+    
+    on(event: string, handler: (event: any, newpath: string, oldPath: string) => any): void
     on(event: string, handler: (event: any, entry?: brackets.FileSystemEntry) => any): void
+
+    off(event: string, handler: (event: any, newpath: string, oldPath: string) => any): void
     off(event: string, handler: (event: any, entry?: brackets.FileSystemEntry) => any): void
 } 
 
@@ -121,6 +125,7 @@ export class FileSystem implements IFileSystem {
         private projectManager: BracketsProjectManager
     ) {
         nativeFileSystem.on('change', this.changesHandler);
+        nativeFileSystem.on('rename', this.renameHandler);
         this.init();
     }
     
@@ -214,6 +219,7 @@ export class FileSystem implements IFileSystem {
      */
     dispose(): void {
         this.nativeFileSystem.off('change', this.changesHandler);
+        this.nativeFileSystem.off('rename', this.renameHandler);
         this._projectFilesChanged.clear();
     }
     
@@ -479,6 +485,47 @@ export class FileSystem implements IFileSystem {
                 });
             });
         }
+    }
+    
+    
+    private renameHandler = (event: any, oldPath : string, newPath: string) => {
+        var isDirectory = oldPath[oldPath.length -1] === '/';
+        var changes: ChangeRecord[];
+        if (isDirectory) {
+            changes = [];
+            this.filesPath.concat().forEach(path => {
+                var index = path.indexOf(oldPath);
+                if (index === 0) {
+                    changes = changes.concat(this.fileRenamedHandler(path, path.replace(oldPath, newPath))); 
+                }
+            });
+        } else {
+            changes = this.fileRenamedHandler(oldPath, newPath);
+        }
+        if (changes.length > 0) {
+            this.projectFilesChanged.dispatch(changes);
+        }
+    }
+    
+    private fileRenamedHandler(oldPath: string, newPath: string) {
+        var index = this.filesPath.indexOf(oldPath);
+        if (index !== -1) {
+            this.filesPath.splice(index, 1);
+            this.filesPath.push(newPath);
+            if (this.filesContent.has(oldPath)) {
+                var content = this.filesContent.get(oldPath);
+                this.filesContent.delete(oldPath);
+                this.filesContent.set(newPath, content);
+            }
+            return [{
+                kind: FileChangeKind.DELETE,
+                path: oldPath
+            }, {
+                kind: FileChangeKind.ADD,
+                path: newPath
+            }];
+        }
+        return [];
     }
     
    

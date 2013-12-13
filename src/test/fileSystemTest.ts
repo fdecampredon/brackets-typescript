@@ -374,8 +374,73 @@ describe('FileSystem', function() {
                 path: '/subdir2/file5.ts'
             }]);
             
-        })
+        });
+        
+        it('should dispatch an event  with a delete record and an add record when a file is renamed', function () {
+            var files: string[] = [];
+            
+            fileSystemMock.renameFile('/subdir2/file4.ts', '/subdir2/newFile.ts');
+            
+            expect(changeSpy.callCount).toBe(1);
+            expect(changeSpy).toHaveBeenCalledWith([{
+                kind: fs.FileChangeKind.DELETE,
+                path: '/subdir2/file4.ts'
+            },{
+                kind: fs.FileChangeKind.ADD,
+                path: '/subdir2/newFile.ts'
+            }]);
+            
+            runs(() => {
+                fileSystem.getProjectFiles().then(f => {
+                    files = f
+                })
+            });
+            runs(() => expect(files).toEqual([
+                '/file1.ts',
+                '/file2.ts',
+                '/subdir1/file3.ts',
+                '/subdir2/file5.ts',
+                '/subdir2/subdir3/file6.ts',
+                '/subdir2/subdir3/file7.ts',
+                '/subdir2/newFile.ts'
+            ]))
+        });
+        
+        
+        it('should dispatch an event  with a delete record and an add fo reach file subfile of the directory when a directory is renamed', function () {
+            fileSystemMock.renameFile('/subdir2/', '/subdir4/');
+             
+            expect(changeSpy.callCount).toBe(1);
+            expect(changeSpy).toHaveBeenCalledWith([{
+                kind: fs.FileChangeKind.DELETE,
+                path: '/subdir2/file4.ts'
+            },{
+                kind: fs.FileChangeKind.ADD,
+                path: '/subdir4/file4.ts'
+            },{
+                kind: fs.FileChangeKind.DELETE,
+                path: '/subdir2/file5.ts'
+            },{
+                kind: fs.FileChangeKind.ADD,
+                path: '/subdir4/file5.ts'
+            },{
+                kind: fs.FileChangeKind.DELETE,
+                path: '/subdir2/subdir3/file6.ts'
+            },{
+                kind: fs.FileChangeKind.ADD,
+                path: '/subdir4/subdir3/file6.ts'
+            },{
+                kind: fs.FileChangeKind.DELETE,
+                path: '/subdir2/subdir3/file7.ts'
+            },{
+                kind: fs.FileChangeKind.ADD,
+                path: '/subdir4/subdir3/file7.ts'
+            }]);
+        });
         
     });
+    
+    
+   
     
 });

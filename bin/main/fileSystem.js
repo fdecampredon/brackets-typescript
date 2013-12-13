@@ -260,7 +260,26 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
                     });
                 }
             };
+            this.renameHandler = function (event, oldPath, newPath) {
+                var isDirectory = oldPath[oldPath.length - 1] === '/';
+                var changes;
+                if (isDirectory) {
+                    changes = [];
+                    _this.filesPath.concat().forEach(function (path) {
+                        var index = path.indexOf(oldPath);
+                        if (index === 0) {
+                            changes = changes.concat(_this.fileRenamedHandler(path, path.replace(oldPath, newPath)));
+                        }
+                    });
+                } else {
+                    changes = _this.fileRenamedHandler(oldPath, newPath);
+                }
+                if (changes.length > 0) {
+                    _this.projectFilesChanged.dispatch(changes);
+                }
+            };
             nativeFileSystem.on('change', this.changesHandler);
+            nativeFileSystem.on('rename', this.renameHandler);
             this.init();
         }
         Object.defineProperty(FileSystem.prototype, "projectFilesChanged", {
@@ -332,6 +351,7 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
         */
         FileSystem.prototype.dispose = function () {
             this.nativeFileSystem.off('change', this.changesHandler);
+            this.nativeFileSystem.off('rename', this.renameHandler);
             this._projectFilesChanged.clear();
         };
 
@@ -393,6 +413,28 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
         */
         FileSystem.prototype.normalizeText = function (text) {
             return text.replace(/\r\n/g, "\n");
+        };
+
+        FileSystem.prototype.fileRenamedHandler = function (oldPath, newPath) {
+            var index = this.filesPath.indexOf(oldPath);
+            if (index !== -1) {
+                this.filesPath.splice(index, 1);
+                this.filesPath.push(newPath);
+                if (this.filesContent.has(oldPath)) {
+                    var content = this.filesContent.get(oldPath);
+                    this.filesContent.delete(oldPath);
+                    this.filesContent.set(newPath, content);
+                }
+                return [
+                    {
+                        kind: 2 /* DELETE */,
+                        path: oldPath
+                    }, {
+                        kind: 0 /* ADD */,
+                        path: newPath
+                    }];
+            }
+            return [];
         };
         return FileSystem;
     })();
