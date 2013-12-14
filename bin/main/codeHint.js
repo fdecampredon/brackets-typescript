@@ -31,9 +31,12 @@ define(["require", "exports", './logger', './utils/immediate'], function(require
     * Service returning hint for a given file
     */
     var HintService = (function () {
-        function HintService(typescriptProjectManager) {
-            this.typescriptProjectManager = typescriptProjectManager;
+        function HintService() {
         }
+        HintService.prototype.init = function (typescriptProjectManager) {
+            this.typescriptProjectManager = typescriptProjectManager;
+        };
+
         /**
         *
         * Return a list of hint for a given file and position

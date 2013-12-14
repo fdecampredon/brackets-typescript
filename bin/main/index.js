@@ -8,6 +8,8 @@ define(["require", "exports", './mode', './fileSystem', './workingSet', './proje
     * It is responsible for bootstraping, and injecting depency of the
     * main components in the application.
     */
+    var fileSystem, workingSet, projectManager, hintService, tsErrorReporter, quickEditProvider;
+
     function init(conf) {
         logger.setLogLevel(conf.logLevel);
 
@@ -23,29 +25,46 @@ define(["require", "exports", './mode', './fileSystem', './workingSet', './proje
             lineComment: ['//']
         });
 
-        //Create warpers
-        var fileSystem = new fs.FileSystem(FileSystem, ProjectManager), workingSet = new ws.WorkingSet(DocumentManager, EditorManager);
+        // Register code hint
+        hintService = new codeHint.HintService();
+        CodeHintManager.registerHintProvider(new codeHint.TypeScriptCodeHintProvider(hintService), ['typescript'], 0);
 
-        // project manager
-        var projectManager = new project.TypeScriptProjectManager(fileSystem, workingSet);
-
-        //projectManager.registerService(errors.ErrorServiceFactory);
-        projectManager.init();
-
-        // code hint
-        var hintService = new codeHint.HintService(projectManager), codeHintProvider = new codeHint.TypeScriptCodeHintProvider(hintService);
-        CodeHintManager.registerHintProvider(codeHintProvider, ['typescript'], 0);
-
-        //error provider
-        var tsErrorReporter = new TypeScriptErrorReporter(projectManager, CodeInspection.Type);
-        CodeInspection.register('typescript', tsErrorReporter);
-
-        //quickEdit
-        var quickEditProvider = new qe.TypeScriptQuickEditProvider(projectManager);
+        // Register quickEdit
+        quickEditProvider = new qe.TypeScriptQuickEditProvider();
         EditorManager.registerInlineEditProvider(quickEditProvider.typeScriptInlineEditorProvider);
 
-        //comments helper
+        //Register error provider
+        tsErrorReporter = new TypeScriptErrorReporter(CodeInspection.Type);
+        CodeInspection.register('typescript', tsErrorReporter);
+
+        //Register comments helper
         commentsHelper.init(new signal.DomSignalWrapper($("#editor-holder")[0], "keydown", true));
+
+        initServices();
+
+        $(ProjectManager).on('beforeProjectClose beforeAppClose', disposeServices);
+        $(ProjectManager).on('projectOpen', initServices);
+    }
+
+    function disposeServices() {
+        fileSystem.dispose();
+        workingSet.dispose();
+        projectManager.dispose();
+    }
+
+    function initServices() {
+        //Create warpers
+        fileSystem = new fs.FileSystem(FileSystem, ProjectManager);
+        workingSet = new ws.WorkingSet(DocumentManager, EditorManager);
+
+        // project manager
+        projectManager = new project.TypeScriptProjectManager(fileSystem, workingSet);
+        projectManager.init();
+
+        //services initialization
+        hintService.init(projectManager);
+        quickEditProvider.init(projectManager);
+        tsErrorReporter.init(projectManager);
     }
 
     

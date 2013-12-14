@@ -44,10 +44,11 @@ export interface Hint {
  * Service returning hint for a given file
  */
 export class HintService {
+    private typescriptProjectManager: project.TypeScriptProjectManager;
     
-    constructor(
-        private typescriptProjectManager: project.TypeScriptProjectManager
-    ) {}
+    init(typescriptProjectManager : project.TypeScriptProjectManager){
+        this.typescriptProjectManager = typescriptProjectManager;
+    }
     
     /**
      * 

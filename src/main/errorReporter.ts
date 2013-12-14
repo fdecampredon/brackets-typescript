@@ -11,12 +11,15 @@ import immediate = require('./utils/immediate');
  * TypeScript Inspection Provider
  */
 class TypeScriptErrorReporter implements brackets.InspectionProvider {
-   
+    private typescriptProjectManager: project.TypeScriptProjectManager;
+    
     constructor(
-        private typescriptProjectManager: project.TypeScriptProjectManager, 
         private errorType: typeof brackets.ErrorType
     ) {}
 
+    init(typescriptProjectManager: project.TypeScriptProjectManager) {
+        this.typescriptProjectManager = typescriptProjectManager;
+    }
 
     /**
      * name of the error reporter

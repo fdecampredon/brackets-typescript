@@ -8,14 +8,17 @@ define(["require", "exports", './utils/immediate'], function(require, exports, i
     * TypeScript Inspection Provider
     */
     var TypeScriptErrorReporter = (function () {
-        function TypeScriptErrorReporter(typescriptProjectManager, errorType) {
-            this.typescriptProjectManager = typescriptProjectManager;
+        function TypeScriptErrorReporter(errorType) {
             this.errorType = errorType;
             /**
             * name of the error reporter
             */
             this.name = 'TypeScript';
         }
+        TypeScriptErrorReporter.prototype.init = function (typescriptProjectManager) {
+            this.typescriptProjectManager = typescriptProjectManager;
+        };
+
         /**
         * scan file
         */

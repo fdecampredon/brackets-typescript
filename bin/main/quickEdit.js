@@ -2,9 +2,8 @@ define(["require", "exports"], function(require, exports) {
     var DocumentManager = brackets.getModule('document/DocumentManager'), MultiRangeInlineEditor = brackets.getModule('editor/MultiRangeInlineEditor').MultiRangeInlineEditor;
 
     var TypeScriptQuickEditProvider = (function () {
-        function TypeScriptQuickEditProvider(projectManager) {
+        function TypeScriptQuickEditProvider() {
             var _this = this;
-            this.projectManager = projectManager;
             this.typeScriptInlineEditorProvider = function (hostEditor, pos) {
                 if (hostEditor.getModeForSelection() !== 'typescript') {
                     return null;
@@ -68,6 +67,9 @@ define(["require", "exports"], function(require, exports) {
                 return deferred.promise();
             };
         }
+        TypeScriptQuickEditProvider.prototype.init = function (projectManager) {
+            this.projectManager = projectManager;
+        };
         return TypeScriptQuickEditProvider;
     })();
     exports.TypeScriptQuickEditProvider = TypeScriptQuickEditProvider;

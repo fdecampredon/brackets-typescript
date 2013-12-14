@@ -4,8 +4,10 @@ var DocumentManager = brackets.getModule('document/DocumentManager'),
     MultiRangeInlineEditor = brackets.getModule('editor/MultiRangeInlineEditor').MultiRangeInlineEditor;
 
 export class TypeScriptQuickEditProvider {
-    constructor(private projectManager: project.TypeScriptProjectManager) {
-        
+    private projectManager: project.TypeScriptProjectManager;
+    
+    init(projectManager: project.TypeScriptProjectManager) {
+        this.projectManager = projectManager;    
     }
     
     
