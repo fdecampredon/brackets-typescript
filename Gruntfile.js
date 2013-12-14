@@ -118,7 +118,8 @@ module.exports = function (grunt) {
                 },
                 files: [
                     {
-                        cwd: 'release-templates/',
+                        expand: true,
+                        cwd: 'release-templates',
                         src: '*',
                         dest: '/',
                         filter: 'isFile'
