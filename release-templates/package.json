@@ -1,0 +1,13 @@
+{
+    "name": "fdecampredon.brackets-typescript",
+    "title": "Brackets TypeScript ",
+    "description": "Language Support for brackets in typescript",
+    "homepage": "https://github.com/fdecampredon/brackets-typescript",
+    "version": "0.1.0",
+    "author": "François de Campredon <francois.de.campredon@gmail.com> (http://francois.de-campredon.fr)",
+    "license": "Apache 2.0",
+    "keywords": ["typescript"],
+    "engines": {
+        "brackets": ">=0.34.0"
+    }
+}
