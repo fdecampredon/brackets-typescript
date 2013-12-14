@@ -108,6 +108,27 @@ module.exports = function (grunt) {
             test: {
                 src: ['src/test/**/*.ts']
             }
+        },
+        
+        compress: {
+            main: {
+                options: {
+                    archive: 'brackets-typescript.zip',
+                    mode: 'zip'
+                },
+                files: [
+                    {
+                        cwd: 'release-templates/',
+                        src: '*',
+                        dest: '/',
+                        filter: 'isFile'
+                    }, {
+                        expand : true,
+                        src: ['main.js', 'bin/**/*', 'third_party/**/*'],
+                        dest : '/'
+                    }
+                ]
+            }
         }
     });
      

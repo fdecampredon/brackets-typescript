@@ -24,10 +24,9 @@ Using brackets-typescript:
 To benefits from all brackets-typescript features create a file '.brackets-typescript' in any folder under your project root folder (included).
 This config file has to be valid json, here is a complete list of availabel options options :
 
-`sources` `string[]`  
-An array of string describing in '[minimatch](https://github.com/isaacs/minimatch)' format the sources of your project
+* `sources` *(`string[]`)* , **mandatory**  : An array of string describing in '[minimatch](https://github.com/isaacs/minimatch)' format the sources of your project
 
-* `compileOnSave` *(`boolean`, default `false`)*,  **mandatory** : if true compile the project files when a file is saved (not implemented yet)
+* `compileOnSave` *(`boolean`, default `false`)*: if true compile the project files when a file is saved (not implemented yet)
 
 * `propagateEnumConstants` *(`boolean`, default `false`)* : see `propagateEnumConstants` options of the typescript compiler
 
