@@ -20,6 +20,10 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
 
     
 
+    
+
+    
+
     /**
     * implementation of the IWorkingSet
     */
@@ -27,9 +31,10 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
         //-------------------------------
         //  constructor
         //-------------------------------
-        function WorkingSet(documentManager) {
+        function WorkingSet(documentManager, editorManager) {
             var _this = this;
             this.documentManager = documentManager;
+            this.editorManager = editorManager;
             //-------------------------------
             //  Variables
             //-------------------------------
@@ -42,9 +47,9 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
             */
             this._documentEdited = new signal.Signal();
             /**
-            * map file to document for event handling
+            * Set of file path in the working set
             */
-            this.filesMap = new collections.StringMap();
+            this.filesSet = new collections.StringSet();
             //-------------------------------
             //  Events Handler
             //-------------------------------
@@ -52,7 +57,7 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
             * handle 'workingSetAdd' event
             */
             this.workingSetAddHandler = function (event, file) {
-                _this.addDocument(file.fullPath);
+                _this.filesSet.add(file.fullPath);
                 _this.workingSetChanged.dispatch({
                     kind: 0 /* ADD */,
                     paths: [file.fullPath]
@@ -67,7 +72,7 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
                     files[_i] = arguments[_i + 1];
                 }
                 var paths = files.map(function (file) {
-                    _this.addDocument(file.fullPath);
+                    _this.filesSet.add(file.fullPath);
                     return file.fullPath;
                 });
                 if (paths.length > 0) {
@@ -81,7 +86,7 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
             * handle 'workingSetRemove' event
             */
             this.workingSetRemoveHandler = function (event, file) {
-                _this.removeDocument(file.fullPath);
+                _this.filesSet.remove(file.fullPath);
                 _this.workingSetChanged.dispatch({
                     kind: 1 /* REMOVE */,
                     paths: [file.fullPath]
@@ -96,7 +101,7 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
                     files[_i] = arguments[_i + 1];
                 }
                 var paths = files.map(function (file) {
-                    _this.removeDocument(file.fullPath);
+                    _this.filesSet.remove(file.fullPath);
                     return file.fullPath;
                 });
                 if (paths.length > 0) {
@@ -125,13 +130,20 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
                     _this.documentEdited.dispatch(changesDescriptor);
                 }
             };
+            this.activeEditorChangeHandler = function (event, current, previous) {
+                _this.setActiveEditor(current);
+            };
             $(documentManager).on('workingSetAdd', this.workingSetAddHandler);
             $(documentManager).on('workingSetAddList', this.workingSetAddListHandler);
             $(documentManager).on('workingSetRemove', this.workingSetRemoveHandler);
             $(documentManager).on('workingSetRemoveList', this.workingSetRemoveListHandler);
+
+            $(editorManager).on('activeEditorChange', this.activeEditorChangeHandler);
+
             this.setFiles(documentManager.getWorkingSet().map(function (file) {
                 return file.fullPath;
             }));
+            this.setActiveEditor(editorManager.getActiveEditor());
         }
         Object.defineProperty(WorkingSet.prototype, "files", {
             //-------------------------------
@@ -141,7 +153,7 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
             * @see IWorkingSet#files
             */
             get: function () {
-                return this.filesMap.keys;
+                return this.filesSet.values;
             },
             enumerable: true,
             configurable: true
@@ -177,7 +189,9 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
             $(this.documentManager).off('workingSetAddList', this.workingSetAddListHandler);
             $(this.documentManager).off('workingSetRemove', this.workingSetRemoveHandler);
             $(this.documentManager).off('workingSetRemoveList', this.workingSetRemoveListHandler);
+            $(this.editorManager).off('activeEditorChange', this.activeEditorChangeHandler);
             this.setFiles(null);
+            this.setActiveEditor(null);
         };
 
         //-------------------------------
@@ -189,47 +203,23 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
         WorkingSet.prototype.setFiles = function (files) {
             var _this = this;
             this.files.forEach(function (path) {
-                return _this.removeDocument(path);
+                return _this.filesSet.remove(path);
             });
             if (files) {
                 files.forEach(function (path) {
-                    return _this.addDocument(path);
+                    return _this.filesSet.add(path);
                 });
             }
         };
 
-        /**
-        * add a document to the working set, and add event listener on the 'change' of this workingset
-        * @param path
-        */
-        WorkingSet.prototype.addDocument = function (path) {
-            var _this = this;
-            this.documentManager.getDocumentForPath(path).then(function (document) {
-                if (!document) {
-                    throw new Error('??? should not happen');
-                }
-                if (_this.filesMap.has(path)) {
-                    //should not happen but just in case ...
-                    _this.removeDocument(path);
-                }
-                _this.filesMap.set(document.file.fullPath, document);
-                $(document).on('change', _this.documentChangesHandler);
-            }, function (err) {
-                throw new Error(err);
-            });
-        };
-
-        /**
-        * remove a document from working set, and add event listener on the 'change' of this workingset
-        * @param path
-        */
-        WorkingSet.prototype.removeDocument = function (path) {
-            var document = this.filesMap.get(path);
-            if (!document) {
-                return;
+        WorkingSet.prototype.setActiveEditor = function (editor) {
+            if (this.currentDocument) {
+                $(this.currentDocument).off('change', this.documentChangesHandler);
             }
-            $(document).off('change', this.documentChangesHandler);
-            this.filesMap.delete(path);
+            this.currentDocument = editor && editor.document;
+            if (this.currentDocument) {
+                $(this.currentDocument).on('change', this.documentChangesHandler);
+            }
         };
         return WorkingSet;
     })();

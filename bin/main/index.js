@@ -24,7 +24,7 @@ define(["require", "exports", './mode', './fileSystem', './workingSet', './proje
         });
 
         //Create warpers
-        var fileSystem = new fs.FileSystem(FileSystem, ProjectManager), workingSet = new ws.WorkingSet(DocumentManager);
+        var fileSystem = new fs.FileSystem(FileSystem, ProjectManager), workingSet = new ws.WorkingSet(DocumentManager, EditorManager);
 
         // project manager
         var projectManager = new project.TypeScriptProjectManager(fileSystem, workingSet);

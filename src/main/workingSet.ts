@@ -127,7 +127,6 @@ export interface Position {
  */
 export interface BracketesDocumentManager {
     getWorkingSet(): { fullPath: string }[];
-    getDocumentForPath(fullPath: string): JQueryPromise<BracketsDocument>;
 }
 
 /**
@@ -135,6 +134,20 @@ export interface BracketesDocumentManager {
  */
 export interface BracketsDocument {
     file: { fullPath: string };
+}
+
+/**
+ * extracted interface of the brackets EditorManager
+ */
+export interface BracketsEditorManager {
+    getActiveEditor(): BracketsEditor;
+}
+
+/**
+ * extracted interface of the brackets Editor
+ */
+export interface BracketsEditor {
+    document: BracketsDocument;
 }
 
 /**
@@ -148,13 +161,18 @@ export class WorkingSet implements IWorkingSet {
 
 
     constructor(
-            private documentManager: BracketesDocumentManager
+            private documentManager: BracketesDocumentManager,
+            private editorManager: BracketsEditorManager
     ) {
         $(documentManager).on('workingSetAdd', this.workingSetAddHandler);
         $(documentManager).on('workingSetAddList', this.workingSetAddListHandler);
         $(documentManager).on('workingSetRemove', this.workingSetRemoveHandler);
         $(documentManager).on('workingSetRemoveList', this.workingSetRemoveListHandler);
+        
+        $(editorManager).on('activeEditorChange', this.activeEditorChangeHandler); 
+        
         this.setFiles(documentManager.getWorkingSet().map(file => file.fullPath));
+        this.setActiveEditor(editorManager.getActiveEditor());
     }
     
     //-------------------------------
@@ -173,9 +191,14 @@ export class WorkingSet implements IWorkingSet {
     
         
     /**
-     * map file to document for event handling
+     * Set of file path in the working set
      */
-    private filesMap = new collections.StringMap<BracketsDocument>();
+    private filesSet = new collections.StringSet();
+    
+    /**
+     * Set of file path in the working set
+     */
+    private currentDocument: BracketsDocument;
 
     
     //-------------------------------
@@ -187,7 +210,7 @@ export class WorkingSet implements IWorkingSet {
      * @see IWorkingSet#files
      */
     get files(): string[] {
-        return this.filesMap.keys;
+        return this.filesSet.values;
     }
     
     /**
@@ -213,7 +236,9 @@ export class WorkingSet implements IWorkingSet {
         $(this.documentManager).off('workingSetAddList', this.workingSetAddListHandler);
         $(this.documentManager).off('workingSetRemove', this.workingSetRemoveHandler);
         $(this.documentManager).off('workingSetRemoveList', this.workingSetRemoveListHandler);
+        $(this.editorManager).off('activeEditorChange', this.activeEditorChangeHandler); 
         this.setFiles(null);
+        this.setActiveEditor(null);
     }
     
     //-------------------------------
@@ -224,45 +249,11 @@ export class WorkingSet implements IWorkingSet {
      * set working set files
      */
     private setFiles(files: string[]) {
-        this.files.forEach(path => this.removeDocument(path))
+        this.files.forEach(path => this.filesSet.remove(path))
         if (files) {
-            files.forEach(path => this.addDocument(path));
+            files.forEach(path => this.filesSet.add(path));
         }
     }
-    
-    /**
-     * add a document to the working set, and add event listener on the 'change' of this workingset
-     * @param path
-     */
-    private addDocument(path: string) {
-        this.documentManager.getDocumentForPath(path).then(document => {
-            if (!document) {
-                throw new Error('??? should not happen');
-            }
-            if (this.filesMap.has(path)) {
-                //should not happen but just in case ...
-                this.removeDocument(path);
-            }
-            this.filesMap.set(document.file.fullPath, document);
-            $(document).on('change', this.documentChangesHandler);
-        }, (err?: string) => {
-            throw new Error(err);
-        });
-    }
-    
-    /**
-     * remove a document from working set, and add event listener on the 'change' of this workingset
-     * @param path
-     */
-    private removeDocument(path: string) {
-        var document = this.filesMap.get(path);
-        if (!document) {
-            return;
-        }
-        $(document).off('change', this.documentChangesHandler);
-        this.filesMap.delete(path);
-    }
-    
     
     //-------------------------------
     //  Events Handler
@@ -272,7 +263,7 @@ export class WorkingSet implements IWorkingSet {
      * handle 'workingSetAdd' event
      */
     private workingSetAddHandler = (event: any, file: brackets.File) => {
-        this.addDocument(file.fullPath);
+        this.filesSet.add(file.fullPath);
         this.workingSetChanged.dispatch({
             kind: WorkingSetChangeKind.ADD,
             paths: [file.fullPath]
@@ -284,7 +275,7 @@ export class WorkingSet implements IWorkingSet {
      */
     private workingSetAddListHandler = (event: any, ...files: brackets.File[]) => {
         var paths = files.map(file => {
-            this.addDocument(file.fullPath); 
+            this.filesSet.add(file.fullPath); 
             return file.fullPath;
         });
         if (paths.length > 0) {
@@ -299,7 +290,7 @@ export class WorkingSet implements IWorkingSet {
      * handle 'workingSetRemove' event
      */      
     private workingSetRemoveHandler = (event: any, file: brackets.File) => {
-        this.removeDocument(file.fullPath);
+        this.filesSet.remove(file.fullPath);
         this.workingSetChanged.dispatch({
             kind: WorkingSetChangeKind.REMOVE,
             paths: [file.fullPath]
@@ -311,7 +302,7 @@ export class WorkingSet implements IWorkingSet {
      */      
     private workingSetRemoveListHandler = (event: any, ...files: brackets.File[]) => {
         var paths = files.map( file => {
-            this.removeDocument(file.fullPath); 
+            this.filesSet.remove(file.fullPath); 
             return file.fullPath
         });
         if (paths.length > 0) {
@@ -322,6 +313,16 @@ export class WorkingSet implements IWorkingSet {
         }
     }
  
+    private setActiveEditor(editor: BracketsEditor) {
+        if (this.currentDocument) {
+            $(this.currentDocument).off('change', this.documentChangesHandler);
+        }
+        this.currentDocument = editor && editor.document;
+        if (this.currentDocument) {
+            $(this.currentDocument).on('change', this.documentChangesHandler);
+        }
+    }
+            
     
     /**
      * handle 'change' on document
@@ -341,6 +342,10 @@ export class WorkingSet implements IWorkingSet {
         if (changesDescriptor.length > 0) {
             this.documentEdited.dispatch(changesDescriptor);
         }   
+    }
+    
+    private activeEditorChangeHandler = (event: any, current: BracketsEditor, previous: BracketsEditor) => {
+        this.setActiveEditor(current);
     }
 
 }

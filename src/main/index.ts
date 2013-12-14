@@ -54,7 +54,7 @@ function init(conf: {
     
     //Create warpers
     var fileSystem = new fs.FileSystem(FileSystem, ProjectManager),
-        workingSet = new ws.WorkingSet(DocumentManager);
+        workingSet = new ws.WorkingSet(DocumentManager, EditorManager);
     
     // project manager
     var projectManager = new project.TypeScriptProjectManager(fileSystem, workingSet);

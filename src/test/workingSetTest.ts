@@ -4,21 +4,9 @@ import ws = require('../main/workingSet');
 
 describe('WorkingSet', function (): void {
     var workingSetFiles: string[],
-        documents: { [path: string]: ws.BracketsDocument } = {},
         documentManagerMock = {
             getWorkingSet() {
                 return workingSetFiles.map(file => { return { fullPath: file }});
-            },
-            getDocument(path: string) {
-                if (!documents[path]) {
-                    documents[path] = { file: { fullPath: path }};
-                }
-                return documents[path];
-            },
-            getDocumentForPath(path: string) {
-                var deferred = $.Deferred<ws.BracketsDocument>();
-                deferred.resolve(this.getDocument(path));
-                return deferred.promise();
             },
             addFile(path: string) {
                 workingSetFiles.push(path)
@@ -41,6 +29,17 @@ describe('WorkingSet', function (): void {
             }
             
         },
+        currentEditor: ws.BracketsEditor,
+        editorManagerMock = {
+            getActiveEditor() {
+                return currentEditor;
+            },
+            setActiveEditor(editor: ws.BracketsEditor) {
+                var previous = currentEditor
+                currentEditor = editor;
+                $(this).triggerHandler("activeEditorChange", [currentEditor, previous]);
+            }
+        },
         workingSet: ws.IWorkingSet
     
     beforeEach(function () {
@@ -49,7 +48,13 @@ describe('WorkingSet', function (): void {
             '/path/file3.ts',
             '/path/file4.ts'
         ];
-        workingSet = new ws.WorkingSet(documentManagerMock);
+        
+        currentEditor = {
+            document : {
+                file: {fullPath : '/path/file1.ts'}
+            }
+        };
+        workingSet = new ws.WorkingSet(documentManagerMock, editorManagerMock);
     })
     
     afterEach(function () {
@@ -73,7 +78,6 @@ describe('WorkingSet', function (): void {
             workingSet.workingSetChanged.remove(spy);
             spy.reset();
         });
-        
         
         
         it('should notify when a file has been added to the working set', function () {
@@ -116,9 +120,7 @@ describe('WorkingSet', function (): void {
             expect(workingSet.files).toEqual(workingSetFiles);
         });
     });
-    
-    
-    
+
     describe('documentEdited', function () {
         var spy = jasmine.createSpy('documentEdited');
         
@@ -133,7 +135,7 @@ describe('WorkingSet', function (): void {
         
         
        it('should notify when a document has been edited', function () {
-            var doc = documentManagerMock.getDocument('/path/file1.ts');
+            var doc = currentEditor.document
                
             $(doc).triggerHandler('change', [doc, {
                 from : {
@@ -191,7 +193,7 @@ describe('WorkingSet', function (): void {
         
         it('should notify when a multiple document have been edited', function () {
            
-            var doc = documentManagerMock.getDocument('/path/file1.ts');
+            var doc = currentEditor.document;
             $(doc).triggerHandler('change', [doc, {
                 from : {
                     ch: 0,
@@ -206,7 +208,10 @@ describe('WorkingSet', function (): void {
             }]);
             
            
-            doc = documentManagerMock.getDocument('/path/file3.ts');
+            doc = {
+                file: { fullPath : '/path/file3.ts' }
+            };
+            editorManagerMock.setActiveEditor({ document: doc });
             
             $(doc).triggerHandler('change', [doc, {
                 from : {
@@ -255,63 +260,5 @@ describe('WorkingSet', function (): void {
             ]);
         });
         
-        it('should notify when a document that has been added to the working set has been edited', function () {
-            documentManagerMock.addFile('/path/file5.ts');
-            var doc = documentManagerMock.getDocument('/path/file5.ts');
-            $(doc).triggerHandler('change', [doc, {
-                from : {
-                    ch: 0,
-                    line: 0
-                },
-                to: {
-                    ch: 0,
-                    line: 0,
-                },
-                text : ['world'],
-                removed: null
-            }]);
-            
-            
-            expect(spy.callCount).toBe(1);
-            expect(spy).toHaveBeenCalledWith([
-                {
-                    path: '/path/file5.ts',
-                    from : {
-                        ch: 0,
-                        line: 0
-                    },
-                    to: {
-                        ch: 0,
-                        line: 0,
-                    },
-                    text: 'world',
-                    removed: ''
-                }
-            ]);
-        });
-        
-        it('should not notify when a document that has been removed from the working set have been edited ', function () {
-         
-           
-            documentManagerMock.removeFile('/path/file1.ts');
-            var doc = documentManagerMock.getDocument('/path/file1.ts');
-            
-            $(doc).triggerHandler('change', [doc, {
-                from : {
-                    ch: 0,
-                    line: 0
-                },
-                to: {
-                    ch: 0,
-                    line: 0,
-                },
-                text : ['world'],
-                removed: null
-            }]);
-            
-            expect(spy.callCount).toBe(0);
-        });
-        
     });
-    
 });

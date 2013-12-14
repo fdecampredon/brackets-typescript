@@ -755,7 +755,15 @@ declare module brackets {
         registerInlineEditProvider(provider: InlineEditProvider, priority?: number): void; 
         registerInlineDocsProvider(provider: InlineDocsProvider, priority?: number): void;
         registerJumpToDefProvider(provider:JumpDoDefProvider): void;
-        getFocusedEditor(): Editor;
+        getFocusedEditor(): Editor; 
+        /**
+         * Returns the current active editor (full-sized OR inline editor). This editor may not 
+         * have focus at the moment, but it is visible and was the last editor that was given 
+         * focus. Returns null if no editors are active.
+         * @see getFocusedEditor()
+         * @returns {?Editor}
+         */
+        getActiveEditor():Editor
     }
   
     //--------------------------------------------------------------------------
