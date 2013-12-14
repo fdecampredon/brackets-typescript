@@ -1,0 +1,48 @@
+{
+  "rules": {
+    "class-name": true,
+    "curly": true,
+    "eofline": true,
+    "forin": false,
+    "jsdoc-format": true,
+    "indent": [true, 4],
+    "label-position": true,
+    "label-undefined": true,
+    "no-arg": true,
+    "no-bitwise": true,
+    "no-construct": true,
+    "no-debugger": true,
+    "no-duplicate-key": true,
+    "no-duplicate-variable": true,
+    "no-empty": false,
+    "no-eval": true,
+    "no-string-literal": true,
+    "no-trailing-whitespace": false,
+    "no-unreachable": true,
+    "one-line": [
+        true,
+        "check-open-brace",
+        "check-catch",
+        "check-else",
+        "check-whitespace"
+    ],
+    "quotemark": [true, "simple"],
+    "radix": true,
+    "semicolon": true,
+    "triple-equals": [true, "allow-null-check"],
+    "typedef-whitespace": [
+        true, 
+        "callSignature", 
+        "catchClause", 
+        "indexSignature" 
+    ],      
+    "variable-name": false,
+    "whitespace": [true,
+        "check-branch",
+        "check-decl",
+        "check-operator",
+        "check-separator",
+        "check-type"
+    ]
+  }
+}

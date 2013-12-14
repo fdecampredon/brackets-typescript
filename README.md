@@ -27,7 +27,7 @@ This config file has to be valid json, here is a complete list of availabel opti
 `sources` `string[]`  
 An array of string describing in '[minimatch](https://github.com/isaacs/minimatch)' format the sources of your project
 
-* `compileOnSave` *(`boolean`, default `false`)*,  **mandatory** : if true compile the project files when a file is saved
+* `compileOnSave` *(`boolean`, default `false`)*,  **mandatory** : if true compile the project files when a file is saved (not implemented yet)
 
 * `propagateEnumConstants` *(`boolean`, default `false`)* : see `propagateEnumConstants` options of the typescript compiler
 

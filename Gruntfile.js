@@ -96,6 +96,18 @@ module.exports = function (grunt) {
                 src: '**/*.js',
                 dest: '<%= releaseBinFolder %>'
             }
+        },
+        // later when the editor support tslint himself
+        tslint: {
+            options: {
+                configuration: grunt.file.readJSON("tslint.json")
+            },
+            main: {
+                src: ['src/main/**/*.ts']
+            },
+            test: {
+                src: ['src/test/**/*.ts']
+            }
         }
     });
      
