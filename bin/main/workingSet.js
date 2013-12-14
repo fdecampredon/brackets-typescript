@@ -117,13 +117,17 @@ define(["require", "exports", './utils/signal', './utils/collections'], function
             this.documentChangesHandler = function (event, document, change) {
                 var changesDescriptor = [];
                 while (change) {
-                    changesDescriptor.push({
+                    var changeDescriptor = {
                         path: document.file.fullPath,
                         from: change.from,
                         to: change.to,
                         text: change.text && change.text.join('\n'),
                         removed: change.removed ? change.removed.join("\n") : ""
-                    });
+                    };
+                    if (!changeDescriptor.from || !changeDescriptor.to) {
+                        changeDescriptor.documentText = document.getText();
+                    }
+                    changesDescriptor.push(changeDescriptor);
                     change = change.next;
                 }
                 if (changesDescriptor.length > 0) {

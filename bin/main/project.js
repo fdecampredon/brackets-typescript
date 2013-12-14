@@ -338,12 +338,17 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
             this.documentEditedHandler = function (records) {
                 records.forEach(function (record) {
                     if (_this.projectScripts.has(record.path)) {
-                        if (!record.from || !record.to) {
-                            _this.updateFile(record.path);
-                        }
-                        var minChar = _this.getIndexFromPos(record.path, record.from), limChar = _this.getIndexFromPos(record.path, record.to);
+                        var oldPaths = new collections.StringSet(_this.getReferencedOrImportedFiles(record.path));
 
-                        _this.projectScripts.get(record.path).editContent(minChar, limChar, record.text);
+                        if (!record.from || !record.to) {
+                            _this.projectScripts.get(record.path).updateContent(record.documentText);
+                        } else {
+                            var minChar = _this.getIndexFromPos(record.path, record.from), limChar = _this.getIndexFromPos(record.path, record.to);
+
+                            _this.projectScripts.get(record.path).editContent(minChar, limChar, record.text);
+                        }
+
+                        _this.updateReferences(record.path, oldPaths);
                     }
                 });
             };
@@ -562,23 +567,10 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         TypeScriptProject.prototype.updateFile = function (path) {
             var _this = this;
             this.fileSystem.readFile(path).then(function (content) {
-                var oldPathMap = {};
-                _this.getReferencedOrImportedFiles(path).forEach(function (path) {
-                    return oldPathMap[path] = true;
-                });
+                var oldPaths = new collections.StringSet(_this.getReferencedOrImportedFiles(path));
                 _this.projectScripts.get(path).updateContent(content);
                 _this.notifyFileUpdated(path);
-                _this.getReferencedOrImportedFiles(path).forEach(function (referencedPath) {
-                    delete oldPathMap[referencedPath];
-                    if (!_this.projectScripts.has(referencedPath)) {
-                        _this.addFile(referencedPath);
-                        _this.addReference(path, referencedPath);
-                    }
-                });
-
-                Object.keys(oldPathMap).forEach(function (referencedPath) {
-                    _this.removeReference(path, referencedPath);
-                });
+                _this.updateReferences(path, oldPaths);
             });
         };
 
@@ -648,6 +640,21 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                 this.references.delete(referencedPath);
                 this.removeFile(referencedPath);
             }
+        };
+
+        TypeScriptProject.prototype.updateReferences = function (path, oldPaths) {
+            var _this = this;
+            this.getReferencedOrImportedFiles(path).forEach(function (referencedPath) {
+                oldPaths.remove(referencedPath);
+                if (!_this.projectScripts.has(referencedPath)) {
+                    _this.addFile(referencedPath);
+                    _this.addReference(path, referencedPath);
+                }
+            });
+
+            oldPaths.values.forEach(function (referencedPath) {
+                _this.removeReference(path, referencedPath);
+            });
         };
 
         //-------------------------------

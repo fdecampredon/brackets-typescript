@@ -701,22 +701,10 @@ export class TypeScriptProject implements ITypeScriptProject {
      */
     private updateFile(path: string) {
         this.fileSystem.readFile(path).then((content: string) => {
-            var oldPathMap: { [path: string]: boolean } = {};
-            this.getReferencedOrImportedFiles(path).forEach(path => oldPathMap[path] = true);
+            var oldPaths = new collections.StringSet(this.getReferencedOrImportedFiles(path));
             this.projectScripts.get(path).updateContent(content);
             this.notifyFileUpdated(path);
-            this.getReferencedOrImportedFiles(path).forEach((referencedPath: string) => {
-                delete oldPathMap[referencedPath];
-                if (!this.projectScripts.has(referencedPath)) {
-                    this.addFile(referencedPath);
-                    this.addReference(path, referencedPath);
-                }
-            });
-            
-            Object.keys(oldPathMap).forEach((referencedPath: string) => {
-                this.removeReference(path, referencedPath);
-            });
-            
+            this.updateReferences(path, oldPaths);
         });
     }
     
@@ -785,6 +773,21 @@ export class TypeScriptProject implements ITypeScriptProject {
             this.references.delete(referencedPath);
             this.removeFile(referencedPath);
         }   
+    }
+    
+    
+    private updateReferences(path: string, oldPaths: collections.StringSet) {
+        this.getReferencedOrImportedFiles(path).forEach((referencedPath: string) => {
+            oldPaths.remove(referencedPath);
+            if (!this.projectScripts.has(referencedPath)) {
+                this.addFile(referencedPath);
+                this.addReference(path, referencedPath);
+            }
+        });
+        
+        oldPaths.values.forEach((referencedPath: string) => {
+            this.removeReference(path, referencedPath);
+        });
     }
     
     
@@ -960,13 +963,18 @@ export class TypeScriptProject implements ITypeScriptProject {
     private documentEditedHandler = (records: ws.DocumentChangeDescriptor[]) => {
         records.forEach((record: ws.DocumentChangeDescriptor) => {
             if (this.projectScripts.has(record.path)) {
-                if (!record.from || !record.to) {
-                    this.updateFile(record.path);
-                }
-                var minChar = this.getIndexFromPos(record.path, record.from),
-                    limChar = this.getIndexFromPos(record.path, record.to);
+                var oldPaths = new collections.StringSet(this.getReferencedOrImportedFiles(record.path));
                 
-                this.projectScripts.get(record.path).editContent(minChar, limChar, record.text);
+                if (!record.from || !record.to) {
+                    this.projectScripts.get(record.path).updateContent(record.documentText);
+                } else {
+                    var minChar = this.getIndexFromPos(record.path, record.from),
+                        limChar = this.getIndexFromPos(record.path, record.to);
+                    
+                    this.projectScripts.get(record.path).editContent(minChar, limChar, record.text);
+                }
+                
+                this.updateReferences(record.path, oldPaths);
             }
         });
     }

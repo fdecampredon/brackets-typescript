@@ -751,6 +751,29 @@ describe('TypeScriptProject', function () {
             expect(typeScriptProject.getScripts().get('/src/file1.ts').content).toBe('console.warn(\'hello world\')');
         });
         
+        it('should set script with given document content if change dispatched does not has \'to\' or \'from\' property ', function () {
+            workingSetMock.documentEdited.dispatch([{
+                path: '/src/file1.ts',
+                from: {
+                    ch: 0,
+                    line: 0
+                },
+                documentText : 'console.log(\'hello world\')'
+            }]);
+            expect(typeScriptProject.getScripts().get('/src/file1.ts').content).toBe('console.log(\'hello world\')');
+            
+            workingSetMock.documentEdited.dispatch([{
+                path: '/src/file1.ts',
+                to: {
+                    ch: 11,
+                    line: 0,
+                },
+                documentText : 'console.warn(\'hello world\')'
+                
+            }]);
+            expect(typeScriptProject.getScripts().get('/src/file1.ts').content).toBe('console.warn(\'hello world\')');
+        });
+        
         
         it('should revert a file when a document have been closed without saving', function () {
            workingSetMock.documentEdited.dispatch([{
@@ -770,6 +793,7 @@ describe('TypeScriptProject', function () {
             workingSetMock.removeFiles(['/src/file1.ts']);
             expect(typeScriptProject.getScripts().get('/src/file1.ts').content).toBe('');
         });
+        
     });
     
         

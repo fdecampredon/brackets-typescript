@@ -51,7 +51,8 @@ describe('WorkingSet', function (): void {
         
         currentEditor = {
             document : {
-                file: {fullPath : '/path/file1.ts'}
+                file: {fullPath : '/path/file1.ts'},
+                getText() { return "hello world"}
             }
         };
         workingSet = new ws.WorkingSet(documentManagerMock, editorManagerMock);
@@ -209,7 +210,8 @@ describe('WorkingSet', function (): void {
             
            
             doc = {
-                file: { fullPath : '/path/file3.ts' }
+                file: { fullPath : '/path/file3.ts' },
+                getText() { return ""}
             };
             editorManagerMock.setActiveEditor({ document: doc });
             
@@ -256,6 +258,63 @@ describe('WorkingSet', function (): void {
                     },
                     text: 'world',
                     removed: ''
+                }
+            ]);
+        });
+        
+        it('should include \'documentText\' property if change does not contain \'to\' or \'from\' properties', function () {
+           
+            var doc = currentEditor.document;
+            $(doc).triggerHandler('change', [doc, {
+                text : ['hello'],
+                from : {
+                    ch: 0,
+                    line: 0
+                },
+                removed: null
+            }]);
+            
+           
+            doc = {
+                file: { fullPath : '/path/file3.ts' },
+                getText() { return "hello world"}
+            };
+            editorManagerMock.setActiveEditor({ document: doc });
+            $(doc).triggerHandler('change', [doc, {
+                to: {
+                    ch: 0,
+                    line: 0,
+                },
+                text : ['world'],
+                removed: null
+            }]);
+            
+            expect(spy.callCount).toBe(2);
+            expect(spy).toHaveBeenCalledWith([
+                {
+                    path: '/path/file1.ts',
+                    from : {
+                        ch: 0,
+                        line: 0
+                    },
+                    to: undefined,
+                    text: 'hello',
+                    removed: '',
+                    documentText: "hello world"
+                }
+            ]);
+        
+            expect(spy).toHaveBeenCalledWith([
+                {
+                    path: '/path/file3.ts',
+                    from : undefined,
+                    to: {
+                        ch: 0,
+                        line: 0,
+                    },
+                    text: 'world',
+                    removed: '',
+                    documentText: "hello world"
                 }
             ]);
         });

@@ -88,22 +88,24 @@ export interface DocumentChangeDescriptor {
     /**
      * start position of the change
      */
-    from: Position;
+    from?: Position;
     
     /**
      * end positon of the change
      */
-    to: Position;
+    to?: Position;
     
     /**
      * text that has been inserted (if any)
      */
-    text: string;
+    text?: string;
     
     /**
      * text that has been removed (if any)
      */
-    removed: string;
+    removed?: string;
+    
+    documentText?: string
     
 }
 
@@ -134,6 +136,7 @@ export interface BracketesDocumentManager {
  */
 export interface BracketsDocument {
     file: { fullPath: string };
+    getText(): string;
 }
 
 /**
@@ -330,13 +333,17 @@ export class WorkingSet implements IWorkingSet {
     private documentChangesHandler = (event: any, document: BracketsDocument, change: CodeMirror.EditorChangeLinkedList) => {
         var changesDescriptor: DocumentChangeDescriptor[] = [];
         while (change) {
-            changesDescriptor.push({
+            var changeDescriptor: DocumentChangeDescriptor ={
                 path: document.file.fullPath,
                 from: change.from,
                 to: change.to,
                 text: change.text && change.text.join('\n'),
                 removed: change.removed ? change.removed.join("\n") : ""
-            });
+            }
+            if (!changeDescriptor.from || !changeDescriptor.to) {
+                changeDescriptor.documentText = document.getText()
+            }
+            changesDescriptor.push(changeDescriptor);
             change = change.next; 
         }
         if (changesDescriptor.length > 0) {
