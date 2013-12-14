@@ -751,7 +751,7 @@ describe('TypeScriptProject', function () {
             expect(typeScriptProject.getScripts().get('/src/file1.ts').content).toBe('console.warn(\'hello world\')');
         });
         
-        it('should set script with given document content if change dispatched does not has \'to\' or \'from\' property ', function () {
+        it('should set script with given document content if change dispatched does not have \'to\' or \'from\' property ', function () {
             workingSetMock.documentEdited.dispatch([{
                 path: '/src/file1.ts',
                 from: {
