@@ -13,7 +13,7 @@ Current Features :
 * Project level configuration
 
 
-Instalation :
+Installation :
 -------------
 
 To install this software please use the [brackets-registry](https://brackets-registry.aboutweb.com/) or, use the install from url features of brackets with this [link](https://github.com/fdecampredon/brackets-typescript/releases/download/v0.1.0/brackets-typescript.zip)
