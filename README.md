@@ -16,7 +16,7 @@ Current Features :
 Instalation :
 -------------
 
-To install this software please use the [brackets-registry](https://brackets-registry.aboutweb.com/) or, use the install from url features of brackets with this [link](TODO)
+To install this software please use the [brackets-registry](https://brackets-registry.aboutweb.com/) or, use the install from url features of brackets with this [link](https://github.com/fdecampredon/brackets-typescript/releases/download/v0.1.0/brackets-typescript.zip)
 
 Using brackets-typescript:
 -------------------------
@@ -48,7 +48,7 @@ This config file has to be valid json, here is a complete list of availabel opti
 
 * `declaration` *(`boolean`, default `false`)* : see `declaration` options of the typescript compiler
 
-* `useCaseSensitiveFileResolution`(`boolean`, default `false`)* : see `useCaseSensitiveFileResolution` options of the typescript compiler
+* `useCaseSensitiveFileResolution` *(`boolean`, default `false`)* : see `useCaseSensitiveFileResolution` options of the typescript compiler
 
-* `noImplicitAny` - `boolean` (`boolean`, default `false`)* : see `noImplicitAny` options of the typescript compiler 
+* `noImplicitAny` *(`boolean`, default `false`)* : see `noImplicitAny` options of the typescript compiler 
 
