@@ -59,7 +59,7 @@ export class TypeScriptProjectManager {
     /**
      * a map containing the projects 
      */
-    private projectMap = new collections.StringMap<TypeScriptProject>();
+    private projectMap = new collections.StringMap<TypeScriptProject[]>();
     
     /**
      * a map containing the projects 
@@ -104,19 +104,23 @@ export class TypeScriptProjectManager {
         var projects = this.projectMap.values,
             project : TypeScriptProject = null;
         //first we check for a project that have tha file as source 
-        projects.some(tsProject  => {
-            if (tsProject.getProjectFileKind(path) === ProjectFileKind.SOURCE) {
-                project = tsProject;
-                return true;
-            }
-        });
-        
-        if (!project) {
-            projects.some(tsProject  => {
-                if (tsProject.getProjectFileKind(path) === ProjectFileKind.REFERENCE) {
+        projects.some(tsProjects  => {
+            return tsProjects.some(tsProject => {
+                if (tsProject.getProjectFileKind(path) === ProjectFileKind.SOURCE) {
                     project = tsProject;
                     return true;
                 }
+            })     
+        });
+        
+        if (!project) {
+            projects.some(tsProjects  => {
+                return tsProjects.some(tsProject => {
+                    if (tsProject.getProjectFileKind(path) === ProjectFileKind.REFERENCE) {
+                        project = tsProject;
+                        return true;
+                    }
+                })     
             });
         }
         
@@ -135,7 +139,7 @@ export class TypeScriptProjectManager {
         this.fileSystem.getProjectFiles().then((paths: string[]) => {
             paths
                 .filter(utils.isTypeScriptProjectConfigFile)
-                .forEach(this.createProjectFromFile, this);     
+                .forEach(this.createProjectsFromFile, this);     
         });
     }
     
@@ -144,7 +148,9 @@ export class TypeScriptProjectManager {
      */
     private disposeProjects():void {
         var projectMap = this.projectMap;
-        projectMap.keys.forEach(path =>  projectMap.get(path).dispose())
+        projectMap.keys.forEach(path =>  {
+            projectMap.get(path).forEach(project => project.dispose())
+        });
         this.projectMap.clear();
     }
     
@@ -153,8 +159,30 @@ export class TypeScriptProjectManager {
      * 
      * @param configFilePath the config file path
      */
-    private createProjectFromFile(configFilePath: string) {
-        this.retrieveConfig(configFilePath).then( config => this.createProjectFromConfig(configFilePath, config));
+    private createProjectsFromFile(configFilePath: string) {
+        this.retrieveConfig(configFilePath).then(configs => {
+            if (configs.length === 0) {
+                this.projectMap.delete(configFilePath);
+                return;
+            }
+            
+            var projects: TypeScriptProject[];
+            if (!this.projectMap.has(configFilePath)) {
+                projects = [];
+                this.projectMap.set(configFilePath, projects);
+            } else {
+                projects = this.projectMap.get(configFilePath);
+            }
+            
+            configs.forEach( (config: TypeScriptProjectConfig, index: number) => {
+                var project = projects[index];
+                if (project) {
+                    project.update(config)
+                } else {
+                     projects[index] = this.createProjectFromConfig(configFilePath, config);
+                }
+            });
+        });
     }
     
     /**
@@ -167,11 +195,11 @@ export class TypeScriptProjectManager {
         if (config) {
             var project = this.newProject(PathUtils.directory(configFilePath), config)
             project.init(this.servicesFactory.map(serviceFactory => serviceFactory(project)));
-            this.projectMap.set(configFilePath, project);
+            return project;
         } 
     }
 
-
+    
     private newProject(baseDir: string, config: TypeScriptProjectConfig) {
         return new TypeScriptProject(baseDir, config, this.fileSystem, this.workingSet);
     }
@@ -182,27 +210,40 @@ export class TypeScriptProjectManager {
      * 
      * @param configFilePath
      */
-    private retrieveConfig(configFilePath: string): JQueryPromise<TypeScriptProjectConfig> {
+    private retrieveConfig(configFilePath: string): JQueryPromise<TypeScriptProjectConfig[]> {
         return this.fileSystem.readFile(configFilePath).then((content: string) => {
-            var config : TypeScriptProjectConfig;
+            var data : any;
             try {
-                config =  JSON.parse(content);
+                data =  JSON.parse(content);
             } catch(e) {
                 //TODO logging strategy
                 console.log('invalid json for brackets-typescript config file: ' + configFilePath);
             }
             
-            if(config) {
-                for (var property in utils.typeScriptProjectConfigDefault) {
-                    if (!config.hasOwnProperty(property)) {
-                        config[property] = utils.typeScriptProjectConfigDefault[property]
+            if (!data) {
+                return [];
+            }
+            
+            var configs : TypeScriptProjectConfig[];
+            if (Array.isArray(data)) {
+                configs = data;
+            } else {
+                configs = [data]
+            }
+            
+            return configs.map(config => {
+                if(config) {
+                    for (var property in utils.typeScriptProjectConfigDefault) {
+                        if (!config.hasOwnProperty(property)) {
+                            config[property] = utils.typeScriptProjectConfigDefault[property]
+                        }
+                    }
+                    if(!utils.validateTypeScriptProjectConfig(config)) {
+                        config = null;
                     }
                 }
-                if(!utils.validateTypeScriptProjectConfig(config)) {
-                    config = null;
-                }
-            }
-            return config; 
+                return config; 
+            }).filter(config => !!config);
         });
     }
     
@@ -227,29 +268,20 @@ export class TypeScriptProjectManager {
                     // a config file has been deleted detele the project
                     case fs.FileChangeKind.DELETE:
                         if (this.projectMap.has(record.path)) {
-                            this.projectMap.get(record.path).dispose();
+                            this.projectMap.get(record.path).forEach(project => {
+                                project.dispose();
+                            })
                             this.projectMap.delete(record.path);
                         }
                         break;
                         
                     // a config file has been created create a new project
                     case fs.FileChangeKind.ADD:
-                        this.createProjectFromFile(record.path);
+                        this.createProjectsFromFile(record.path);
                         break;
                         
                     case fs.FileChangeKind.UPDATE:
-                        this.retrieveConfig(record.path).then((config : TypeScriptProjectConfig) => {
-                            if (config) {
-                                if(this.projectMap.has(record.path)) {
-                                    //config file has been updated create the project
-                                    this.projectMap.get(record.path).update(config);
-                                } else {
-                                    // this config file was already present, but was invalid, now create the project
-                                    // with the obtained valid config file
-                                    this.createProjectFromConfig(record.path, config);
-                                }
-                            }
-                        });
+                        this.createProjectsFromFile(record.path);
                         break;
                 }
             }

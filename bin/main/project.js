@@ -63,28 +63,19 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                         switch (record.kind) {
                             case 2 /* DELETE */:
                                 if (_this.projectMap.has(record.path)) {
-                                    _this.projectMap.get(record.path).dispose();
+                                    _this.projectMap.get(record.path).forEach(function (project) {
+                                        project.dispose();
+                                    });
                                     _this.projectMap.delete(record.path);
                                 }
                                 break;
 
                             case 0 /* ADD */:
-                                _this.createProjectFromFile(record.path);
+                                _this.createProjectsFromFile(record.path);
                                 break;
 
                             case 1 /* UPDATE */:
-                                _this.retrieveConfig(record.path).then(function (config) {
-                                    if (config) {
-                                        if (_this.projectMap.has(record.path)) {
-                                            //config file has been updated create the project
-                                            _this.projectMap.get(record.path).update(config);
-                                        } else {
-                                            // this config file was already present, but was invalid, now create the project
-                                            // with the obtained valid config file
-                                            _this.createProjectFromConfig(record.path, config);
-                                        }
-                                    }
-                                });
+                                _this.createProjectsFromFile(record.path);
                                 break;
                         }
                     }
@@ -126,19 +117,23 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
             var projects = this.projectMap.values, project = null;
 
             //first we check for a project that have tha file as source
-            projects.some(function (tsProject) {
-                if (tsProject.getProjectFileKind(path) === 1 /* SOURCE */) {
-                    project = tsProject;
-                    return true;
-                }
-            });
-
-            if (!project) {
-                projects.some(function (tsProject) {
-                    if (tsProject.getProjectFileKind(path) === 2 /* REFERENCE */) {
+            projects.some(function (tsProjects) {
+                return tsProjects.some(function (tsProject) {
+                    if (tsProject.getProjectFileKind(path) === 1 /* SOURCE */) {
                         project = tsProject;
                         return true;
                     }
+                });
+            });
+
+            if (!project) {
+                projects.some(function (tsProjects) {
+                    return tsProjects.some(function (tsProject) {
+                        if (tsProject.getProjectFileKind(path) === 2 /* REFERENCE */) {
+                            project = tsProject;
+                            return true;
+                        }
+                    });
                 });
             }
 
@@ -155,7 +150,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         TypeScriptProjectManager.prototype.createProjects = function () {
             var _this = this;
             this.fileSystem.getProjectFiles().then(function (paths) {
-                paths.filter(utils.isTypeScriptProjectConfigFile).forEach(_this.createProjectFromFile, _this);
+                paths.filter(utils.isTypeScriptProjectConfigFile).forEach(_this.createProjectsFromFile, _this);
             });
         };
 
@@ -165,7 +160,9 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         TypeScriptProjectManager.prototype.disposeProjects = function () {
             var projectMap = this.projectMap;
             projectMap.keys.forEach(function (path) {
-                return projectMap.get(path).dispose();
+                projectMap.get(path).forEach(function (project) {
+                    return project.dispose();
+                });
             });
             this.projectMap.clear();
         };
@@ -175,10 +172,30 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         *
         * @param configFilePath the config file path
         */
-        TypeScriptProjectManager.prototype.createProjectFromFile = function (configFilePath) {
+        TypeScriptProjectManager.prototype.createProjectsFromFile = function (configFilePath) {
             var _this = this;
-            this.retrieveConfig(configFilePath).then(function (config) {
-                return _this.createProjectFromConfig(configFilePath, config);
+            this.retrieveConfig(configFilePath).then(function (configs) {
+                if (configs.length === 0) {
+                    _this.projectMap.delete(configFilePath);
+                    return;
+                }
+
+                var projects;
+                if (!_this.projectMap.has(configFilePath)) {
+                    projects = [];
+                    _this.projectMap.set(configFilePath, projects);
+                } else {
+                    projects = _this.projectMap.get(configFilePath);
+                }
+
+                configs.forEach(function (config, index) {
+                    var project = projects[index];
+                    if (project) {
+                        project.update(config);
+                    } else {
+                        projects[index] = _this.createProjectFromConfig(configFilePath, config);
+                    }
+                });
             });
         };
 
@@ -194,7 +211,7 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
                 project.init(this.servicesFactory.map(function (serviceFactory) {
                     return serviceFactory(project);
                 }));
-                this.projectMap.set(configFilePath, project);
+                return project;
             }
         };
 
@@ -210,25 +227,40 @@ define(["require", "exports", './fileSystem', './workingSet', './typescript/core
         */
         TypeScriptProjectManager.prototype.retrieveConfig = function (configFilePath) {
             return this.fileSystem.readFile(configFilePath).then(function (content) {
-                var config;
+                var data;
                 try  {
-                    config = JSON.parse(content);
+                    data = JSON.parse(content);
                 } catch (e) {
                     //TODO logging strategy
                     console.log('invalid json for brackets-typescript config file: ' + configFilePath);
                 }
 
-                if (config) {
-                    for (var property in utils.typeScriptProjectConfigDefault) {
-                        if (!config.hasOwnProperty(property)) {
-                            config[property] = utils.typeScriptProjectConfigDefault[property];
+                if (!data) {
+                    return [];
+                }
+
+                var configs;
+                if (Array.isArray(data)) {
+                    configs = data;
+                } else {
+                    configs = [data];
+                }
+
+                return configs.map(function (config) {
+                    if (config) {
+                        for (var property in utils.typeScriptProjectConfigDefault) {
+                            if (!config.hasOwnProperty(property)) {
+                                config[property] = utils.typeScriptProjectConfigDefault[property];
+                            }
+                        }
+                        if (!utils.validateTypeScriptProjectConfig(config)) {
+                            config = null;
                         }
                     }
-                    if (!utils.validateTypeScriptProjectConfig(config)) {
-                        config = null;
-                    }
-                }
-                return config;
+                    return config;
+                }).filter(function (config) {
+                    return !!config;
+                });
             });
         };
         return TypeScriptProjectManager;

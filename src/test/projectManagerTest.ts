@@ -71,6 +71,35 @@ describe('TypeScriptProjectManager', function () {
         expect(typeScriptProjectSpy.callCount).toBe(2);
     });
     
+    it('should support multiple configuration in a config file', function () {
+        var dirConfig = {
+            module: 'amd',
+            sources: [
+                './file1.ts',
+                './file2.ts'
+            ],
+            outDir: 'bin'
+        }, dir1Config = {
+            module: 'commonjs',
+            sources: [
+                './file3.ts',
+                './file4.ts'
+            ],
+            outFile: 'index.js'
+        };
+        
+        fileSystemMock.setFiles({
+            '/.brackets-typescript': JSON.stringify([
+                dirConfig,
+                dir1Config
+            ])
+        });
+        
+      
+        typeScriptProjectManager.init();
+        expect(typeScriptProjectSpy.callCount).toBe(2);
+    });
+    
     it('should initialize projects with registred new instance of registred Services', function () {
         fileSystemMock.setFiles({
             'dir1/.brackets-typescript': JSON.stringify({
