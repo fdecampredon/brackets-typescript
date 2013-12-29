@@ -16,7 +16,7 @@
 'use strict';
 
 import signal = require('./utils/signal');
-import collections = require('./utils/collections');
+import collections = require('../commons/collections');
 
 
 //--------------------------------------------------------------------------
@@ -201,6 +201,10 @@ export class FileSystem implements IFileSystem {
                 result.resolve(this.filesContent.get(path))
             } else {
                 var file = this.nativeFileSystem.getFileForPath(path);
+                if (file.isDirectory) {
+                    result.reject('not found');
+                    return;
+                }
                 file.read({}, (err: string, content: string) => {
                     if (err) {
                         result.reject(err);

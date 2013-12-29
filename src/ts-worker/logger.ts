@@ -12,12 +12,30 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+'use strict';
 
-import Logger = require('../logger');
-import TypeScriptServicesFactory = TypeScript.Services.TypeScriptServicesFactory;
+class Logger {
+    information(): boolean {
+        return false;
+    }
+    
+    debug(): boolean {
+        return false;
+    }
+    
+    warning(): boolean {
+        return false;
+    }
+    
+    error(): boolean {
+        return false;
+    }
+    
+    fatal(): boolean {
+        return false;
+    }
 
-var coreService = new TypeScriptServicesFactory().createCoreServices({
-    logger: new Logger()
-});
+    log(s: string): void { }
+}
 
-export = coreService;
+export = Logger;

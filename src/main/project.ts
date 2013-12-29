@@ -13,283 +13,13 @@
 //   limitations under the License.
 
 
+
 import fs = require('./fileSystem');
 import ws = require('./workingSet');
-import coreService = require('./typescript/coreService');
-import script = require('./typescript/script');
-import language = require('./typescript/language');
 import utils = require('./typeScriptUtils');
-import collections = require('./utils/collections');
+import collections = require('../commons/collections');
 import immediate = require('./utils/immediate');
-import Services = TypeScript.Services;
-
-
-
-//--------------------------------------------------------------------------
-//
-//  TypeScriptProjectManager
-//
-//--------------------------------------------------------------------------
-
-
-
-/**
- * The main facade class of the extentions, responsible to create / destroy / update projects
- * by observing config files in the files of the opened brackets folder
- */
-export class TypeScriptProjectManager {
-    
-    //-------------------------------
-    //  constructor
-    //-------------------------------
-    
-    /**
-     * @param fileSystem the fileSystem wrapper used by the projectManager
-     * @param workingSet the working set wrapper used by the projectManager
-     */
-    constructor(
-        private fileSystem: fs.IFileSystem, 
-        private workingSet: ws.IWorkingSet
-    ) {}
-    
-    //-------------------------------
-    //  variables
-    //-------------------------------
-    
-    /**
-     * a map containing the projects 
-     */
-    private projectMap = new collections.StringMap<TypeScriptProject[]>();
-    
-    /**
-     * a map containing the projects 
-     */
-    private servicesFactory: ProjectServiceFactory[] = [];
-    
-    //-------------------------------
-    // Public methods
-    //------------------------------- 
-    
-    
-    /**
-     * initialize the project manager
-     */
-    init(): void {
-        this.createProjects();
-        this.fileSystem.projectFilesChanged.add(this.filesChangeHandler);
-    }
-    
-    
-    registerService(serviceFactory: ProjectServiceFactory) {
-        this.servicesFactory.push(serviceFactory);
-    }
-    
-    /**
-     * dispose the project manager
-     */
-    dispose(): void {
-        this.fileSystem.projectFilesChanged.remove(this.filesChangeHandler);
-        this.disposeProjects();
-        
-    }
-    
-    /**
-     * this method will try to find a project referencing the given path
-     * it will by priority try to retrive project that have that file as part of 'direct source'
-     * before returning projects that just have 'reference' to this file
-     * 
-     * @param path the path of the typesrcript file for which project are looked fo
-     */
-    getProjectForFile(path: string): TypeScriptProject {
-        var projects = this.projectMap.values,
-            project : TypeScriptProject = null;
-        //first we check for a project that have tha file as source 
-        projects.some(tsProjects  => {
-            return tsProjects.some(tsProject => {
-                if (tsProject.getProjectFileKind(path) === ProjectFileKind.SOURCE) {
-                    project = tsProject;
-                    return true;
-                }
-            })     
-        });
-        
-        if (!project) {
-            projects.some(tsProjects  => {
-                return tsProjects.some(tsProject => {
-                    if (tsProject.getProjectFileKind(path) === ProjectFileKind.REFERENCE) {
-                        project = tsProject;
-                        return true;
-                    }
-                })     
-            });
-        }
-        
-        //TODO return a kind of "single file project" if no project are found
-        return project;
-    }
-    
-    //-------------------------------
-    //  Private methods
-    //------------------------------- 
-    
-    /**
-     * find bracketsTypescript config files and create a project for each file founds
-     */
-    private createProjects():void {
-        this.fileSystem.getProjectFiles().then((paths: string[]) => {
-            paths
-                .filter(utils.isTypeScriptProjectConfigFile)
-                .forEach(this.createProjectsFromFile, this);     
-        });
-    }
-    
-    /**
-     * dispose every projects created by the project Manager
-     */
-    private disposeProjects():void {
-        var projectMap = this.projectMap;
-        projectMap.keys.forEach(path =>  {
-            projectMap.get(path).forEach(project => project.dispose())
-        });
-        this.projectMap.clear();
-    }
-    
-    /**
-     * for a given config file create a project
-     * 
-     * @param configFilePath the config file path
-     */
-    private createProjectsFromFile(configFilePath: string) {
-        this.retrieveConfig(configFilePath).then(configs => {
-            if (configs.length === 0) {
-                this.projectMap.delete(configFilePath);
-                return;
-            }
-            
-            var projects: TypeScriptProject[];
-            if (!this.projectMap.has(configFilePath)) {
-                projects = [];
-                this.projectMap.set(configFilePath, projects);
-            } else {
-                projects = this.projectMap.get(configFilePath);
-            }
-            
-            configs.forEach( (config: TypeScriptProjectConfig, index: number) => {
-                var project = projects[index];
-                if (project) {
-                    project.update(config)
-                } else {
-                     projects[index] = this.createProjectFromConfig(configFilePath, config);
-                }
-            });
-        });
-    }
-    
-    /**
-     * for given validated config and config file path create a project
-     * 
-     * @param configFilePath the config file path
-     * @param config the config created from the file
-     */
-    private createProjectFromConfig(configFilePath: string, config : TypeScriptProjectConfig) {
-        if (config) {
-            var project = this.newProject(PathUtils.directory(configFilePath), config)
-            project.init(this.servicesFactory.map(serviceFactory => serviceFactory(project)));
-            return project;
-        } 
-    }
-
-    
-    private newProject(baseDir: string, config: TypeScriptProjectConfig) {
-        return new TypeScriptProject(baseDir, config, this.fileSystem, this.workingSet);
-    }
-    
-    /**
-     * try to create a config from a given config file path
-     * validate the config file, then add default values if needed
-     * 
-     * @param configFilePath
-     */
-    private retrieveConfig(configFilePath: string): JQueryPromise<TypeScriptProjectConfig[]> {
-        return this.fileSystem.readFile(configFilePath).then((content: string) => {
-            var data : any;
-            try {
-                data =  JSON.parse(content);
-            } catch(e) {
-                //TODO logging strategy
-                console.log('invalid json for brackets-typescript config file: ' + configFilePath);
-            }
-            
-            if (!data) {
-                return [];
-            }
-            
-            var configs : TypeScriptProjectConfig[];
-            if (Array.isArray(data)) {
-                configs = data;
-            } else {
-                configs = [data]
-            }
-            
-            return configs.map(config => {
-                if(config) {
-                    for (var property in utils.typeScriptProjectConfigDefault) {
-                        if (!config.hasOwnProperty(property)) {
-                            config[property] = utils.typeScriptProjectConfigDefault[property]
-                        }
-                    }
-                    if(!utils.validateTypeScriptProjectConfig(config)) {
-                        config = null;
-                    }
-                }
-                return config; 
-            }).filter(config => !!config);
-        });
-    }
-    
-    
-    //-------------------------------
-    //  Events Handler
-    //------------------------------- 
-    
-    
-    /**
-     * handle changes in the file system, update / delete / create project accordingly
-     */
-    private filesChangeHandler = (changeRecords: fs.ChangeRecord[]) => {
-        changeRecords.forEach(record => {
-            if (record.kind === fs.FileChangeKind.RESET) {
-                //reinitialize the projects if file system reset
-                this.disposeProjects();
-                this.createProjects();
-                return false;
-            } else if (utils.isTypeScriptProjectConfigFile(record.path)) {
-                switch (record.kind) { 
-                    // a config file has been deleted detele the project
-                    case fs.FileChangeKind.DELETE:
-                        if (this.projectMap.has(record.path)) {
-                            this.projectMap.get(record.path).forEach(project => {
-                                project.dispose();
-                            })
-                            this.projectMap.delete(record.path);
-                        }
-                        break;
-                        
-                    // a config file has been created create a new project
-                    case fs.FileChangeKind.ADD:
-                        this.createProjectsFromFile(record.path);
-                        break;
-                        
-                    case fs.FileChangeKind.UPDATE:
-                        this.createProjectsFromFile(record.path);
-                        break;
-                }
-            }
-            return true;
-        }); 
-    }
-}
-
+import TypeScriptService = require('./typeScriptService');
 
 
 //--------------------------------------------------------------------------
@@ -327,7 +57,7 @@ export interface ProjectServiceFactory {
 
 //--------------------------------------------------------------------------
 //
-//  TypeScriptProject
+//  TypeScriptProjectConfig
 //
 //--------------------------------------------------------------------------
 
@@ -356,12 +86,13 @@ export interface TypeScriptProjectConfig {
     noImplicitAny?: boolean;
 }
 
-/**
- * describe the factotry used to create a language service
- */
-export interface LanguageServiceHostFactory {
-    (settings: TypeScript.CompilationSettings, files:  { [path: string]: string }): language.LanguageServiceHost;
-}
+
+//--------------------------------------------------------------------------
+//
+//  TypeScriptProject
+//
+//--------------------------------------------------------------------------
+
 
 /**
  * enum describing the type of file ib a project
@@ -406,12 +137,8 @@ export interface ITypeScriptProject {
     /**
      * get compilations settings
      */
-    getScripts(): collections.StringMap<script.ScriptInfo>;
+    getScripts(): collections.StringSet;
     
-    /**
-     * return the language service associated to this project
-     */
-    getLanguageService(): Services.ILanguageService;
  
     /**
      * dispose the project
@@ -429,23 +156,6 @@ export interface ITypeScriptProject {
      * @param path
      */
     getProjectFileKind(path: string): ProjectFileKind;
-    
-    /**
-     * return an index from a positon in line/char
-     * @param path the path of the file
-     * @param position the position
-     */
-    getIndexFromPos(path: string, position: ws.Position): number;
-    
-    
-    /**
-     * return a positon in line/char from an index
-     * @param path the path of the file
-     * @param index the index
-     */
-    indexToPosition(path: string, index: number): ws.Position;
-
- 
 }
 
 /**
@@ -469,14 +179,15 @@ export class TypeScriptProject implements ITypeScriptProject {
         private config: TypeScriptProjectConfig, 
         private fileSystem: fs.IFileSystem,
         private workingSet: ws.IWorkingSet
-    ) {}
+    ) {
+        this.typeScriptService = new TypeScriptService();
+    }
     
     //-------------------------------
     //  variables
     //-------------------------------
     
     
-
     /**
      * the compilation settings extracted from the project config file
      */
@@ -486,28 +197,10 @@ export class TypeScriptProject implements ITypeScriptProject {
     /**
      * Map path to content
      */
-    private projectScripts: collections.StringMap<script.ScriptInfo>;//{ [path: string]: string };
+    private projectFiles: collections.StringSet;
     
-    /**
-     * store file references
-     */
-    private references: collections.StringMap<collections.StringSet>;
-    
-    /**
-     * a set containing path of file referenced but not found
-     */
-    private missingFiles: collections.StringSet;
-    
-    /**
-     * the language service host associated to this project
-     */
-    private languageServiceHost: language.LanguageServiceHost;
-    
-    /**
-     * the language service associated to this project
-     */
-    private languageService: Services.ILanguageService;
-    
+   
+   
     /**
      * track of the initialized state of the project
      */
@@ -517,6 +210,17 @@ export class TypeScriptProject implements ITypeScriptProject {
      * services attached to this project
      */
     private services: ProjectService[]
+    
+    /**
+     * TypeScript service
+     */
+    private typeScriptService: TypeScriptService;
+    
+    
+    /**
+     * Reference manager
+     */
+    private referencesManager: ReferencesManager;
     
     
     /**
@@ -533,6 +237,8 @@ export class TypeScriptProject implements ITypeScriptProject {
         fileAdded: [],
         fileUpdated: []
     }
+    
+    
     //-------------------------------
     //  public method
     //-------------------------------
@@ -551,7 +257,6 @@ export class TypeScriptProject implements ITypeScriptProject {
      * rinitialize the project
      */
     reset() {
-        this.dispose();
         this.internalInit();
     }
     
@@ -567,16 +272,9 @@ export class TypeScriptProject implements ITypeScriptProject {
      * get compilations settings
      */
     getScripts() {
-        return this.projectScripts;
+        return this.projectFiles;
     }
-    
-    /**
-     * return the language service associated to this project
-     */
-    getLanguageService(): Services.ILanguageService {
-        return this.languageService;
-    }
- 
+
     /**
      * dispose the project
      */
@@ -600,68 +298,32 @@ export class TypeScriptProject implements ITypeScriptProject {
      * @param path
      */
     getProjectFileKind(path: string): ProjectFileKind {
-        if (this.projectScripts.has(path)) {
+        if (this.projectFiles.has(path)) {
             return this.isProjectSourceFile(path) ? ProjectFileKind.SOURCE :  ProjectFileKind.REFERENCE;
         } else {
             return ProjectFileKind.NONE
         }
     }
     
-    /**
-     * return an index from a positon in line/char
-     * @param path the path of the file
-     * @param position the position
-     */
-    getIndexFromPos(path: string, position: ws.Position): number {
-        var script = this.projectScripts.get(path);
-        if (script) {
-            return script.lineMap.getPosition(position.line, position.ch)
-        }
-        return -1;
-    }
-    
-    
-    /**
-     * return a positon in line/char from an index
-     * @param path the path of the file
-     * @param index the index
-     */
-    indexToPosition(path: string, index: number): ws.Position {
-        var script = this.projectScripts.get(path);
-        if (script) {
-            var tsPosition = script.getLineAndColForPositon(index);
-            return {
-                ch: tsPosition.character,
-                line: tsPosition.line
-            }
-        }
-        return null;
-    }
-
     
     //-------------------------------
     //  private methods
     //-------------------------------
+    
     /**
      * initialize the project
      */
     private internalInit() {
         this.initialized = false;
+        this.projectFiles = new collections.StringSet();
+        this.referencesManager = new ReferencesManager();
+        
+        
+        this.compilationSettings =  this.createCompilationSettings();
+        this.typeScriptService.init(this.compilationSettings);
+        
         this.collectFiles().then(() => {
-            this.compilationSettings =  this.createCompilationSettings();
-            if (!this.compilationSettings.noLib) {
-                this.addDefaultLibrary();
-            }
-            this.createLanguageService();
-            this.workingSet.files.forEach((path: string) => {
-                var script = this.projectScripts.get(path);
-                if (script) {
-                    script.isOpen = true;
-                }
-            });
-            this.workingSet.workingSetChanged.add(this.workingSetChangedHandler);
-            this.workingSet.documentEdited.add(this.documentEditedHandler);
-            this.fileSystem.projectFilesChanged.add(this.filesChangeHandler);
+            this.workingSet.files.forEach(path => this.typeScriptService.setScriptIsOpen(path, true));
             this.services.forEach(service => service.run(true, null));
             this.initialized = true;
         },() => { 
@@ -671,26 +333,28 @@ export class TypeScriptProject implements ITypeScriptProject {
     }
     
     
+    
+    
     //-------------------------------
-    //  Scripts manipulation
+    //  Project Files managment
     //-------------------------------
     
     /**
      * retrive files content for path described in the config
      */
     private collectFiles(): JQueryPromise<void> {
-        this.projectScripts = new collections.StringMap<script.ScriptInfo>();
-        this.missingFiles = new collections.StringSet();
-        this.references = new collections.StringMap<collections.StringSet>();
-        return this.fileSystem.getProjectFiles().then((paths: string[]) => {
-            var promises: JQueryPromise<any>[] = [];
+        var promises: JQueryPromise<{ key: string; value: string; }>[] =  [] ;
+        if (!this.config.noLib) {
+            promises.push(this.addFile(utils.DEFAULT_LIB_LOCATION));
+        } 
+        return this.fileSystem.getProjectFiles().then(paths => {
+            var fileEntries: collections.MapEntry<string>[] = [];
             paths.forEach(path => {
                 if (this.isProjectSourceFile(path)) {
-                    var promise = this.addFile(path, false);
-                    promises.push()
+                    promises.push(this.addFile(path, false));
                 }
             });
-            return $.when.apply($,promises);
+            return $.when.apply($, promises);
         });
     }
     
@@ -701,45 +365,49 @@ export class TypeScriptProject implements ITypeScriptProject {
      * @param path
      */
     private addFile(path: string, notify = true): JQueryPromise<void>  {
-        if (!this.projectScripts.has(path)) {
-            this.projectScripts.set(path, null);
-            this.fileSystem.readFile(path).then((content: string) => {
-                var promises: JQueryPromise<any>[] = [];
-                this.missingFiles.remove(path);
-                this.projectScripts.set(path, this.createScriptInfo(path, content));
+        if (!this.projectFiles.has(path)) {
+            this.projectFiles.add(path);
+            return this.fileSystem.readFile(path).then<void>(content => {
+                this.typeScriptService.addScript(path, content);
+                
                 if (notify) {
                     this.notifyFileAdded(path);
                 }
-                this.getReferencedOrImportedFiles(path).forEach((referencedPath: string) => {
-                    promises.push(this.addFile(referencedPath));
-                    this.addReference(path, referencedPath);
+                
+                return this.typeScriptService.getReferencedFiles(path).then(referencedFiles => {
+                    var promises: JQueryPromise<any>[] = [];
+                    referencedFiles.forEach(referencedFile => {
+                        this.referencesManager.addReference(path, referencedFile);
+                        promises.push(this.addFile(referencedFile));
+                    });
+                    return $.when.apply($, promises);
                 });
-                return $.when.apply($,promises);
-            },() => {
-                this.projectScripts.delete(path);
-                if (!this.getReferencedOrImportedFiles(path) !== null) {
-                    this.missingFiles.add(path);
-                }
+            }, () => {
+                this.projectFiles.remove(path);
             });
         }
-        return null;
     }
     
     /**
      * remove a file from the project
      * @param path
      */
-    private removeFile(path: string) {
-        if (this.projectScripts.has(path)) {
-            this.getReferencedOrImportedFiles(path).forEach((referencedPath: string) => {
-                this.removeReference(path, referencedPath);
-            });
-            if (this.references.has(path) && this.references.get(path).values.length > 0) {
-                this.missingFiles.add(path);
-            }   
-            this.projectScripts.delete(path);
+    private removeFile(path: string): void {
+        if (this.projectFiles.has(path)) {
+            this.typeScriptService.removeScript(path);
             this.notifyFileDeleted(path);
-        }
+            
+            var references = this.referencesManager.getFileReferences(path);
+            if (references) {
+                references.forEach(reference => {
+                    this.referencesManager.removeReference(path, reference);
+                    if (!this.referencesManager.hasFileReferencing(reference) && !this.isProjectSourceFile(reference)) {
+                        this.removeFile(reference);
+                    }
+                });
+            }
+        } 
+        return;
     }
     
     /**
@@ -747,11 +415,27 @@ export class TypeScriptProject implements ITypeScriptProject {
      * @param path
      */
     private updateFile(path: string) {
-        this.fileSystem.readFile(path).then((content: string) => {
-            var oldPaths = new collections.StringSet(this.getReferencedOrImportedFiles(path));
-            this.projectScripts.get(path).updateContent(content);
-            this.notifyFileUpdated(path);
-            this.updateReferences(path, oldPaths);
+        this.fileSystem.readFile(path).then(content => {
+            this.typeScriptService.updateScript(path, content);
+            var oldReferences = new collections.StringSet(this.referencesManager.getFileReferences(path));
+            this.typeScriptService.getReferencedFiles(path).then(references => {
+                references.forEach(referencedFile => {
+                    if (!oldReferences.has(referencedFile)) {
+                        this.addFile(referencedFile);
+                        this.referencesManager.addReference(path, referencedFile);
+                    } else {
+                        oldReferences.remove(referencedFile);
+                    }    
+                });
+                oldReferences.values.forEach(referencedFile => {
+                    this.referencesManager.removeReference(path, referencedFile);
+                    if (!this.referencesManager.hasFileReferencing(referencedFile) && !this.isProjectSourceFile(referencedFile)) {
+                        this.removeFile(referencedFile);
+                    }
+                });
+            });
+        }, () => {
+            this.removeFile(path);    
         });
     }
     
@@ -764,83 +448,10 @@ export class TypeScriptProject implements ITypeScriptProject {
         return this.config.sources.some(pattern => utils.minimatch(path, pattern));
     }
     
-    /**
-     * create a scriptInfo
-     * @param path
-     * @param content
-     */
-    private createScriptInfo(path: string, content: string): script.ScriptInfo {
-         return new script.ScriptInfo(path, content)
-    }
+   
     
     //-------------------------------
-    //  References
-    //-------------------------------
-    
-    /**
-     * for a given file retrives the file referenced or imported by this file
-     * @param path
-     */
-    private getReferencedOrImportedFiles(path: string): string[] {
-        if (!this.projectScripts.has(path)) {
-            return []
-        }
-        var preProcessedFileInfo = coreService.getPreProcessedFileInfo(path, new script.ScriptSnapshot(this.projectScripts.get(path)));
-        return preProcessedFileInfo.referencedFiles.map(fileReference => {
-            return PathUtils.makePathAbsolute(fileReference.path, path);
-        }).concat(preProcessedFileInfo.importedFiles.map(fileReference => {
-            return PathUtils.makePathAbsolute(fileReference.path + '.ts', path);
-        }));
-    }
-    
-    /**
-     * add a reference 
-     * @param path the path of the file referencing anothe file
-     * @param referencedPath the path of the file referenced
-     */
-    private addReference(path: string, referencedPath: string) {
-        if (!this.references.has(referencedPath)) {
-            this.references.set(referencedPath, new collections.StringSet());
-        }
-        this.references.get(referencedPath).add(path)
-    }
-    
-    /**
-     * remove a reference
-     * @param path the path of the file referencing anothe file
-     * @param referencedPath the path of the file referenced
-     */
-    private removeReference(path: string, referencedPath: string) {
-        var fileRefs = this.references.get(referencedPath);
-        if (!fileRefs) {
-            this.removeFile(referencedPath);
-        }
-        fileRefs.remove(path);
-        if (fileRefs.values.length === 0) {
-            this.references.delete(referencedPath);
-            this.removeFile(referencedPath);
-        }   
-    }
-    
-    
-    private updateReferences(path: string, oldPaths: collections.StringSet) {
-        this.getReferencedOrImportedFiles(path).forEach((referencedPath: string) => {
-            oldPaths.remove(referencedPath);
-            if (!this.projectScripts.has(referencedPath)) {
-                this.addFile(referencedPath);
-                this.addReference(path, referencedPath);
-            }
-        });
-        
-        oldPaths.values.forEach((referencedPath: string) => {
-            this.removeReference(path, referencedPath);
-        });
-    }
-    
-    
-    
-    //-------------------------------
-    //  TypeScript Objects
+    //  CompilationSettings
     //-------------------------------
  
     /**
@@ -873,34 +484,9 @@ export class TypeScriptProject implements ITypeScriptProject {
                                                         TypeScript.ModuleGenTarget.Synchronous );
         return compilationSettings
     }
-    /**
-     * create the language service according to the file
-     */
-    private createLanguageService(): void {
-        this.languageServiceHost = new language.LanguageServiceHost(this.compilationSettings, this.projectScripts);
-        this.languageService = new Services.TypeScriptServicesFactory().createPullLanguageService(this.languageServiceHost);
-    }
+   
     
-    //-------------------------------
-    //  Default Library
-    //-------------------------------
-    
-    /**
-     * add the default library
-     */
-    private addDefaultLibrary() {
-        return this.addFile(utils.DEFAULT_LIB_LOCATION)
-    }
-    
-    
-    /**
-     * add the default library
-     */
-    private removeDefaultLibrary() {
-        this.removeFile(utils.DEFAULT_LIB_LOCATION)
-    }
-    
-    
+  
     //-------------------------------
     //  Services Notification
     //-------------------------------
@@ -952,9 +538,25 @@ export class TypeScriptProject implements ITypeScriptProject {
     }
     
     
+     
+    
+    
     //-------------------------------
     //  Events Handler
     //-------------------------------
+    
+    private addListeners(): void {
+        this.workingSet.workingSetChanged.add(this.workingSetChangedHandler);
+        this.workingSet.documentEdited.add(this.documentEditedHandler);
+        this.fileSystem.projectFilesChanged.add(this.filesChangeHandler);
+    }
+    
+    private removeListeners(): void {
+        this.workingSet.workingSetChanged.add(this.workingSetChangedHandler);
+        this.workingSet.documentEdited.add(this.documentEditedHandler);
+        this.fileSystem.projectFilesChanged.add(this.filesChangeHandler);
+    }
+    
     
     /**
      * handle changes in the fileSystem
@@ -963,17 +565,17 @@ export class TypeScriptProject implements ITypeScriptProject {
         changeRecords.forEach(record => {
             switch (record.kind) { 
                 case fs.FileChangeKind.ADD:
-                    if (this.isProjectSourceFile(record.path) || this.missingFiles.has(record.path)) {
+                    if (this.isProjectSourceFile(record.path) || this.referencesManager.hasFileReferencing(record.path)) {
                         this.addFile(record.path);
                     }
                     break;
                 case fs.FileChangeKind.DELETE:
-                    if (this.projectScripts.has(record.path)) {
+                    if (this.projectFiles.has(record.path)) {
                         this.removeFile(record.path);
                     }
                     break;
                 case fs.FileChangeKind.UPDATE:
-                    if (this.projectScripts.has(record.path)) {
+                    if (this.projectFiles.has(record.path)) {
                         this.updateFile(record.path);
                     }
                     break;
@@ -988,16 +590,18 @@ export class TypeScriptProject implements ITypeScriptProject {
         switch (changeRecord.kind) { 
             case ws.WorkingSetChangeKind.ADD:
                 changeRecord.paths.forEach((path: string) => {
-                    if (this.projectScripts.has(path)) {
-                        this.projectScripts.get(path).isOpen = true;
+                    if (this.projectFiles.has(path)) {
+                        //TODO
+                        //this.projectScripts.get(path).isOpen = true;
                     }
                 });
                 break;
             case ws.WorkingSetChangeKind.REMOVE:
                 changeRecord.paths.forEach((path: string) => {
-                    if (this.projectScripts.has(path)) {
-                        this.projectScripts.get(path).isOpen = false;
-                        this.updateFile(path);
+                    if (this.projectFiles.has(path)) {
+                        //TODO
+                        /*this.projectScripts.get(path).isOpen = false;
+                        this.updateFile(path);*/
                     }
                 });
                 break;
@@ -1009,7 +613,8 @@ export class TypeScriptProject implements ITypeScriptProject {
      */
     private documentEditedHandler = (records: ws.DocumentChangeDescriptor[]) => {
         records.forEach((record: ws.DocumentChangeDescriptor) => {
-            if (this.projectScripts.has(record.path)) {
+            //TODO
+            /*if (this.projectFiles.has(record.path)) {
                 var oldPaths = new collections.StringSet(this.getReferencedOrImportedFiles(record.path));
                 
                 if (!record.from || !record.to) {
@@ -1022,9 +627,96 @@ export class TypeScriptProject implements ITypeScriptProject {
                 }
                 
                 this.updateReferences(record.path, oldPaths);
-            }
+            }*/
         });
     }
+}
+
+
+class ReferencesManager {
+    
+    /**
+     * store file references : referencedFiles -> file referencing
+     */
+    private referencedToReferencing = new collections.StringMap<collections.StringSet>();
+    
+    /**
+     * store file references :  file referencing -> referencedFiles
+     */
+    private referencingToReferenced = new collections.StringMap<collections.StringSet>();
+    
+    
+    public hasFileReferencing(file: string): boolean {
+        return this.referencedToReferencing.has(file);
+    }
+    
+    public getFileReferencing(file: string): string[] {
+        var fileReferencing = this.referencedToReferencing.get(file);
+        return fileReferencing && fileReferencing.values;
+    }
+    
+    public getFileReferences(file: string): string[] {
+        var fileReferenced = this.referencingToReferenced.get(file);
+        return fileReferenced && fileReferenced.values;
+    }
+    
+    /**
+     * add a reference 
+     * @param path the path of the file referencing anothe file
+     * @param referencedPath the path of the file referenced
+     */
+    public addReference(file: string, referencedFile: string) {
+        if (!this.referencedToReferencing.has(referencedFile)) {
+            this.referencedToReferencing.set(referencedFile, new collections.StringSet());
+        }
+        if (!this.referencingToReferenced.has(file)) {
+            this.referencingToReferenced.set(file, new collections.StringSet());
+        }
+        this.referencedToReferencing.get(referencedFile).add(file)
+        this.referencingToReferenced.get(file).add(referencedFile)
+    }
+    
+    /**
+     * remove a reference
+     * @param path the path of the file referencing anothe file
+     * @param referencedPath the path of the file referenced
+     */
+    public removeReference(file: string, referencedFile: string): void {
+        var fileReferencing = this.referencedToReferencing.get(referencedFile),
+            fileReferenced = this.referencingToReferenced.get(file);
+        
+        if (!fileReferencing || !fileReferenced) {
+            return;
+        }
+        
+        fileReferencing.remove(file);
+        fileReferenced.remove(referencedFile);
+        
+        if (fileReferencing.values.length === 0) {
+            this.referencedToReferencing.delete(referencedFile);
+        }
+        
+        if (fileReferenced.values.length === 0) {
+            this.referencingToReferenced.delete(file);
+        }
+    }
+    
+    private updateReferences(path: string, oldPaths: collections.StringSet) {
+        //TODO
+        /*this.getReferencedOrImportedFiles(path).forEach((referencedPath: string) => {
+            oldPaths.remove(referencedPath);
+            if (!this.projectScripts.has(referencedPath)) {
+                this.addFile(referencedPath);
+                this.addReference(path, referencedPath);
+            }
+        });
+        
+        oldPaths.values.forEach((referencedPath: string) => {
+            this.removeReference(path, referencedPath);
+        });*/
+        return ;
+    }
+
 }
 
 

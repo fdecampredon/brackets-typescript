@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+'use strict';
 
 export class ScriptInfo {
     public version: number = 1;

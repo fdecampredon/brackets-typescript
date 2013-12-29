@@ -14,7 +14,7 @@
 
 
 import signal = require('./utils/signal');
-import collections = require('./utils/collections');
+import collections = require('../commons/collections');
 
 
 

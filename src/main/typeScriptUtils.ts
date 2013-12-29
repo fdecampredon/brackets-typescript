@@ -87,3 +87,5 @@ export var typeScriptProjectConfigDefault: project.TypeScriptProjectConfig = {
     allowImportModule: false,
     noImplicitAny: false
 }
+
+export var serviceUrl: string;
