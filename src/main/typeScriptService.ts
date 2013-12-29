@@ -26,7 +26,7 @@ class TypeScriptService {
         return this.executeOperations(TypeScriptOperation.UPDATE_FILE, path, content);
     }
     
-    public editScript(path: string,minChar: number, limChar: number, newText: string): JQueryPromise<void> {
+    public editScript(path: string, minChar: CodeMirror.Position, limChar: CodeMirror.Position, newText: string): JQueryPromise<void> {
         return this.executeOperations(TypeScriptOperation.EDIT_FILE, path, minChar, limChar, newText);
     }
     

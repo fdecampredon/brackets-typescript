@@ -417,25 +417,30 @@ export class TypeScriptProject implements ITypeScriptProject {
     private updateFile(path: string) {
         this.fileSystem.readFile(path).then(content => {
             this.typeScriptService.updateScript(path, content);
-            var oldReferences = new collections.StringSet(this.referencesManager.getFileReferences(path));
-            this.typeScriptService.getReferencedFiles(path).then(references => {
-                references.forEach(referencedFile => {
-                    if (!oldReferences.has(referencedFile)) {
-                        this.addFile(referencedFile);
-                        this.referencesManager.addReference(path, referencedFile);
-                    } else {
-                        oldReferences.remove(referencedFile);
-                    }    
-                });
-                oldReferences.values.forEach(referencedFile => {
-                    this.referencesManager.removeReference(path, referencedFile);
-                    if (!this.referencesManager.hasFileReferencing(referencedFile) && !this.isProjectSourceFile(referencedFile)) {
-                        this.removeFile(referencedFile);
-                    }
-                });
-            });
+            this.updateReferences(path);
         }, () => {
             this.removeFile(path);    
+        });
+    }
+    
+    
+    private updateReferences(path: string): void {
+        var oldReferences = new collections.StringSet(this.referencesManager.getFileReferences(path));
+        this.typeScriptService.getReferencedFiles(path).then(references => {
+            references.forEach(referencedFile => {
+                if (!oldReferences.has(referencedFile)) {
+                    this.addFile(referencedFile);
+                    this.referencesManager.addReference(path, referencedFile);
+                } else {
+                    oldReferences.remove(referencedFile);
+                }    
+            });
+            oldReferences.values.forEach(referencedFile => {
+                this.referencesManager.removeReference(path, referencedFile);
+                if (!this.referencesManager.hasFileReferencing(referencedFile) && !this.isProjectSourceFile(referencedFile)) {
+                    this.removeFile(referencedFile);
+                }
+            });
         });
     }
     
@@ -591,17 +596,14 @@ export class TypeScriptProject implements ITypeScriptProject {
             case ws.WorkingSetChangeKind.ADD:
                 changeRecord.paths.forEach((path: string) => {
                     if (this.projectFiles.has(path)) {
-                        //TODO
-                        //this.projectScripts.get(path).isOpen = true;
+                        this.typeScriptService.setScriptIsOpen(path, true);
                     }
                 });
                 break;
             case ws.WorkingSetChangeKind.REMOVE:
                 changeRecord.paths.forEach((path: string) => {
                     if (this.projectFiles.has(path)) {
-                        //TODO
-                        /*this.projectScripts.get(path).isOpen = false;
-                        this.updateFile(path);*/
+                        this.typeScriptService.setScriptIsOpen(path, false);
                     }
                 });
                 break;
@@ -613,21 +615,14 @@ export class TypeScriptProject implements ITypeScriptProject {
      */
     private documentEditedHandler = (records: ws.DocumentChangeDescriptor[]) => {
         records.forEach((record: ws.DocumentChangeDescriptor) => {
-            //TODO
-            /*if (this.projectFiles.has(record.path)) {
-                var oldPaths = new collections.StringSet(this.getReferencedOrImportedFiles(record.path));
-                
+            if (this.projectFiles.has(record.path)) {
                 if (!record.from || !record.to) {
-                    this.projectScripts.get(record.path).updateContent(record.documentText);
+                    this.typeScriptService.updateScript(record.path, record.documentText);
                 } else {
-                    var minChar = this.getIndexFromPos(record.path, record.from),
-                        limChar = this.getIndexFromPos(record.path, record.to);
-                    
-                    this.projectScripts.get(record.path).editContent(minChar, limChar, record.text);
+                    this.typeScriptService.editScript(record.path, record.from, record.to, record.text);
                 }
-                
-                this.updateReferences(record.path, oldPaths);
-            }*/
+                this.updateReferences(record.path);
+            }
         });
     }
 }
@@ -699,22 +694,6 @@ class ReferencesManager {
         if (fileReferenced.values.length === 0) {
             this.referencingToReferenced.delete(file);
         }
-    }
-    
-    private updateReferences(path: string, oldPaths: collections.StringSet) {
-        //TODO
-        /*this.getReferencedOrImportedFiles(path).forEach((referencedPath: string) => {
-            oldPaths.remove(referencedPath);
-            if (!this.projectScripts.has(referencedPath)) {
-                this.addFile(referencedPath);
-                this.addReference(path, referencedPath);
-            }
-        });
-        
-        oldPaths.values.forEach((referencedPath: string) => {
-            this.removeReference(path, referencedPath);
-        });*/
-        return ;
     }
 
 }
