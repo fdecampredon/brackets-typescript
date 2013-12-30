@@ -137,7 +137,7 @@ export interface ITypeScriptProject {
     /**
      * get compilations settings
      */
-    getScripts(): collections.StringSet;
+    getFiles(): collections.StringSet;
     
  
     /**
@@ -187,7 +187,6 @@ export class TypeScriptProject implements ITypeScriptProject {
     //  variables
     //-------------------------------
     
-    
     /**
      * the compilation settings extracted from the project config file
      */
@@ -199,7 +198,6 @@ export class TypeScriptProject implements ITypeScriptProject {
      */
     private projectFiles: collections.StringSet;
     
-   
    
     /**
      * track of the initialized state of the project
@@ -216,18 +214,15 @@ export class TypeScriptProject implements ITypeScriptProject {
      */
     private typeScriptService: TypeScriptService;
     
-    
     /**
      * Reference manager
      */
     private referencesManager: ReferencesManager;
     
-    
     /**
      * @private
      */
     private immediateId: number;
-    
     
     /**
      * current stored delta before notification
@@ -271,7 +266,7 @@ export class TypeScriptProject implements ITypeScriptProject {
     /**
      * get compilations settings
      */
-    getScripts() {
+    getFiles() {
         return this.projectFiles;
     }
 
