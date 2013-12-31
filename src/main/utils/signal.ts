@@ -71,7 +71,7 @@ export class Signal<T> implements ISignal<T> {
         return this.listeners.length > 0;
     }
 }
-
+/*
 
 export class JQuerySignalWrapper<JQueryEventObject> implements ISignal<JQueryEventObject>  {
   
@@ -81,7 +81,7 @@ export class JQuerySignalWrapper<JQueryEventObject> implements ISignal<JQueryEve
     ) {}
     
     private signal: Signal<JQueryEventObject> = new Signal<JQueryEventObject>();
-    private jqueryEventHandler = (parameter: JQueryEventObject) => {
+    private jqueryEventHandler = (parameter: JQueryEventObject) : any => {
         this.signal.dispatch(parameter);
     }    
     
@@ -113,7 +113,7 @@ export class JQuerySignalWrapper<JQueryEventObject> implements ISignal<JQueryEve
     private removeJQueryEventListener() {
         this.target.off(this.event, this.jqueryEventHandler);
     }
-}
+}*/
 
 
 export class DomSignalWrapper<T extends Event> implements ISignal<T>  {

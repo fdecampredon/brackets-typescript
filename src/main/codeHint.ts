@@ -15,12 +15,10 @@
 
 'use strict';
 
-import project = require('./project');
+import TypeScriptProjectManager = require('./projectManager');
 import Logger = require('./logger');
 import immediate = require('./utils/immediate');
-import Services = TypeScript.Services;
-import ScriptElementKind =  Services.ScriptElementKind;
-import ScriptElementKindModifier =  Services.ScriptElementKindModifier;
+import project = require('./project');
 
 
 //--------------------------------------------------------------------------
@@ -59,9 +57,9 @@ export interface Hint {
  * Service returning hint for a given file
  */
 export class HintService {
-    private typescriptProjectManager: project.TypeScriptProjectManager;
+    private typescriptProjectManager: TypeScriptProjectManager;
     
-    init(typescriptProjectManager : project.TypeScriptProjectManager){
+    init(typescriptProjectManager : TypeScriptProjectManager){
         this.typescriptProjectManager = typescriptProjectManager;
     }
     
@@ -73,114 +71,105 @@ export class HintService {
      * @param position position in the file
      * @param currentToken if given filter the hint to match this token
      */
-    getHintsAtPositon(path: string, position: CodeMirror.Position, currentToken: string) : Hint[] {
-        var project: project.TypeScriptProject = this.typescriptProjectManager.getProjectForFile(path);
+    getHintsAtPositon(path: string, position: CodeMirror.Position, currentToken: string) : JQueryPromise<Hint[]> {
+        var project = this.typescriptProjectManager.getProjectForFile(path);
         
         if (!project) {
             return null;
         }
         
-        var languageService = project.getLanguageService()
-        
-        if(!languageService) {
-            return null;
-        }
-   
-        var index = project.getIndexFromPos(path, position),
-            completionInfo = languageService.getCompletionsAtPosition(path, index, true),
-            entries = completionInfo && completionInfo.entries;
-        
-        if(!entries) {
-            return null;
-        }
-        
-        if (currentToken) {
-            entries = entries.filter(entry => {
-                return entry.name && entry.name.toLowerCase().indexOf(currentToken.toLowerCase()) === 0;
-            });
-        }
-    
-        entries.sort(function(entry1, entry2) {
-            var name1 = entry1 && entry1.name.toLowerCase(),
-                name2 = entry2 && entry2.name.toLowerCase();
-            if(name1 < name2) {
-                return -1;
-            }
-            else if(name1 > name2) {
-                return 1;
-            }
-            else {
-                return 0;
-            }
-        });
-        
-        
-        
-        var hints = entries.map(entry => {
-            var entryInfo = languageService.getCompletionEntryDetails(path, index, entry.name),
-                hint = {
-                    name: entry.name,
-                    kind: HintKind.DEFAULT,
-                    type: entryInfo && entryInfo.type,
-                    doc: entryInfo && entryInfo.docComment
-                };
-           
-        
-            switch(entry.kind) {
-                case ScriptElementKind.unknown:
-                case ScriptElementKind.primitiveType:
-                case ScriptElementKind.scriptElement:
-                    break;
-                case ScriptElementKind.keyword:
-                    hint.kind = HintKind.KEYWORD;
-                    break;
-                    
-                case ScriptElementKind.classElement:
-                    hint.kind = HintKind.CLASS;
-                    break;
-                case ScriptElementKind.interfaceElement:
-                    hint.kind = HintKind.INTERFACE;
-                    break;
-                case ScriptElementKind.enumElement:
-                    hint.kind = HintKind.ENUM;
-                    break;
-                case ScriptElementKind.moduleElement:
-                    hint.kind = HintKind.MODULE;
-                    break;
-                    
-                    
-                case ScriptElementKind.memberVariableElement:
-                case ScriptElementKind.variableElement:
-                case ScriptElementKind.localVariableElement:
-                case ScriptElementKind.parameterElement:
-                    hint.kind = HintKind.VARIABLE;
-                    break;
-                
-                
-                case ScriptElementKind.memberFunctionElement:
-                case ScriptElementKind.functionElement:
-                case ScriptElementKind.localFunctionElement:
-                    hint.kind = HintKind.FUNCTION;
-                    break;
-                
-                    
-                case ScriptElementKind.typeParameterElement:
-                case ScriptElementKind.constructorImplementationElement:
-                case ScriptElementKind.constructSignatureElement:
-                case ScriptElementKind.callSignatureElement:
-                case ScriptElementKind.indexSignatureElement:
-                case ScriptElementKind.memberGetAccessorElement:
-                case ScriptElementKind.memberSetAccessorElement:
-                    console.log('untreated case ' + entry.kind);
-                    break;
+        return project.getCompletionsAtPosition(path, position).then(entries => {
+             if(!entries) {
+                return null;
             }
             
-            return hint;
-        });
+            if (currentToken) {
+                entries = entries.filter(entry => {
+                    return entry.name && entry.name.toLowerCase().indexOf(currentToken.toLowerCase()) === 0;
+                });
+            }
         
-        return hints;
+            entries.sort(function(entry1, entry2) {
+                var name1 = entry1 && entry1.name.toLowerCase(),
+                    name2 = entry2 && entry2.name.toLowerCase();
+                if(name1 < name2) {
+                    return -1;
+                }
+                else if(name1 > name2) {
+                    return 1;
+                }
+                else {
+                    return 0;
+                }
+            });
+            
+            
+            
+            var hints = entries.map(entry => {
+                var entryInfo = languageService.getCompletionEntryDetails(path, index, entry.name),
+                    hint = {
+                        name: entry.name,
+                        kind: HintKind.DEFAULT,
+                        type: entryInfo && entryInfo.type,
+                        doc: entryInfo && entryInfo.docComment
+                    };
+               
+            
+                switch(entry.kind) {
+                    case ScriptElementKind.unknown:
+                    case ScriptElementKind.primitiveType:
+                    case ScriptElementKind.scriptElement:
+                        break;
+                    case ScriptElementKind.keyword:
+                        hint.kind = HintKind.KEYWORD;
+                        break;
+                        
+                    case ScriptElementKind.classElement:
+                        hint.kind = HintKind.CLASS;
+                        break;
+                    case ScriptElementKind.interfaceElement:
+                        hint.kind = HintKind.INTERFACE;
+                        break;
+                    case ScriptElementKind.enumElement:
+                        hint.kind = HintKind.ENUM;
+                        break;
+                    case ScriptElementKind.moduleElement:
+                        hint.kind = HintKind.MODULE;
+                        break;
+                        
+                        
+                    case ScriptElementKind.memberVariableElement:
+                    case ScriptElementKind.variableElement:
+                    case ScriptElementKind.localVariableElement:
+                    case ScriptElementKind.parameterElement:
+                        hint.kind = HintKind.VARIABLE;
+                        break;
+                    
+                    
+                    case ScriptElementKind.memberFunctionElement:
+                    case ScriptElementKind.functionElement:
+                    case ScriptElementKind.localFunctionElement:
+                        hint.kind = HintKind.FUNCTION;
+                        break;
+                    
+                        
+                    case ScriptElementKind.typeParameterElement:
+                    case ScriptElementKind.constructorImplementationElement:
+                    case ScriptElementKind.constructSignatureElement:
+                    case ScriptElementKind.callSignatureElement:
+                    case ScriptElementKind.indexSignatureElement:
+                    case ScriptElementKind.memberGetAccessorElement:
+                    case ScriptElementKind.memberSetAccessorElement:
+                        console.log('untreated case ' + entry.kind);
+                        break;
+                }
+                
+                return hint;
+            });
+            
+            return hints;
+        })
     }
-
 }
 
 
@@ -297,17 +286,20 @@ export class TypeScriptCodeHintProvider implements brackets.CodeHintProvider {
             var currentFilePath: string = this.editor.document.file.fullPath, 
                 position = this.editor.getCursorPos();
             
-            var hints = this.hintService.getHintsAtPositon(currentFilePath, position, this.lastUsedToken && this.lastUsedToken.string)
-            
-            if (!hints || hints.length === 0) {
-                deferred.resolve({hints : []});
-                return;
-            }
-            deferred.resolve({
-                hints: hints.map(this.hintToJQuery, this),
-                selectInitial: !!implicitChar
+            this.hintService.getHintsAtPositon(currentFilePath, position, this.lastUsedToken && this.lastUsedToken.string).then(hints =>{
+                if (!hints || hints.length === 0) {
+                    deferred.resolve({hints : []});
+                    return;
+                }
+                deferred.resolve({
+                    hints: hints.map(this.hintToJQuery, this),
+                    selectInitial: !!implicitChar
+                })
+            }, () => {
+                deferred.reject();    
             })
         });
+        
         return deferred;
     }
     

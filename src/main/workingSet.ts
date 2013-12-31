@@ -182,12 +182,12 @@ export class WorkingSet implements IWorkingSet {
             private documentManager: BracketesDocumentManager,
             private editorManager: BracketsEditorManager
     ) {
-        $(documentManager).on('workingSetAdd', this.workingSetAddHandler);
-        $(documentManager).on('workingSetAddList', this.workingSetAddListHandler);
-        $(documentManager).on('workingSetRemove', this.workingSetRemoveHandler);
-        $(documentManager).on('workingSetRemoveList', this.workingSetRemoveListHandler);
+        $(documentManager).on('workingSetAdd', <any>this.workingSetAddHandler);
+        $(documentManager).on('workingSetAddList', <any>this.workingSetAddListHandler);
+        $(documentManager).on('workingSetRemove', <any>this.workingSetRemoveHandler);
+        $(documentManager).on('workingSetRemoveList', <any>this.workingSetRemoveListHandler);
         
-        $(editorManager).on('activeEditorChange', this.activeEditorChangeHandler); 
+        $(editorManager).on('activeEditorChange', <any>this.activeEditorChangeHandler); 
         
         this.setFiles(documentManager.getWorkingSet().map(file => file.fullPath));
         this.setActiveEditor(editorManager.getActiveEditor());
@@ -250,11 +250,11 @@ export class WorkingSet implements IWorkingSet {
      * @see IWorkingSet#dispose
      */    
     dispose(): void {
-        $(this.documentManager).off('workingSetAdd', this.workingSetAddHandler);
-        $(this.documentManager).off('workingSetAddList', this.workingSetAddListHandler);
-        $(this.documentManager).off('workingSetRemove', this.workingSetRemoveHandler);
-        $(this.documentManager).off('workingSetRemoveList', this.workingSetRemoveListHandler);
-        $(this.editorManager).off('activeEditorChange', this.activeEditorChangeHandler); 
+        $(this.documentManager).off('workingSetAdd', <any>this.workingSetAddHandler);
+        $(this.documentManager).off('workingSetAddList', <any>this.workingSetAddListHandler);
+        $(this.documentManager).off('workingSetRemove', <any>this.workingSetRemoveHandler);
+        $(this.documentManager).off('workingSetRemoveList', <any>this.workingSetRemoveListHandler);
+        $(this.editorManager).off('activeEditorChange', <any>this.activeEditorChangeHandler); 
         this.setFiles(null);
         this.setActiveEditor(null);
     }
@@ -333,11 +333,11 @@ export class WorkingSet implements IWorkingSet {
  
     private setActiveEditor(editor: BracketsEditor) {
         if (this.currentDocument) {
-            $(this.currentDocument).off('change', this.documentChangesHandler);
+            $(this.currentDocument).off('change', <any>this.documentChangesHandler);
         }
         this.currentDocument = editor && editor.document;
         if (this.currentDocument) {
-            $(this.currentDocument).on('change', this.documentChangesHandler);
+            $(this.currentDocument).on('change', <any>this.documentChangesHandler);
         }
     }
             

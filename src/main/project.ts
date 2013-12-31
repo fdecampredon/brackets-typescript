@@ -112,6 +112,16 @@ export enum ProjectFileKind {
     REFERENCE
 }
 
+export interface DefinitionInfo {
+    fileName: string;
+    minChar: CodeMirror.Position;
+    limChar: CodeMirror.Position;
+    kind: string;
+    name: string;
+    containerKind: string;
+    containerName: string;
+}
+
 /**
  * represent a typescript project
  */
@@ -156,6 +166,16 @@ export interface ITypeScriptProject {
      * @param path
      */
     getProjectFileKind(path: string): ProjectFileKind;
+    
+    
+    //-------------------------------
+    //  TypeScript Service proxying
+    //-------------------------------
+    
+    getDefinitionAtPosition(fileName: string, position: CodeMirror.Position): JQueryPromise<DefinitionInfo[]>;
+    
+    
+    getCompletionsAtPosition(fileName: string, position: CodeMirror.Position): JQueryPromise<TypeScript.Services.CompletionEntry[]>
 }
 
 /**

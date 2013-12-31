@@ -26,8 +26,8 @@ import typeScriptModeFactory = require('./mode');
 import fs = require('./fileSystem');
 import ws = require('./workingSet');
 import project = require('./project');
+import TypeScriptProjectManager = require('./projectManager');
 import codeHint = require('./codeHint');
-import TypeScriptErrorReporter = require('./errorReporter');
 import qe = require('./quickEdit');
 import commentsHelper = require('./commentsHelper');
 import signal = require('./utils/signal');
@@ -46,9 +46,8 @@ var LanguageManager = brackets.getModule('language/LanguageManager'),
 
 var fileSystem : fs.IFileSystem,
     workingSet: ws.IWorkingSet,
-    projectManager : project.TypeScriptProjectManager,
+    projectManager : TypeScriptProjectManager,
     hintService : codeHint.HintService,
-    tsErrorReporter : TypeScriptErrorReporter,
     quickEditProvider : qe.TypeScriptQuickEditProvider;
     
 /**
@@ -81,10 +80,7 @@ function init(conf: { isDebug: boolean; logLevel: string; }) {
     quickEditProvider = new qe.TypeScriptQuickEditProvider();
     EditorManager.registerInlineEditProvider(quickEditProvider.typeScriptInlineEditorProvider);    
     
-      
-    //Register error provider
-    tsErrorReporter = new TypeScriptErrorReporter(CodeInspection.Type);
-    CodeInspection.register('typescript', tsErrorReporter); 
+
 
     //Register comments helper
     commentsHelper.init(new signal.DomSignalWrapper<KeyboardEvent>($("#editor-holder")[0], "keydown", true));
@@ -107,15 +103,19 @@ function initServices() {
     //Create warpers
     fileSystem = new fs.FileSystem(FileSystem, ProjectManager);
     workingSet = new ws.WorkingSet(DocumentManager, EditorManager);
-    
+
     // project manager
-    projectManager = new project.TypeScriptProjectManager(fileSystem, workingSet);  
+    projectManager = new TypeScriptProjectManager(fileSystem, workingSet, projectFactory);  
     projectManager.init();
     
     //services initialization
     hintService.init(projectManager);
     quickEditProvider.init(projectManager);
-    tsErrorReporter.init(projectManager);
+}
+
+    
+function projectFactory(baseDir: string, config: project.TypeScriptProjectConfig,  fileSystem: fs.IFileSystem,   workingSet: ws.IWorkingSet ) {
+    return new project.TypeScriptProject(baseDir, config, fileSystem, workingSet);
 }
 
 export = init;
