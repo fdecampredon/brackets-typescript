@@ -13,26 +13,28 @@
 //   limitations under the License.
 
 
+import TypeScriptProjectManager = require('../main/projectManager');
 import project = require('../main/project');
 import fs = require('../main/fileSystem');
 import FileSystemMock = require('./fileSystemMock');
 
 
 describe('TypeScriptProjectManager', function () {
-    var typeScriptProjectManager: project.TypeScriptProjectManager,
+    var typeScriptProjectManager: TypeScriptProjectManager,
         fileSystemMock: FileSystemMock,
         projectSpy: {
             init: jasmine.Spy;
             update: jasmine.Spy;
             dispose: jasmine.Spy;
         },
-        typeScriptProjectSpy: jasmine.Spy
+        projectFactorySpy: jasmine.Spy
             
     beforeEach(function () {
         fileSystemMock = new FileSystemMock();
-        typeScriptProjectManager = new project.TypeScriptProjectManager(fileSystemMock, null);
         projectSpy = jasmine.createSpyObj('project', ['init', 'dispose', 'update']); 
-        typeScriptProjectSpy = spyOn(typeScriptProjectManager, 'newProject').andCallFake(() => projectSpy);
+        projectFactorySpy = jasmine.createSpy('newProject').andReturn(projectSpy);
+        typeScriptProjectManager = new TypeScriptProjectManager(fileSystemMock, null, projectFactorySpy);
+       
     });
     
     afterEach(function () {
@@ -68,7 +70,7 @@ describe('TypeScriptProjectManager', function () {
         
       
         typeScriptProjectManager.init();
-        expect(typeScriptProjectSpy.callCount).toBe(2);
+        expect(projectFactorySpy.callCount).toBe(2);
     });
     
     it('should support multiple configuration in a config file', function () {
@@ -97,7 +99,7 @@ describe('TypeScriptProjectManager', function () {
         
       
         typeScriptProjectManager.init();
-        expect(typeScriptProjectSpy.callCount).toBe(2);
+        expect(projectFactorySpy.callCount).toBe(2);
     });
     
     it('should initialize projects with registred new instance of registred Services', function () {
@@ -122,7 +124,7 @@ describe('TypeScriptProjectManager', function () {
             'dir1/.brackets-typescript': '{',
         });
         typeScriptProjectManager.init();
-        expect(typeScriptProjectSpy.callCount).toBe(0)
+        expect(projectFactorySpy.callCount).toBe(0)
     });
     
     it('should not create a project if the config file is not valid',  function () {
@@ -132,7 +134,7 @@ describe('TypeScriptProjectManager', function () {
             })
         });
         typeScriptProjectManager.init();
-        expect(typeScriptProjectSpy.callCount).toBe(0)
+        expect(projectFactorySpy.callCount).toBe(0)
     });
     
     
@@ -166,7 +168,7 @@ describe('TypeScriptProjectManager', function () {
             outDir: 'bin'
         }))
         
-        expect(typeScriptProjectSpy.callCount).toBe(1);
+        expect(projectFactorySpy.callCount).toBe(1);
     });
     
     
@@ -223,7 +225,7 @@ describe('TypeScriptProjectManager', function () {
         
         typeScriptProjectManager.init();
         
-        expect(typeScriptProjectSpy.callCount).toBe(0)
+        expect(projectFactorySpy.callCount).toBe(0)
         
         fileSystemMock.updateFile( 'dir/.brackets-typescript', JSON.stringify({
             module: 'amd',
@@ -234,7 +236,7 @@ describe('TypeScriptProjectManager', function () {
             outDir: 'bin'
         }));
         
-        expect(typeScriptProjectSpy.callCount).toBe(1);
+        expect(projectFactorySpy.callCount).toBe(1);
     });
     
     
@@ -270,7 +272,7 @@ describe('TypeScriptProjectManager', function () {
         typeScriptProjectManager.init();
         fileSystemMock.reset();
         expect(projectSpy.dispose.callCount).toBe(1);
-        expect(typeScriptProjectSpy.callCount).toBe(2);
+        expect(projectFactorySpy.callCount).toBe(2);
     }); 
     
 });    
