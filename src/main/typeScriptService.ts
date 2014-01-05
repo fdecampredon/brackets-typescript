@@ -101,6 +101,16 @@ class TypeScriptService {
     }
     
     
+    getAllErrors(): JQueryPromise<{
+            text: string;
+            file: string;
+            position: CodeMirror.Position;
+            length: number;
+        }> {
+        return executeOperations(TypeScriptOperation.GET_ERRORS, this.uid);
+    }
+    
+    
     getCompletionsAtPosition(path: string, position: CodeMirror.Position): JQueryPromise<TypeScript.Services.CompletionEntry[]> {
         return executeOperations(TypeScriptOperation.GET_COMPLETIONS, this.uid, path, position);   
     }

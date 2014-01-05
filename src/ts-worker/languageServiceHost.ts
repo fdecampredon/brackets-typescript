@@ -20,7 +20,7 @@ import scripts = require('./scripts');
 
 
 class LanguageServiceHost extends Logger implements TypeScript.Services.ILanguageServiceHost {
-    private fileNameToScript = new collections.StringMap<scripts.ScriptInfo>();
+    public fileNameToScript = new collections.StringMap<scripts.ScriptInfo>();
     
     constructor (
         public compilationSettings: TypeScript.CompilationSettings

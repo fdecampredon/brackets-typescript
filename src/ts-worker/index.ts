@@ -60,6 +60,32 @@ class TypeScriptService {
         return this.languageService.getSemanticDiagnostics(fileName);
     }
     
+    getAllErrors() {
+        var errors: TypeScript.Diagnostic[] = [];
+        this.languageServiceHost.fileNameToScript.keys.forEach(fileName => {
+            var syntacticError = this.languageService.getSyntacticDiagnostics(fileName)
+                                            .filter(diagnostic => diagnostic.info().category === TypeScript.DiagnosticCategory.Error);
+            if (syntacticError.length > 0) {
+                errors = errors.concat(errors);
+                return;
+            }
+            
+            var sementicErrors = this.languageService.getSemanticDiagnostics(fileName)
+                                            .filter(diagnostic => diagnostic.info().category === TypeScript.DiagnosticCategory.Error);
+            errors = errors.concat(errors);
+        });
+        
+        return errors.map(error => ({
+            text: error.text(),
+            file: error.fileName(),
+            position: {
+                line : error.line(),
+                ch: error.character()
+            }
+            length: error.length()
+        }));
+    }
+    
     
     getCompletionsAtPosition(fileName: string, position: CodeMirror.Position): TypeScript.Services.CompletionEntry[] {
         var index = this.languageServiceHost.getIndexFromPos(fileName, position);
@@ -141,6 +167,9 @@ export function messageHandler(event: MessageEvent) {
                 break;
             case TypeScriptOperation.GET_COMPLETIONS:
                 result = service.getCompletionsAtPosition(data.args[0], data.args[1]);
+                break;
+            case TypeScriptOperation.GET_ERRORS:
+                result = service.getAllErrors();
                 break;
             default:
                 throw new Error('unknow operation : '+ TypeScriptOperation[data.operation]);

@@ -7,7 +7,8 @@ enum TypeScriptOperation {
     REMOVE_FILE,
     GET_REFERENCES,
     GET_COMPLETIONS,
-    GET_DEFINITIONS
+    GET_DEFINITIONS,
+    GET_ERRORS
 }
 
 export = TypeScriptOperation;
