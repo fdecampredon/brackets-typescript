@@ -1,60 +1,108 @@
 
 import collections = require('../commons/collections');
 import TypeScriptOperation = require('../commons/tsOperations');
+import typeScriptUtils = require('./typeScriptUtils');
+
+var uidHelper = Date.now() % 1e9;
+    
+var currentDeferred: JQueryDeferred<any>,
+    operationsStack: { () : JQueryDeferred<any>; }[] = [],
+    initialized = false;
+
+function init() {
+    if (!initialized) {
+        typeScriptUtils.worker.onmessage = (event: MessageEvent) => {
+            currentDeferred.resolve(event.data.result);
+            currentDeferred = null;
+            executeNextOperation();
+        };
+        typeScriptUtils.worker.onerror = (error: ErrorEvent) => {
+            currentDeferred.reject(error);
+            currentDeferred = null;
+            executeNextOperation();
+        };
+        initialized = true;
+    }
+}
+
+function executeOperations(operation: TypeScriptOperation, uid: string,  ...rest: any[]): JQueryPromise<any> {
+    var deferred = $.Deferred();
+    operationsStack.push(() => {
+        typeScriptUtils.worker.postMessage({
+            uid: uid,
+            operation : operation,
+            args: rest
+        }); 
+        return deferred;
+    })
+    executeNextOperation();
+    return deferred.promise();
+}
+
+function executeNextOperation() {
+    if (!currentDeferred && operationsStack.length > 0) {
+        currentDeferred = operationsStack.shift()();
+    }
+}
 
 
 
 class TypeScriptService {
     
-    private worker: Worker =  new Worker(require.toUrl('../ts-worker/ts-worker.js'));
+    private uid: string;
     
-    private pendingOperations: JQueryDeferred<any>[] = [];
+    private sequence: JQueryPromise<any> = $.Deferred((deferred) => deferred.resolve());
+    
+    constructor() {
+        this.uid = '__sevice' + (Math.random() * 1e9 >>> 0) + (uidHelper++ + '__');
+        init();
+    }
       
-    public init(compilationSettings: TypeScript.CompilationSettings): JQueryPromise<void> {
-        return this.executeOperations(TypeScriptOperation.INIT, compilationSettings);
+    init(compilationSettings: TypeScript.CompilationSettings): JQueryPromise<void> {
+        return executeOperations(TypeScriptOperation.INIT, this.uid, compilationSettings);
     }
     
-    public setScriptIsOpen(path: string, value: boolean): JQueryPromise<void> {
-        return this.executeOperations(TypeScriptOperation.SET_SCRIPT_IS_OPEN, path, value);
+    setScriptIsOpen(path: string, value: boolean): JQueryPromise<void> {
+        return executeOperations(TypeScriptOperation.SET_SCRIPT_IS_OPEN, this.uid, path, value);
     }
     
-    public addScript(path: string, content: string): JQueryPromise<void> {
-        return this.executeOperations(TypeScriptOperation.ADD_FILE, path, content);
+    addScript(path: string, content: string): JQueryPromise<void> {
+        return executeOperations(TypeScriptOperation.ADD_FILE, this.uid, path, content);
     }
     
-    public updateScript(path: string, content: string): JQueryPromise<void> {
-        return this.executeOperations(TypeScriptOperation.UPDATE_FILE, path, content);
+    updateScript(path: string, content: string): JQueryPromise<void> {
+        return executeOperations(TypeScriptOperation.UPDATE_FILE, this.uid, path, content);
     }
     
-    public editScript(path: string, minChar: CodeMirror.Position, limChar: CodeMirror.Position, newText: string): JQueryPromise<void> {
-        return this.executeOperations(TypeScriptOperation.EDIT_FILE, path, minChar, limChar, newText);
+    editScript(path: string, minChar: CodeMirror.Position, limChar: CodeMirror.Position, newText: string): JQueryPromise<void> {
+        return executeOperations(TypeScriptOperation.EDIT_FILE, this.uid, path, minChar, limChar, newText);
     }
     
-    public removeScript(path: string): JQueryPromise<void> {
-        return this.executeOperations(TypeScriptOperation.REMOVE_FILE);
+    removeScript(path: string): JQueryPromise<void> {
+        return executeOperations(TypeScriptOperation.REMOVE_FILE, this.uid, path);
     }
     
-    public getReferencedFiles(path: string): JQueryPromise<string[]> {
-        return this.executeOperations(TypeScriptOperation.GET_REFERENCES, path);
+    getReferencedFiles(path: string): JQueryPromise<string[]> {
+        return executeOperations(TypeScriptOperation.GET_REFERENCES, this.uid, path);
     }
     
-    private executeOperations(operation: TypeScriptOperation, ...rest: any[]): JQueryPromise<any> {
-        var deferred = $.Deferred();
-        this.pendingOperations.push(deferred);
-        this.worker.postMessage({
-            operation : operation,
-            arguments: rest
-        });
-        return deferred.promise();
+    
+    
+    getDefinitionAtPosition(path: string, position: CodeMirror.Position): JQueryPromise<{
+                                                                                            fileName: string;
+                                                                                            minChar: CodeMirror.Position;
+                                                                                            limChar: CodeMirror.Position;
+                                                                                            kind: string;
+                                                                                            name: string;
+                                                                                            containerKind: string;
+                                                                                            containerName: string;
+                                                                                        }[]> {
+        return executeOperations(TypeScriptOperation.GET_DEFINITIONS, this.uid, path, position);   
     }
     
-    private messageHandler = (event : MessageEvent) => {
-        var deferred = this.pendingOperations.shift();
-        if (event.data.isError) {
-            deferred.reject(event.data.error);
-        } else {
-            deferred.resolve(event.data);
-        }
+    
+    getCompletionsAtPosition(path: string, position: CodeMirror.Position): JQueryPromise<TypeScript.Services.CompletionEntry[]> {
+        return executeOperations(TypeScriptOperation.GET_COMPLETIONS, this.uid, path, position);   
     }
 }
 

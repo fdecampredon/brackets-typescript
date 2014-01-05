@@ -28,8 +28,9 @@ module.exports = function (grunt) {
     });
     
     grunt.initConfig({
-        source: ['src/declarations/*.d.ts', 'src/main/**/*.ts'],
-        testSource: ['src/declarations/*.d.ts', 'src/test-declarations/*.d.ts', 'src/test/**/*.ts'],
+        source: ['src/declarations/*.d.ts', 'src/commons/**/*.ts', 'src/main/**/*.ts'],
+        workerSource: ['src/declarations/*.d.ts', 'src/commons/**/*.ts', 'src/ts-worker/**/*.ts'],
+        testSource: ['src/declarations/*.d.ts', 'src/test-declarations/*.d.ts',  'src/test/**/*.ts'],
         localBinFolder : 'built/local/',
         testBinFolder: 'built/test/',
         releaseBinFolder : 'bin/',
@@ -45,6 +46,22 @@ module.exports = function (grunt) {
                 src: '<%= source %>',
                 dest: '<%= localBinFolder %>',
                 base_path : 'src/main/',
+                options: {
+                    base_path : 'src',
+                    module : 'amd',
+                    target: 'es5',
+                    sourcemap: false,
+                    comments : true,
+                    noImplicitAny: true,
+                    ignoreTypeCheck: false
+                }
+            },
+            
+            
+            worker: {
+                src: '<%= workerSource %>',
+                dest: '<%= localBinFolder %>',
+                base_path : 'src/ts-worker/',
                 options: {
                     base_path : 'src',
                     module : 'amd',
@@ -134,7 +151,7 @@ module.exports = function (grunt) {
     });
      
     grunt.registerTask('test', ['clean:test', 'typescript:test', 'jasmine']);
-    grunt.registerTask('build', ['clean:local', 'typescript:main']);
+    grunt.registerTask('build', ['clean:local', 'typescript:main', 'typescript:worker']);
     grunt.registerTask('release', ['test', 'build', 'clean:release', 'copy:release']);
     
     grunt.registerTask('default', ['test', 'build']);

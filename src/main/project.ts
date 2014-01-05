@@ -201,6 +201,7 @@ export class TypeScriptProject implements ITypeScriptProject {
         private workingSet: ws.IWorkingSet
     ) {
         this.typeScriptService = new TypeScriptService();
+        this.addListeners();
     }
     
     //-------------------------------
@@ -222,7 +223,7 @@ export class TypeScriptProject implements ITypeScriptProject {
     /**
      * track of the initialized state of the project
      */
-    private initialized: boolean;
+    private initialized: JQueryPromise<void>;
     
     /**
      * services attached to this project
@@ -320,6 +321,18 @@ export class TypeScriptProject implements ITypeScriptProject {
         }
     }
     
+    getDefinitionAtPosition(fileName: string, position: CodeMirror.Position): JQueryPromise<DefinitionInfo[]> {
+        return this.serviceCall(() => {
+           return this.typeScriptService.getDefinitionAtPosition(fileName, position); 
+        });
+    }
+    
+    
+    getCompletionsAtPosition(fileName: string, position: CodeMirror.Position): JQueryPromise<TypeScript.Services.CompletionEntry[]> {
+        return this.serviceCall(() => {
+           return this.typeScriptService.getCompletionsAtPosition(fileName, position); 
+        });
+    }
     
     //-------------------------------
     //  private methods
@@ -329,22 +342,27 @@ export class TypeScriptProject implements ITypeScriptProject {
      * initialize the project
      */
     private internalInit() {
-        this.initialized = false;
-        this.projectFiles = new collections.StringSet();
-        this.referencesManager = new ReferencesManager();
-        
-        
-        this.compilationSettings =  this.createCompilationSettings();
-        this.typeScriptService.init(this.compilationSettings);
-        
-        this.collectFiles().then(() => {
-            this.workingSet.files.forEach(path => this.typeScriptService.setScriptIsOpen(path, true));
-            this.services.forEach(service => service.run(true, null));
-            this.initialized = true;
-        },() => { 
-            //TODO handle errors;
-            console.log('Errors in collecting project files');
-        });
+        this.initialized = $.Deferred<void>(deferred  => {
+            this.projectFiles = new collections.StringSet();
+            this.referencesManager = new ReferencesManager();
+            
+            
+            this.compilationSettings =  this.createCompilationSettings();
+            this.typeScriptService.init(this.compilationSettings);
+            
+            this.collectFiles().then(() => {
+                this.workingSet.files.forEach(path => {
+                    if (this.projectFiles.has(path)) {
+                       this.typeScriptService.setScriptIsOpen(path, true) 
+                    }
+                });
+                this.services.forEach(service => service.run(true, null));
+                deferred.resolve();
+            },() => { 
+                //TODO handle errors;
+                console.log('Errors in collecting project files');
+            });
+        }).promise();
     }
     
     
@@ -505,7 +523,13 @@ export class TypeScriptProject implements ITypeScriptProject {
         return compilationSettings
     }
    
+    //-------------------------------
+    //  TypeScript Service proxying
+    //-------------------------------
     
+    private serviceCall<T>(callback: () => JQueryPromise<T> ) : JQueryPromise<T> {
+        return this.initialized.then(callback);
+    }
   
     //-------------------------------
     //  Services Notification

@@ -20,16 +20,12 @@ import scripts = require('./scripts');
 
 
 class LanguageServiceHost extends Logger implements TypeScript.Services.ILanguageServiceHost {
-    private fileNameToScript: collections.StringMap<scripts.ScriptInfo>;
+    private fileNameToScript = new collections.StringMap<scripts.ScriptInfo>();
+    
     constructor (
-        public compilationSettings: TypeScript.CompilationSettings,
-        fileNameToCotent = new collections.StringMap<string>()
+        public compilationSettings: TypeScript.CompilationSettings
     ) {
         super();
-        this.fileNameToScript  = new collections.StringMap(fileNameToCotent.entries.map(entry => ({
-            key: entry.key,
-            value: new scripts.ScriptInfo(entry.key, entry.value)
-        })));
     }
     
     public addScript(fileName: string, content:string) {
@@ -37,6 +33,9 @@ class LanguageServiceHost extends Logger implements TypeScript.Services.ILanguag
         this.fileNameToScript.set(fileName, script);
     }
 
+    public removeScript(fileName: string) {
+        this.fileNameToScript.delete(fileName);
+    }
 
     public updateScript(fileName: string, content: string) {
         var script = this.fileNameToScript.get(fileName);
@@ -52,6 +51,16 @@ class LanguageServiceHost extends Logger implements TypeScript.Services.ILanguag
         var script = this.fileNameToScript.get(fileName);
         if (script) {
             script.editContent(minChar, limChar, newText);
+            return;
+        }
+
+        throw new Error("No script with name '" + fileName + "'");
+    }
+    
+    public setScriptIsOpen(fileName: string, isOpen: boolean) {
+        var script = this.fileNameToScript.get(fileName);
+        if (script) {
+            script.isOpen = isOpen
             return;
         }
 

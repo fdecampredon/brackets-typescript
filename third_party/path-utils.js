@@ -224,4 +224,4 @@ for ( i = 0; i < cnt; i++ ) {
 // Expose PathUtils to the world.
 window.PathUtils = PathUtils;
 
-})( window );
+})( this );

@@ -12,7 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-///<reference path="./references.ts" />
 
 'use strict';
 
@@ -20,91 +19,135 @@
 import LanguageServiceHost = require('./languageServiceHost');
 import Logger = require('./logger');
 import collections = require('../commons/collections');
-import operations = require('../commons/tsOperations');
+import TypeScriptOperation = require('../commons/tsOperations');
 
-var languageService: TypeScript.Services.ILanguageService,
-    languageServiceHost: LanguageServiceHost,
+
+class TypeScriptService {
+    languageService: TypeScript.Services.ILanguageService;
+    languageServiceHost: LanguageServiceHost;
     coreService: TypeScript.Services.CoreServices;
-
-
-function init(compilationSettings: TypeScript.CompilationSettings, map: collections.StringMap<string>): void {
-    var factory = new TypeScript.Services.TypeScriptServicesFactory();
     
-    languageServiceHost = new LanguageServiceHost(compilationSettings, map);
-    languageService = factory.createPullLanguageService(languageServiceHost);
-    coreService = factory.createCoreServices({
-        logger: new Logger()
-    });
-}
-
-function getReferencedOrImportedFiles(fileName: string): string[] {
-    var scriptSnapShot = languageServiceHost.getScriptSnapshot(fileName);
-    if (!scriptSnapShot) {
-        return null;
+    
+    constructor(compilationSettings: TypeScript.CompilationSettings) {
+        var factory = new TypeScript.Services.TypeScriptServicesFactory();
+        
+        this.languageServiceHost = new LanguageServiceHost(compilationSettings);
+        this.languageService = factory.createPullLanguageService(this.languageServiceHost);
+        this.coreService = factory.createCoreServices({
+            logger: new Logger()
+        });
     }
     
-    var preProcessedFileInfo = coreService.getPreProcessedFileInfo(fileName, scriptSnapShot);
-    return preProcessedFileInfo.referencedFiles.map(fileReference => {
-        return PathUtils.makePathAbsolute(fileReference.path, fileName);
-    }).concat(preProcessedFileInfo.importedFiles.map(fileReference => {
-        return PathUtils.makePathAbsolute(fileReference.path + '.ts', fileName);
-    }));
+    getReferencedOrImportedFiles(fileName: string): string[] {
+        var scriptSnapShot = this.languageServiceHost.getScriptSnapshot(fileName);
+        if (!scriptSnapShot) {
+            return null;
+        }
+        
+        var preProcessedFileInfo = this.coreService.getPreProcessedFileInfo(fileName, scriptSnapShot);
+        return preProcessedFileInfo.referencedFiles.map(fileReference => {
+            return PathUtils.makePathAbsolute(fileReference.path, fileName);
+        }).concat(preProcessedFileInfo.importedFiles.map(fileReference => {
+            return PathUtils.makePathAbsolute(fileReference.path + '.ts', fileName);
+        }));
+    }
+    
+    getSyntacticDiagnostics(fileName: string): TypeScript.Diagnostic[] {
+        return this.languageService.getSyntacticDiagnostics(fileName);
+    }
+    
+    getSemanticDiagnostics(fileName: string): TypeScript.Diagnostic[] {
+        return this.languageService.getSemanticDiagnostics(fileName);
+    }
+    
+    
+    getCompletionsAtPosition(fileName: string, position: CodeMirror.Position): TypeScript.Services.CompletionEntry[] {
+        var index = this.languageServiceHost.getIndexFromPos(fileName, position);
+        var completion = this.languageService.getCompletionsAtPosition(fileName, index, true);
+        return completion && completion.entries;
+    }
+    
+    getCompletionEntryDetails(fileName: string, position: CodeMirror.Position, entryName: string): TypeScript.Services.CompletionEntryDetails  {
+        var index = this.languageServiceHost.getIndexFromPos(fileName, position);
+        return this.languageService.getCompletionEntryDetails(fileName, index, entryName);
+    }
+    
+    getDefinitionAtPosition(fileName: string, position: CodeMirror.Position)  {
+        var index = this.languageServiceHost.getIndexFromPos(fileName, position);
+        var defs = this.languageService.getDefinitionAtPosition(fileName, index) || [];
+        return defs.map(definition => ({
+            fileName: definition.fileName,
+            minChar: this.languageServiceHost.indexToPosition(definition.fileName, definition.minChar),
+            limChar: this.languageServiceHost.indexToPosition(definition.fileName, definition.limChar),
+            kind: definition.kind,
+            name: definition.name,
+            containerKind: definition.containerKind,
+            containerName: definition.containerName
+        }));
+    }
+     
+    cleanupSemanticCache(): void {
+        this.languageService.cleanupSemanticCache();
+    }
 }
 
-function getSyntacticDiagnostics(fileName: string): TypeScript.Diagnostic[] {
-    return languageService.getSyntacticDiagnostics(fileName);
-}
-
-function getSemanticDiagnostics(fileName: string): TypeScript.Diagnostic[] {
-    return languageService.getSemanticDiagnostics(fileName);
-}
-
-
-function getCompletionsAtPosition(fileName: string, position: CodeMirror.Position): TypeScript.Services.CompletionInfo {
-    var index = languageServiceHost.getIndexFromPos(fileName, position);
-    return languageService.getCompletionsAtPosition(fileName, index, true);
-}
-
-function getCompletionEntryDetails(fileName: string, position: CodeMirror.Position, entryName: string): TypeScript.Services.CompletionEntryDetails  {
-    var index = languageServiceHost.getIndexFromPos(fileName, position);
-    return languageService.getCompletionEntryDetails(fileName, index, entryName);
-}
-
-function getDefinitionAtPosition(fileName: string, position: CodeMirror.Position): TypeScript.Services.DefinitionInfo[]  {
-    var index = languageServiceHost.getIndexFromPos(fileName, position);
-    return languageService.getDefinitionAtPosition(fileName, index);
-}
- 
-function cleanupSemanticCache(): void {
-    languageService.cleanupSemanticCache();
-}
-
-var Operations = operations.TypeScriptOperation
+var servicesMap = new collections.StringMap<TypeScriptService>();
 
 declare function postMessage(args: any): void;
 
-onmessage = (event: MessageEvent) => {
+export function messageHandler(event: MessageEvent) {
     var data : {
-        operation: operations.TypeScriptOperation;
+        uid : string;
+        operation: TypeScriptOperation;
         args: any[];
     };
     
     data = event.data;
-    var result: any[];
-    try {
-        switch (data.operation) {
-            case Operations.GET_REFERENCES:
-                result = getReferencedOrImportedFiles.apply(undefined, data.args);
-                break;
-            case Operations.GET_COMPLETION:
-                result = getCompletionsAtPosition.apply(undefined, data.args);
-                break;
+    
+    var result: any;
+    if (data.operation === TypeScriptOperation.INIT ) {
+        servicesMap.set(data.uid ,new TypeScriptService(data.args[0]));
+    } else {
+        var service = servicesMap.get(data.uid);
+        if (!service) {
+            throw new Error('unknow service for uid : ' + data.uid);
         }
-    } catch (error) {
-        postMessage({
-            isError: true,
-            error: error
-        });
+        switch(data.operation) {
+            case TypeScriptOperation.ADD_FILE:
+                result = service.languageServiceHost.addScript(data.args[0], data.args[1]);
+                break;
+            case TypeScriptOperation.UPDATE_FILE:
+                result = service.languageServiceHost.updateScript(data.args[0], data.args[1]);
+                break;
+            case TypeScriptOperation.REMOVE_FILE:
+                result = service.languageServiceHost.removeScript(data.args[0]);
+                break;
+            case TypeScriptOperation.EDIT_FILE:
+                var fileName: string = data.args[0],
+                    minChar = service.languageServiceHost.getIndexFromPos(fileName, data.args[1]),
+                    limChar = service.languageServiceHost.getIndexFromPos(fileName, data.args[2]),
+                    newText = data.args[3];
+                result = service.languageServiceHost.editScript(fileName, minChar, limChar, newText);
+                
+                break;
+            case TypeScriptOperation.SET_SCRIPT_IS_OPEN:
+                result = service.languageServiceHost.setScriptIsOpen(data.args[0], data.args[1]);
+                break;
+            case TypeScriptOperation.GET_REFERENCES:
+                result = service.getReferencedOrImportedFiles(data.args[0]);
+                break;
+            case TypeScriptOperation.GET_DEFINITIONS:
+                result = service.getDefinitionAtPosition(data.args[0], data.args[1]);
+                break;
+            case TypeScriptOperation.GET_COMPLETIONS:
+                result = service.getCompletionsAtPosition(data.args[0], data.args[1]);
+                break;
+            default:
+                throw new Error('unknow operation : '+ TypeScriptOperation[data.operation]);
+        }
     }
-    postMessage(result);
+    postMessage({
+        uid: data.uid,
+        result: result
+    });
 }

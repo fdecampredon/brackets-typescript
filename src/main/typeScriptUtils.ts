@@ -88,4 +88,4 @@ export var typeScriptProjectConfigDefault: project.TypeScriptProjectConfig = {
     noImplicitAny: false
 }
 
-export var serviceUrl: string;
+export var worker: Worker;

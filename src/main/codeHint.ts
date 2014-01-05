@@ -19,7 +19,7 @@ import TypeScriptProjectManager = require('./projectManager');
 import Logger = require('./logger');
 import immediate = require('./utils/immediate');
 import project = require('./project');
-
+import Services = TypeScript.Services;
 
 //--------------------------------------------------------------------------
 //
@@ -79,8 +79,8 @@ export class HintService {
         }
         
         return project.getCompletionsAtPosition(path, position).then(entries => {
-             if(!entries) {
-                return null;
+            if(!entries) {
+                return [];
             }
             
             if (currentToken) {
@@ -104,68 +104,12 @@ export class HintService {
             });
             
             
-            
-            var hints = entries.map(entry => {
-                var entryInfo = languageService.getCompletionEntryDetails(path, index, entry.name),
-                    hint = {
-                        name: entry.name,
-                        kind: HintKind.DEFAULT,
-                        type: entryInfo && entryInfo.type,
-                        doc: entryInfo && entryInfo.docComment
-                    };
-               
-            
-                switch(entry.kind) {
-                    case ScriptElementKind.unknown:
-                    case ScriptElementKind.primitiveType:
-                    case ScriptElementKind.scriptElement:
-                        break;
-                    case ScriptElementKind.keyword:
-                        hint.kind = HintKind.KEYWORD;
-                        break;
-                        
-                    case ScriptElementKind.classElement:
-                        hint.kind = HintKind.CLASS;
-                        break;
-                    case ScriptElementKind.interfaceElement:
-                        hint.kind = HintKind.INTERFACE;
-                        break;
-                    case ScriptElementKind.enumElement:
-                        hint.kind = HintKind.ENUM;
-                        break;
-                    case ScriptElementKind.moduleElement:
-                        hint.kind = HintKind.MODULE;
-                        break;
-                        
-                        
-                    case ScriptElementKind.memberVariableElement:
-                    case ScriptElementKind.variableElement:
-                    case ScriptElementKind.localVariableElement:
-                    case ScriptElementKind.parameterElement:
-                        hint.kind = HintKind.VARIABLE;
-                        break;
-                    
-                    
-                    case ScriptElementKind.memberFunctionElement:
-                    case ScriptElementKind.functionElement:
-                    case ScriptElementKind.localFunctionElement:
-                        hint.kind = HintKind.FUNCTION;
-                        break;
-                    
-                        
-                    case ScriptElementKind.typeParameterElement:
-                    case ScriptElementKind.constructorImplementationElement:
-                    case ScriptElementKind.constructSignatureElement:
-                    case ScriptElementKind.callSignatureElement:
-                    case ScriptElementKind.indexSignatureElement:
-                    case ScriptElementKind.memberGetAccessorElement:
-                    case ScriptElementKind.memberSetAccessorElement:
-                        console.log('untreated case ' + entry.kind);
-                        break;
-                }
-                
-                return hint;
-            });
+            var hints: Hint[] =  entries.map(entry => ({
+                name: entry.name,
+                kind: HintKind.DEFAULT,
+                type: null, 
+                doc: null 
+            }));
             
             return hints;
         })
