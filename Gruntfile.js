@@ -31,24 +31,24 @@ module.exports = function (grunt) {
         source: ['src/declarations/*.d.ts', 'src/commons/**/*.ts', 'src/main/**/*.ts'],
         workerSource: ['src/declarations/*.d.ts', 'src/commons/**/*.ts', 'src/ts-worker/**/*.ts'],
         testSource: ['src/declarations/*.d.ts', 'src/test-declarations/*.d.ts',  'src/test/**/*.ts'],
-        localBinFolder : 'built/local/',
-        testBinFolder: 'built/test/',
+        tmpFolder: 'tmp/',
+        localBinFolder : 'built/',
         releaseBinFolder : 'bin/',
         
         clean : {
             local : '<%= localBinFolder %>',
-            test : '<%= testBinFolder %>',
+            tmp : '<%= tmpFolder %>',
             release : '<%= releaseBinFolder %>'
         },
         
         typescript: {
             main: {
                 src: '<%= source %>',
-                dest: '<%= localBinFolder %>',
+                dest: '<%= tmpFolder %>',
                 base_path : 'src/main/',
                 options: {
                     base_path : 'src',
-                    module : 'amd',
+                    module : 'commonjs',
                     target: 'es5',
                     sourcemap: false,
                     comments : true,
@@ -60,11 +60,11 @@ module.exports = function (grunt) {
             
             worker: {
                 src: '<%= workerSource %>',
-                dest: '<%= localBinFolder %>',
+                dest: '<%= tmpFolder %>',
                 base_path : 'src/ts-worker/',
                 options: {
                     base_path : 'src',
-                    module : 'amd',
+                    module : 'commonjs',
                     target: 'es5',
                     sourcemap: false,
                     comments : true,
@@ -75,11 +75,11 @@ module.exports = function (grunt) {
             
             test: {
                 src: '<%= testSource %>',
-                dest: '<%= testBinFolder %>',
+                dest: '<%= tmpFolder %>',
                 
                 options: {
                     base_path : 'src',
-                    module: 'amd',
+                    module: 'commonjs',
                     target: 'es5',
                     sourcemap: false,
                     noImplicitAny: true,
@@ -88,23 +88,61 @@ module.exports = function (grunt) {
             }
 		},
         
+        browserify: {
+            pkg: grunt.file.readJSON('package.json'),
+            main: {
+                files: {
+                    'built/app.js': ['tmp/main/index.js']
+                }
+            },
+            worker: {
+                files: {
+                    'built/worker.js': ['tmp/ts-worker/index.js']
+                }
+            },
+            
+            test: {
+                files: {
+                    'built/test.js': ['./tmp/test/index.js']
+                },
+                options: {
+                    debug: true
+                }
+            }
+        },
+        
+        
         jasmine: {
             test: {
                 src: 'undefined.js',
                 options: {
-                    specs: 'built/test/**/*Test.js',
+                    specs: 'built/test.js',
                     vendor : [
                         'third_party/jquery.js',
                         'third_party/path-utils.js',
                         'third_party/typescriptServices.js'
                     ],
-                    helpers : 'src/test-helpers/*Helper.js',
-                    template: require('grunt-template-jasmine-requirejs'),
                     keepRunner: true,
                     outfile: 'SpecRunner.html'
                 }
             }
         },
+    });
+    
+    
+    grunt.registerTask('build-main',['clean:tmp', 'typescript:main', 'browserify:main','clean:tmp']);
+    grunt.registerTask('build-worker',['clean:tmp', 'typescript:worker', 'browserify:worker', 'clean:tmp']);
+    grunt.registerTask('build-test',['clean:tmp', 'typescript:test', 'browserify:test']);
+    grunt.registerTask('test', ['build-test', 'jasmine']);
+    grunt.registerTask('build',['clean:local', 'build-main', 'build-worker']);
+    grunt.registerTask('default', ['test', 'build']);
+    
+    
+    //grunt.registerTask('release', ['test', 'build', 'clean:release', 'copy:release']);
+    
+    
+    var bla = {
+    
         
         copy: {
             release: {
@@ -148,11 +186,7 @@ module.exports = function (grunt) {
                 ]
             }
         }
-    });
-     
-    grunt.registerTask('test', ['clean:test', 'typescript:test', 'jasmine']);
-    grunt.registerTask('build', ['clean:local', 'typescript:main', 'typescript:worker']);
-    grunt.registerTask('release', ['test', 'build', 'clean:release', 'copy:release']);
-    
-    grunt.registerTask('default', ['test', 'build']);
+};    
 };
+
+

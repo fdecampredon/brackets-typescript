@@ -13,7 +13,7 @@ define(function (require, exports, module) {
             var AppInit = brackets.getModule('utils/AppInit'),
                 config = JSON.parse(configText),
                 baseUrl = config.isDebug ? './built/local/' : './bin/',
-                worker = new Worker(require.toUrl('./ts-worker.js')),
+                worker,
                 typeScriptUtils,
                 initializeFunction,
                 requireReady,
@@ -21,12 +21,15 @@ define(function (require, exports, module) {
             
             function initializeApplication() {
                 if (requireReady && workerReady) {
-                    
-                    worker.onmessage = null;
-                    
                     typeScriptUtils.DEFAULT_LIB_LOCATION = require.toUrl('third_party/lib.d.ts');
-                    typeScriptUtils.worker = worker;
                     typeScriptUtils.minimatch = minimatch;
+                    
+					if (config.isDebug) {
+                        worker.onmessage = null;
+                        typeScriptUtils.worker = worker;
+					}
+                    
+                  
                     
                     //in debug mode avoid using AppInit that catch errors ...
                     if (config.isDebug) {
@@ -39,13 +42,18 @@ define(function (require, exports, module) {
                 }
             }
             
-            worker.onmessage = function () {
-                workerReady = true;
-                initializeApplication();
-            };
-            
-            worker.postMessage(require.toUrl(baseUrl));
-            
+			if (config.isDebug) {
+				worker = new Worker(require.toUrl('./ts-worker.js'));
+                worker.onmessage = function () {
+                    workerReady = true;
+                    initializeApplication();
+                };
+                worker.postMessage(require.toUrl(baseUrl));
+			} else {
+				workerReady = true;
+			}
+          
+          
             require([ baseUrl + 'main/typeScriptUtils', baseUrl + 'main/index'], function (tsUtils, init) {
                 typeScriptUtils = tsUtils;
                 initializeFunction = init;
