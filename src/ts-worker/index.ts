@@ -81,7 +81,7 @@ class TypeScriptService {
             position: {
                 line : error.line(),
                 ch: error.character()
-            }
+            },
             length: error.length()
         }));
     }

@@ -16,66 +16,75 @@
 'use strict';
 
 import signal = require('../main/utils/signal');
+import sinon = require('sinon');
+import test = require('tape');
 
-describe('signals', function () {
+
+test('signals', function (t) {
     var sign: signal.ISignal<any>,
-        spy: jasmine.Spy;
+        spy: SinonSpy;
     
-    beforeEach( function() {
+    function reset() {
         sign = new signal.Signal<any>();
-        spy = jasmine.createSpy('spy');  
+        spy = sinon.spy() 
         sign.add(spy);
-    });
+    };
     
-    it('should call listener when event dispatched, with parameter passed to dispatch', function () {
+    t.test('should call listener when event dispatched, with parameter passed to dispatch', function (t) {
+        reset();
         var parameter = {};
-        expect(sign.dispatch(parameter)).toBe(true);
-        expect(spy).toHaveBeenCalledWith(parameter);
+        t.ok(sign.dispatch(parameter));
+        t.ok(spy.called);
+        t.end();
     });
     
-    it('should not call listener after removal', function () {
+    t.test('should not call listener after removal', function (t) {
+        reset();
         sign.remove(spy);
-        expect(sign.dispatch(null)).toBe(true);
-        expect(spy.callCount).toBe(0);
+        t.ok(sign.dispatch(null));
+        t.equal(spy.callCount, 0);
+        t.end();
     });
     
-    it('should not add a listener twice', function() {
+    t.test('should not add a listener twice', function(t) {
+        reset();
         sign.add(spy);
-        expect(sign.dispatch(null)).toBe(true);
-        expect(spy.callCount).toBe(1);
+        t.ok(sign.dispatch(null));
+        t.equal(spy.callCount, 1);
+        t.end();
     });
     
-    it('should call listener in order of add', function () {
+    /*t.test('should call listener in order of add', function () {
         var spy2 = jasmine.createSpy('spy2').andCallFake(function () {
             expect(spy).toHaveBeenCalled();
         });
         sign.add(spy2);
-        expect(sign.dispatch(null)).toBe(true);
-    });
+        expect(sign.dispatch(null)).to.be(true);
+    });*/
     
-    it('should call listener in order of priority if given', function () {
+    /*t.test('should call listener in order of priority if given', function () {
         var spy2 = jasmine.createSpy('spy2').andCallFake(function () {
-            expect(spy.callCount).toBe(0);
+            expect(spy.callCount).to.be(0);
         });
         sign.add(spy2, 1);
-        expect(sign.dispatch(null)).toBe(true);
+        expect(sign.dispatch(null)).to.be(true);
         expect(spy).toHaveBeenCalled();
-    });
+    });*/
     
-    it('should not call any listener after clear call', function () {
+    /*t.test('should not call any listener after clear call', function () {
         var spy2 = jasmine.createSpy('spy2');
         sign.add(spy2);
         sign.clear();
-        expect(sign.dispatch(null)).toBe(true);
-        expect(spy.callCount).toBe(0);
-        expect(spy2.callCount).toBe(0);
-    });
+        expect(sign.dispatch(null)).to.be(true);
+        expect(spy.callCount).to.be(0);
+        expect(spy2.callCount).to.be(0);
+    });*/
     
-    it('should not call a listener if another lister returned \'false\’ before, and dispatch should return false', function () {
+    /*t.test('should not call a listener if another lister returned \'false\’ before, and dispatch should return false', function () {
         sign.add(function () {
             return false;
         }, 1);
-        expect(sign.dispatch(null)).toBe(false);
-        expect(spy.callCount).toBe(0);
-    });
+        expect(sign.dispatch(null)).to.be(false);
+        expect(spy.callCount).to.be(0);
+    });*/
 });
