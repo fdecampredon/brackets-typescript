@@ -13,7 +13,7 @@
 //   limitations under the License.
 
 
-import signal = require('./utils/signal');
+import Rx = require('rx');
 import collections = require('../commons/collections');
 
 
@@ -38,12 +38,12 @@ export interface IWorkingSet {
     /**
      * a signal dispatching events when change occured in the working set
      */
-    workingSetChanged: signal.ISignal<ChangeRecord>;
+    workingSetChanged: Rx.Observable<ChangeRecord>;
     
     /**
      * a signal that provide fine grained change over edited document
      */
-    documentEdited: signal.ISignal<DocumentChangeDescriptor[]>;
+    documentEdited: Rx.Observable<DocumentChangeDescriptor[]>;
 
     /**
      * dispose the working set 
@@ -200,12 +200,12 @@ export class WorkingSet implements IWorkingSet {
     /**
      * internal signal for workingSetChanged
      */
-    private _workingSetChanged = new signal.Signal<ChangeRecord>();
+    private _workingSetChanged = new Rx.Subject<ChangeRecord>();
     
     /**
      * internal signal for documentEdited
      */
-    private _documentEdited = new signal.Signal<DocumentChangeDescriptor[]>();
+    private _documentEdited = new Rx.Subject<DocumentChangeDescriptor[]>();
     
         
     /**
@@ -282,7 +282,7 @@ export class WorkingSet implements IWorkingSet {
      */
     private workingSetAddHandler = (event: any, file: brackets.File) => {
         this.filesSet.add(file.fullPath);
-        this.workingSetChanged.dispatch({
+        this.workingSetChanged.onNext({
             kind: WorkingSetChangeKind.ADD,
             paths: [file.fullPath]
         });
@@ -297,7 +297,7 @@ export class WorkingSet implements IWorkingSet {
             return file.fullPath;
         });
         if (paths.length > 0) {
-            this.workingSetChanged.dispatch({
+            this.workingSetChanged.onNext({
                 kind: WorkingSetChangeKind.ADD,
                 paths: paths
             });
@@ -309,7 +309,7 @@ export class WorkingSet implements IWorkingSet {
      */      
     private workingSetRemoveHandler = (event: any, file: brackets.File) => {
         this.filesSet.remove(file.fullPath);
-        this.workingSetChanged.dispatch({
+        this.workingSetChanged.onNext({
             kind: WorkingSetChangeKind.REMOVE,
             paths: [file.fullPath]
         });
@@ -324,7 +324,7 @@ export class WorkingSet implements IWorkingSet {
             return file.fullPath
         });
         if (paths.length > 0) {
-            this.workingSetChanged.dispatch({
+            this.workingSetChanged.onNext({
                 kind: WorkingSetChangeKind.REMOVE,
                 paths: paths
             });
@@ -362,7 +362,7 @@ export class WorkingSet implements IWorkingSet {
             change = change.next; 
         }
         if (changesDescriptor.length > 0) {
-            this.documentEdited.dispatch(changesDescriptor);
+            this.documentEdited.onNext(changesDescriptor);
         }   
     }
     

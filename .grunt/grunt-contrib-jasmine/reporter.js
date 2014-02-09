@@ -94,17 +94,9 @@ phantom.sendMessage = function() {
     this.finished = true;
     var specIds = map(runner.specs(), function(a){return a.id;});
     var summary = this.resultsForSpecs(specIds);
-      
-    if (window.__coverage__) {
-        phantom.sendMessage('jasmine.coverify', window.__coverage__);
-    }
-    var self = this;
-    setTimeout(function () {
-        phantom.sendMessage('jasmine.reportRunnerResults',summary);
-        phantom.sendMessage('jasmine.reportJUnitResults', self.generateJUnitSummary(runner));
-        phantom.sendMessage('jasmine.done.PhantomReporter');
-        
-    }, 300);
+    phantom.sendMessage('jasmine.reportRunnerResults',summary);
+    phantom.sendMessage('jasmine.reportJUnitResults', this.generateJUnitSummary(runner));
+    phantom.sendMessage('jasmine.done.PhantomReporter');
   };
 
   PhantomReporter.prototype.reportSuiteResults = function(suite) {

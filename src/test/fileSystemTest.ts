@@ -12,6 +12,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+/*istanbulify ignore file*/
+
 'use strict';
 
 import fs = require('../main/fileSystem');
@@ -90,11 +92,9 @@ describe('FileSystem', function() {
         
         it('should return a list of the project files paths', function () {
             var files: string[] = [];
-            runs(() => {
-                fileSystem.getProjectFiles().then(f => {
-                    files = f
-                })
-            });
+            fileSystem.getProjectFiles().then(result => files = result);
+            
+            waitsFor(() => !!files, 'files should be set', 10);
             runs(() => expect(files).toEqual([
                 '/file1.ts',
                 '/file2.ts',
@@ -105,17 +105,14 @@ describe('FileSystem', function() {
                 '/subdir2/subdir3/file7.ts'
             ]))
         });
-        
     });
     
     describe('readFile', function () {
         
         it('should return the file content', function () {
             var content: string;
-            runs(() => {
-                fileSystem.readFile('/subdir2/subdir3/file6.ts').then(data => content = data)    
-            });
-            
+            fileSystem.readFile('/subdir2/subdir3/file6.ts').then(data => content = data)   
+            waitsFor(() => !!content, 'file should be read', 10);
             runs(() => {
                 expect(content).toBe('File6 content'); 
             })
@@ -123,10 +120,8 @@ describe('FileSystem', function() {
         
         it('should normalize the file content', function () {
             var content: string;
-            runs(() => {
-                fileSystem.readFile('/subdir2/subdir3/file7.ts').then(data => content = data)    
-            });
-            
+            fileSystem.readFile('/subdir2/subdir3/file7.ts').then(data => content = data)   
+            waitsFor(() => !!content, 'file should be read', 10);
             runs(() => {
                 expect(content).toBe('File7 content\nline2\nline3\nline4'); 
             })
@@ -134,16 +129,18 @@ describe('FileSystem', function() {
         
         
         it('should return an error if underlying file system return an error', function () {
-            var content: string,
-                error: string;
+            var error: string;
+            fileSystem.readFile('/subdir2/subdir3/file8.ts').then(undefined, (e?: string) => error = e);   
+            waitsFor(() => !!error, 'error should be set');
             runs(() => {
-                fileSystem.readFile('/subdir2/subdir3/file8.ts').then(data => {
-                    content = data
-                }, (e?: string, ...rest: any[]) => {
-                    error = e
-                });    
-            });
-            
+                expect(error).toBe(bracketsMock.FILE_NOT_FOUND); 
+            })
+        }); 
+        
+        it('should return an error if the file is a directory', function () {
+            var error: string;
+            fileSystem.readFile('/subdir2/subdir3').then(undefined, (e?: string) => error = e);   
+            waitsFor(() => !!error, 'error should be set');
             runs(() => {
                 expect(error).toBe(bracketsMock.FILE_NOT_FOUND); 
             })
@@ -152,26 +149,21 @@ describe('FileSystem', function() {
         it('should cache files content', function () {
             var spy = spyOn(fileSystemMock,'getFileForPath').andCallThrough(),
                 content: string;
+            fileSystem.readFile('/subdir2/subdir3/file6.ts').then(data => content = data);    
+            waitsFor(() => !!content, 'file should be read', 10);
             runs(() => {
-                fileSystem.readFile('/subdir2/subdir3/file6.ts').then(data => content = data);  
                 fileSystem.readFile('/subdir2/subdir3/file6.ts').then(data => expect(data).toBe(content)) 
-            });
-            
-            runs(() => {
                 expect(spy.callCount).toBe(1);
                 expect(content).toBe('File6 content'); 
             })
         }); 
         
         it('should update cached files when they are updated', function () {
-            var spy = spyOn(fileSystemMock,'getFileForPath').andCallThrough(),
-                content: string;
-            runs(() => {
-                fileSystem.readFile('/subdir2/subdir3/file6.ts');
-                fileSystemMock.updateFile('/subdir2/subdir3/file6.ts', 'new content')
-                fileSystem.readFile('/subdir2/subdir3/file6.ts').then(data => content = data)    
-            });
-            
+            var content: string;
+            fileSystem.readFile('/subdir2/subdir3/file6.ts');
+            fileSystemMock.updateFile('/subdir2/subdir3/file6.ts', 'new content')
+            fileSystem.readFile('/subdir2/subdir3/file6.ts').then(data => content = data)    
+            waitsFor(() => content === 'new content', 'file should be read', 10);
             runs(() => {
                 expect(content).toBe('new content'); 
             })
@@ -185,7 +177,7 @@ describe('FileSystem', function() {
         var changeSpy  = jasmine.createSpy('changeSpy');
         
         beforeEach(() => {
-            fileSystem.projectFilesChanged.add(changeSpy);
+            fileSystem.projectFilesChanged.subscribe(changeSpy);
             //initilize the caching
             fileSystem.getProjectFiles();
         });
@@ -310,88 +302,96 @@ describe('FileSystem', function() {
         
         
         it('should dispatch an event containing all file that have been deleted/added', function () {
-            fileSystem.readFile('/subdir2/file5.ts');
-            fileSystem.readFile('/subdir1/file3.ts');
-            fileSystemMock.refresh(d({
-                name: '/',
-                children : [
-                    f({
-                        name: 'file2.ts',
-                        content: 'File2 content has changed'
-                    }),
-                    f({
-                        name: 'file8.ts',
-                        content: 'File8 content'
-                    }),
-                    d({
-                        name : 'subdir1/',
-                        children: [
-                            f({
-                                name: 'file3.ts',
-                                content: 'File3 content'
-                            })
-                        ]
-                    }),
-                    d({
-                        name : 'subdir2/',
-                        children: [
-                            f({
-                                name: 'file4.ts',
-                                content: 'File4 content'
-                            }),
-                            f({
-                                name: 'file5.ts',
-                                content: 'File5 content has changed'
-                            })
-                        ]
-                    }),
-                    d({
-                        name : 'subdir3/',
-                        children: [
-                            f({
-                                name: 'file6.ts',
-                                content: 'File6 content'
-                            }),
-                            f({
-                                name: 'file7.ts',
-                                content: 'File7 content\r\nline2\nline3\r\nline4'
-                            }),
-                            d({
-                                name: 'subdir4/',
-                                children: []
-                            })
-                        ]
-                    })
-                ]
-            }));
+            var file5Content: string,
+                file3Content: string;
+            fileSystem.readFile('/subdir2/file5.ts').then(result => file5Content = result);
+            fileSystem.readFile('/subdir1/file3.ts').then(result => file3Content = result);
             
-            expect(changeSpy).toHaveBeenCalledWith([{
-                kind: fs.FileChangeKind.DELETE,
-                path: '/file1.ts'
-            },{
-                kind: fs.FileChangeKind.DELETE,
-                path: '/subdir2/subdir3/file6.ts'
-            },{
-                kind: fs.FileChangeKind.DELETE,
-                path: '/subdir2/subdir3/file7.ts'
-            },{
-                kind: fs.FileChangeKind.ADD,
-                path: '/file8.ts'
-            },{
-                kind: fs.FileChangeKind.ADD,
-                path: '/subdir3/file6.ts'
-            },{
-                kind: fs.FileChangeKind.ADD,
-                path: '/subdir3/file7.ts'
-            },{
-                kind: fs.FileChangeKind.UPDATE,
-                path: '/subdir2/file5.ts'
-            }]);
+            waitsFor(() => !!file3Content && !!file5Content, 'files should have been read', 10);
+            runs(function () {
+                fileSystemMock.refresh(d({
+                    name: '/',
+                    children : [
+                        f({
+                            name: 'file2.ts',
+                            content: 'File2 content has changed'
+                        }),
+                        f({
+                            name: 'file8.ts',
+                            content: 'File8 content'
+                        }),
+                        d({
+                            name : 'subdir1/',
+                            children: [
+                                f({
+                                    name: 'file3.ts',
+                                    content: 'File3 content'
+                                })
+                            ]
+                        }),
+                        d({
+                            name : 'subdir2/',
+                            children: [
+                                f({
+                                    name: 'file4.ts',
+                                    content: 'File4 content'
+                                }),
+                                f({
+                                    name: 'file5.ts',
+                                    content: 'File5 content has changed'
+                                })
+                            ]
+                        }),
+                        d({
+                            name : 'subdir3/',
+                            children: [
+                                f({
+                                    name: 'file6.ts',
+                                    content: 'File6 content'
+                                }),
+                                f({
+                                    name: 'file7.ts',
+                                    content: 'File7 content\r\nline2\nline3\r\nline4'
+                                }),
+                                d({
+                                    name: 'subdir4/',
+                                    children: []
+                                })
+                            ]
+                        })
+                    ]
+                }));
+            });
             
+            waitsFor(() => changeSpy.callCount !== 0, 'change spy should have been called');
+            runs(function () {
+                expect(changeSpy).toHaveBeenCalledWith([{
+                    kind: fs.FileChangeKind.DELETE,
+                    path: '/file1.ts'
+                },{
+                    kind: fs.FileChangeKind.DELETE,
+                    path: '/subdir2/subdir3/file6.ts'
+                },{
+                    kind: fs.FileChangeKind.DELETE,
+                    path: '/subdir2/subdir3/file7.ts'
+                },{
+                    kind: fs.FileChangeKind.ADD,
+                    path: '/file8.ts'
+                },{
+                    kind: fs.FileChangeKind.ADD,
+                    path: '/subdir3/file6.ts'
+                },{
+                    kind: fs.FileChangeKind.ADD,
+                    path: '/subdir3/file7.ts'
+                },{
+                    kind: fs.FileChangeKind.UPDATE,
+                    path: '/subdir2/file5.ts'
+                }]);
+            });
         });
         
-        it('should dispatch an event  with a delete record and an add record when a file is renamed', function () {
-            var files: string[] = [];
+        it('should dispatch an event  with a delete record and an add record when a file has been renamed', function () {
+            var files: string[];
             
             fileSystemMock.renameFile('/subdir2/file4.ts', '/subdir2/newFile.ts');
             
@@ -404,11 +404,8 @@ describe('FileSystem', function() {
                 path: '/subdir2/newFile.ts'
             }]);
             
-            runs(() => {
-                fileSystem.getProjectFiles().then(f => {
-                    files = f
-                })
-            });
+            fileSystem.getProjectFiles().then(result => files = result);
+            waitsFor(() => !!files, 'files should be set', 10);
             runs(() => expect(files).toEqual([
                 '/file1.ts',
                 '/file2.ts',
@@ -421,7 +418,31 @@ describe('FileSystem', function() {
         });
         
         
-        it('should dispatch an event  with a delete record and an add fo reach file subfile of the directory when a directory is renamed', function () {
+        it('should update the cache when a file has been renamed', function () {
+            var spy = spyOn(fileSystemMock,'getFileForPath').andCallThrough(),
+                content: string, 
+                newContent: string;
+            
+            fileSystem.readFile('/subdir2/file4.ts').then(result => content = result);  
+            waitsFor(() => !!content, 'file should be read', 10);
+            
+            runs(() => {
+                fileSystemMock.renameFile('/subdir2/file4.ts', '/subdir2/newFile.ts');
+            })
+            
+            waits(10);
+            runs(() => {
+                fileSystem.readFile('/subdir2/newFile.ts').then(result => newContent = result);  
+            });
+            waitsFor(() => !!newContent, 'file should be read', 10);
+            runs(() => {
+                expect(spy.callCount).toBe(1);
+                expect(content).toBe(newContent);
+            });
+        });
+        
+        
+        it('should dispatch an event  with a delete record and an add fo reach file subfile of the directory when a directory has been renamed', function () {
             fileSystemMock.renameFile('/subdir2/', '/subdir4/');
              
             expect(changeSpy.callCount).toBe(1);
@@ -455,6 +476,32 @@ describe('FileSystem', function() {
     });
     
     
-   
+    describe('initilaization stack', function () {
+        it('should cache every call to getProjectFiles/readFile during inialization, and resolve them afterward', function () {
+            projectManager.async = true;
+            fileSystem.reset();
+            var spy = spyOn(fileSystem, 'resolveInitializationStack').andCallThrough(),
+                files: string[],
+                content: string;
+            
+            fileSystem.getProjectFiles().then(result => files = result);
+            fileSystem.readFile('/file1.ts').then(result => content = result);
+            
+            waitsFor(() => !!files && !!content, 'operation should have been resolved', 20);
+            runs(() => {
+                expect(spy).toHaveBeenCalled();
+                expect(files).toEqual([
+                    '/file1.ts',
+                    '/file2.ts',
+                    '/subdir1/file3.ts',
+                    '/subdir2/file4.ts',
+                    '/subdir2/file5.ts',
+                    '/subdir2/subdir3/file6.ts',
+                    '/subdir2/subdir3/file7.ts'
+                ]);
+                expect(content).toBe('File1 content');
+            })
+        });
+    });
     
 });

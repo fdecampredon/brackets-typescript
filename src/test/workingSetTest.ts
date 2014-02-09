@@ -12,6 +12,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+/*istanbulify ignore file */
+
 'use strict';
 
 import ws = require('../main/workingSet');
@@ -83,14 +85,15 @@ describe('WorkingSet', function (): void {
     });
     
     describe('workingSetChanged', function () {
-        var spy = jasmine.createSpy('workingSetChangedHandler');
+        var spy = jasmine.createSpy('workingSetChangedHandler'),
+            disposable: Rx.IDisposable;
         
         beforeEach(function () {
-            workingSet.workingSetChanged.add(spy);
+            disposable = workingSet.workingSetChanged.subscribe(spy);
         });
         
         afterEach(function () {
-            workingSet.workingSetChanged.remove(spy);
+            disposable.dispose();
             spy.reset();
         });
         
@@ -137,14 +140,15 @@ describe('WorkingSet', function (): void {
     });
 
     describe('documentEdited', function () {
-        var spy = jasmine.createSpy('documentEdited');
+        var spy = jasmine.createSpy('documentEdited'),
+            disposable: Rx.IDisposable;
         
         beforeEach(function () {
-            workingSet.documentEdited.add(spy);
+            disposable = workingSet.documentEdited.subscribe(spy);
         });
         
         afterEach(function () {
-            workingSet.documentEdited.remove(spy);
+            disposable.dispose();
             spy.reset();
         });
         

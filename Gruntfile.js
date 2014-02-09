@@ -15,16 +15,21 @@
 //
 
 
-/*global module, require*/
+/*jshint node: true*/
 
-var coverageTemplate = require('./grunt-utils/grunt-contrib-jasmine-coverify');
+//var coverageTemplate = require('./grunt-utils/grunt-contrib-jasmine-coverify');
 
 module.exports = function (grunt) {
     
     'use strict';
     var excludeGruntDeps = ['grunt-template-jasmine-istanbul'];
-    require('matchdep').filterDev('grunt-*').forEach(grunt.loadNpmTasks);
-    var coverify = require('coverify');
+    require('matchdep').filterDev('grunt-*').forEach(function (task) { 
+        if (excludeGruntDeps.indexOf(task) === -1) {
+            grunt.loadNpmTasks(task);
+        }
+    });
+    
+    var istanbulify = require('./grunt-utils/istanbulify');
     
     grunt.initConfig({
         source: ['src/declarations/*.d.ts', 'src/commons/**/*.ts', 'src/main/**/*.ts'],
@@ -81,6 +86,7 @@ module.exports = function (grunt) {
                     module: 'commonjs',
                     target: 'es5',
                     sourcemap: false,
+                    comments : true,
                     noImplicitAny: true,
                     ignoreTypeCheck: false
                 }
@@ -106,7 +112,7 @@ module.exports = function (grunt) {
                 },
                 options: {
                     debug: true,
-                    transform : [coverify]
+                    transform : [istanbulify]
                 }
             }
         },
@@ -123,8 +129,19 @@ module.exports = function (grunt) {
                         'third_party/typescriptServices.js'
                     ],
                     keepRunner: true,
-                    template: coverageTemplate,
-                    outfile: 'SpecRunner.html'
+                    template: require('grunt-template-jasmine-istanbul'),
+                    outfile: 'SpecRunner.html',
+                    templateOptions: {
+                        coverage: 'coverage/coverage.json',
+                        report: 'coverage',
+                        files: ['!**/test/**/*'],
+                        thresholds: {
+                            lines: 70,
+                            statements: 70,
+                            branches: 70,
+                            functions: 70
+                        }
+                    }
                 }
             }
         }
@@ -141,7 +158,7 @@ module.exports = function (grunt) {
     //grunt.registerTask('release', ['test', 'build', 'clean:release', 'copy:release']);
     
     
-    var bla = {
+    var commented = {
     
         
         copy: {

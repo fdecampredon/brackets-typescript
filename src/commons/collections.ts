@@ -30,13 +30,13 @@ export class StringSet {
     
     /**
      * constructor
-     * @param iterable a array of string that will be added to the set
+     * @param array a array of string that will be added to the set
      */
-    constructor(iterable?: string[]) {
+    constructor(array?: string[]) {
         this.map = Object.create(null);
-        if (iterable) { 
-            for (var i = 0, l= iterable.length; i < l;i ++) {
-                this.add(iterable[i]);
+        if (array) { 
+            for (var i = 0, l= array.length; i < l;i ++) {
+                this.add(array[i]);
             }
         }
     }
@@ -53,8 +53,8 @@ export class StringSet {
      * remove a value from the set
      * @param value
      */
-    remove(value: string): boolean {
-        return delete this.map[value];
+    remove(value: string): void {
+        delete this.map[value];
     }
     
     /**
@@ -102,14 +102,11 @@ export class StringMap<T> {
      * constructor
      * @param iterable a array of MapEntry that will be added to the map
      */
-    constructor(iterable?: MapEntry<T>[]) {
+    constructor(obj?: {[index: string]: T}) {
         this.map = Object.create(null);
         this.mascot = <T>{};
-        if (iterable) { 
-            for (var i = 0, l= iterable.length; i < l;i ++) {
-                var entry = iterable[i];
-                this.set(entry.key, entry.value);
-            }
+        if (obj) { 
+            Object.keys(obj).forEach(key => this.map[key] = obj[key]);
         }
     }
     
@@ -181,9 +178,20 @@ export class StringMap<T> {
     }
     
     /**
+     * return an array containing the entries of the map
+     */
+    toObject(): {[key: string]: T} {
+        return Object.keys(this.map).reduce(
+            (obj: {[key: string]: T}, key: string) => {
+                obj[key] = this.map[key];
+                return obj;
+            }, {});
+    }
+    
+    /**
      * return a clone of the map
      */
     clone(): StringMap<T> {
-        return new StringMap<T>(this.entries);
+        return new StringMap<T>(this.toObject());
     }
 }

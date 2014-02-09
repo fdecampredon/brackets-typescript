@@ -14,12 +14,11 @@
 
 'use strict';
 
-import Logger = require('./logger');
+import logger = require('../commons/logger');
 import collections = require('../commons/collections');
 import scripts = require('./scripts');
 
-
-class LanguageServiceHost extends Logger implements TypeScript.Services.ILanguageServiceHost {
+class LanguageServiceHost extends logger.LogingClass implements TypeScript.Services.ILanguageServiceHost {
     public fileNameToScript = new collections.StringMap<scripts.ScriptInfo>();
     
     constructor (

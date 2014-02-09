@@ -15,8 +15,8 @@
 
 'use strict';
 
-import signal = require('./utils/signal');
 import collections = require('../commons/collections');
+import Rx = require('rx');
 
 
 //--------------------------------------------------------------------------
@@ -33,7 +33,7 @@ export interface IFileSystem {
     /**
      * a signal dispatching fine grained change reflecting the change that happens in the working set
      */
-    projectFilesChanged: signal.ISignal<ChangeRecord[]> ;
+    projectFilesChanged: Rx.Observable<ChangeRecord[]>
     
     /**
      * return a promise that resolve with a string containing the files in the project
@@ -169,7 +169,7 @@ export class FileSystem implements IFileSystem {
     private initializationStack: { (): void }[] = [];
     
  
-    private _projectFilesChanged = new signal.Signal<ChangeRecord[]>();
+    private _projectFilesChanged = new Rx.Subject<ChangeRecord[]>();
     
     //-------------------------------
     //  IFileSystem implementation
@@ -178,7 +178,7 @@ export class FileSystem implements IFileSystem {
     /**
      * @see IFileSystem.projectFilesChanged
      */
-    get projectFilesChanged(): signal.ISignal<ChangeRecord[]> {
+    get projectFilesChanged(): Rx.Observable<ChangeRecord[]> {
         return this._projectFilesChanged;
     }
     
@@ -227,7 +227,7 @@ export class FileSystem implements IFileSystem {
         this.filesContent.clear();
         this.filesPath.length = 0;
         this.init();
-        this._projectFilesChanged.dispatch([{
+        this._projectFilesChanged.onNext([{
             kind: FileChangeKind.RESET
         }]);
     }
@@ -239,7 +239,7 @@ export class FileSystem implements IFileSystem {
     dispose(): void {
         this.nativeFileSystem.off('change', this.changesHandler);
         this.nativeFileSystem.off('rename', this.renameHandler);
-        this._projectFilesChanged.clear();
+        this._projectFilesChanged.dispose();
     }
     
     //-------------------------------
@@ -383,7 +383,7 @@ export class FileSystem implements IFileSystem {
                     });
                 
                     if (changes.length > 0) {
-                        this.projectFilesChanged.dispatch(changes);  
+                        this._projectFilesChanged.onNext(changes);  
                     }
                     this.initialized = true;
                     this.resolveInitializationStack();
@@ -397,7 +397,7 @@ export class FileSystem implements IFileSystem {
             //file have been updated simply dispatch an update event and update the cache if necessary
             
             var dispatchUpdate = () => {
-                this.projectFilesChanged.dispatch([{
+                this._projectFilesChanged.onNext([{
                    kind: FileChangeKind.UPDATE,
                    path: file.fullPath
                 }]);
@@ -496,7 +496,7 @@ export class FileSystem implements IFileSystem {
                
                 (<JQueryPromise<any>>$.when.apply($, promises)).then(() => {
                     if (changes.length > 0) {
-                        this.projectFilesChanged.dispatch(changes);  
+                        this._projectFilesChanged.onNext(changes);  
                     }  
                 }, () => {
                     //in case of error reset
@@ -522,7 +522,7 @@ export class FileSystem implements IFileSystem {
             changes = this.fileRenamedHandler(oldPath, newPath);
         }
         if (changes.length > 0) {
-            this.projectFilesChanged.dispatch(changes);
+            this._projectFilesChanged.onNext(changes);
         }
     }
     

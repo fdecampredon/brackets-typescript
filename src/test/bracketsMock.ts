@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+/*istanbulify ignore file*/
 
 export var FILE_NOT_FOUND = 'not found';
 
@@ -260,11 +261,13 @@ export class File extends FileSystemEntry implements brackets.File {
      * @param callback Callback that is passed the FileSystemError string or the file's contents and its stats.
      */
     read(options: {}, callback: (err: string, data: string, stat: brackets.FileSystemStats) => any): void {
-        if (this.content) {
-            callback(null, this.content, null);
-        } else {
-            callback(FILE_NOT_FOUND, null, null)
-        }
+        setTimeout(() => {
+            if (this.content) {
+                callback(null, this.content, null);
+            } else {
+                callback(FILE_NOT_FOUND, null, null)
+            }
+        }, 0);
     }
        
     
@@ -328,17 +331,27 @@ export class ProjectManager {
     constructor(
         private fs:FileSystem
     ){}
+    
+    async: boolean = false;
+    
     getAllFiles(filter? : (file: brackets.File) => boolean, includeWorkingSet? : boolean)  {
         var deferred = $.Deferred<brackets.File[]>(),
             files: brackets.File[] = [];
-        this.fs.root.visit(entry => {
-            if (entry.isFile) {
-                files.push(<brackets.File> entry)
-            }
-            return true;
-        }, null, () => {
-            deferred.resolve(files);    
-        })
+        var resolve = () => {
+            this.fs.root.visit(entry => {
+                if (entry.isFile) {
+                    files.push(<brackets.File> entry)
+                }
+                return true;
+            }, null, () => {
+                deferred.resolve(files);    
+            });
+        };
+        if (this.async) {
+            setTimeout(resolve, 0);
+        } else {
+            resolve();   
+        }
         return deferred.promise();
     }
 };
