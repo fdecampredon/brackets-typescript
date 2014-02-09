@@ -17,6 +17,7 @@
 import logger = require('../commons/logger');
 import collections = require('../commons/collections');
 import scripts = require('./scripts');
+import path = require('path');
 
 class LanguageServiceHost extends logger.LogingClass implements TypeScript.Services.ILanguageServiceHost {
     public fileNameToScript = new collections.StringMap<scripts.ScriptInfo>();
@@ -128,12 +129,12 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
         return true;
     }
 
-    public resolveRelativePath(path: string, directory: string): string {
-        return PathUtils.makePathAbsolute(path, directory);
+    public resolveRelativePath(fileName: string, directory: string): string {
+        return path.resolve(directory, fileName);
     }
 
-    public getParentDirectory(path: string): string {
-        return PathUtils.directory(path);
+    public getParentDirectory(fileName: string): string {
+        return path.dirname(fileName);
     }
 
     /**
@@ -141,8 +142,8 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
      * @param path the path of the file
      * @param position the position
      */
-    getIndexFromPos(path: string, position: CodeMirror.Position): number {
-        var script = this.fileNameToScript.get(path);
+    getIndexFromPos(fileName: string, position: CodeMirror.Position): number {
+        var script = this.fileNameToScript.get(fileName);
         if (script) {
             return script.lineMap.getPosition(position.line, position.ch)
         }
@@ -155,8 +156,8 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
      * @param path the path of the file
      * @param index the index
      */
-    indexToPosition(path: string, index: number): CodeMirror.Position {
-        var script = this.fileNameToScript.get(path);
+    indexToPosition(fileName: string, index: number): CodeMirror.Position {
+        var script = this.fileNameToScript.get(fileName);
         if (script) {
             var tsPosition = script.getLineAndColForPositon(index);
             return {
