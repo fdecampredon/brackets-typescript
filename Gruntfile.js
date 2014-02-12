@@ -29,7 +29,7 @@ module.exports = function (grunt) {
         }
     });
     
-    var istanbulify = require('./grunt-utils/istanbulify');
+    var istanbulify = require('istanbulify');
     
     grunt.initConfig({
         source: ['src/declarations/*.d.ts', 'src/commons/**/*.ts', 'src/main/**/*.ts'],
