@@ -19,3 +19,4 @@ declare var require: any;
 require('./collectionsTest');
 require('./fileSystemTest');
 require('./workingSetTest');
+require('./languageServiceHostTest');

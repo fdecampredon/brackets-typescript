@@ -16,38 +16,37 @@
 
 import logger = require('../commons/logger');
 import collections = require('../commons/collections');
-import scripts = require('./scripts');
 import path = require('path');
+import utils = require('../commons/utils');
 
 class LanguageServiceHost extends logger.LogingClass implements TypeScript.Services.ILanguageServiceHost {
-    public fileNameToScript = new collections.StringMap<scripts.ScriptInfo>();
+    private compilationSettings: TypeScript.CompilationSettings;
+  
+    private fileNameToScript = new collections.StringMap<ScriptInfo>();
     
-    constructor (
-        public compilationSettings: TypeScript.CompilationSettings
-    ) {
-        super();
-    }
-    
-    public addScript(fileName: string, content:string) {
-        var script = new scripts.ScriptInfo(fileName, content);
+    addScript(fileName: string, content:string) {
+        var script = new ScriptInfo(fileName, content);
         this.fileNameToScript.set(fileName, script);
     }
 
-    public removeScript(fileName: string) {
+    removeScript(fileName: string) {
         this.fileNameToScript.delete(fileName);
     }
+    
+    removeAll(): void {
+        this.fileNameToScript.clear();
+    }
 
-    public updateScript(fileName: string, content: string) {
+    updateScript(fileName: string, content: string) {
         var script = this.fileNameToScript.get(fileName);
         if (script) {
             script.updateContent(content); 
             return;
         }
-
-        this.addScript(fileName, content);
+        throw new Error("No script with name '" + fileName + "'");
     }
 
-    public editScript(fileName: string, minChar: number, limChar: number, newText: string) {
+    editScript(fileName: string, minChar: number, limChar: number, newText: string) {
         var script = this.fileNameToScript.get(fileName);
         if (script) {
             script.editContent(minChar, limChar, newText);
@@ -57,7 +56,7 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
         throw new Error("No script with name '" + fileName + "'");
     }
     
-    public setScriptIsOpen(fileName: string, isOpen: boolean) {
+    setScriptIsOpen(fileName: string, isOpen: boolean) {
         var script = this.fileNameToScript.get(fileName);
         if (script) {
             script.isOpen = isOpen
@@ -67,29 +66,34 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
         throw new Error("No script with name '" + fileName + "'");
     }
     
+    setCompilationSettings(settings: TypeScript.CompilationSettings ): void{
+        this.compilationSettings = utils.clone(settings);
+    }
+    
+    
    
 
     //////////////////////////////////////////////////////////////////////
     // ILanguageServiceShimHost implementation
     //
 
-    public getCompilationSettings(): TypeScript.CompilationSettings {
-        return this.compilationSettings; // i.e. default settings
+    getCompilationSettings(): TypeScript.CompilationSettings {
+        return this.compilationSettings; 
     }
 
-    public getScriptFileNames() {
+    getScriptFileNames() {
         return this.fileNameToScript.keys;
     }
 
-    public getScriptSnapshot(fileName: string) {
+    getScriptSnapshot(fileName: string): TypeScript.IScriptSnapshot {
         var script = this.fileNameToScript.get(fileName);
         if (script) {
-            return new scripts.ScriptSnapshot(script);
+            return new ScriptSnapshot(script);
         }
         return null;
     }
 
-    public getScriptVersion(fileName: string): number {
+    getScriptVersion(fileName: string): number {
         var script = this.fileNameToScript.get(fileName);
         if (script) {
             return script.version;
@@ -97,7 +101,7 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
         return 0;
     }
 
-    public getScriptIsOpen(fileName: string): boolean {
+    getScriptIsOpen(fileName: string): boolean {
         var script = this.fileNameToScript.get(fileName);
         if (script) {
             return script.isOpen;
@@ -105,7 +109,7 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
         return false;
     }
 
-    public getScriptByteOrderMark(fileName: string): TypeScript.ByteOrderMark {
+    getScriptByteOrderMark(fileName: string): TypeScript.ByteOrderMark {
         var script = this.fileNameToScript.get(fileName);
         if (script) {
             return script.byteOrderMark;
@@ -113,27 +117,27 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
         return TypeScript.ByteOrderMark.None;
     }
 
-    public getDiagnosticsObject(): TypeScript.Services.ILanguageServicesDiagnostics {
+    getDiagnosticsObject(): TypeScript.Services.ILanguageServicesDiagnostics {
         return new LanguageServicesDiagnostics("");
     }
 
-    public getLocalizedDiagnosticMessages(): string {
+    getLocalizedDiagnosticMessages(): string {
         return "";
     }
 
-    public fileExists(s: string) {
+    fileExists(s: string) {
         return this.fileNameToScript.has(s);
     }
 
-    public directoryExists(s: string) {
+    directoryExists(s: string) {
         return true;
     }
 
-    public resolveRelativePath(fileName: string, directory: string): string {
+    resolveRelativePath(fileName: string, directory: string): string {
         return path.resolve(directory, fileName);
     }
 
-    public getParentDirectory(fileName: string): string {
+    getParentDirectory(fileName: string): string {
         return path.dirname(fileName);
     }
 
@@ -145,7 +149,7 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
     getIndexFromPos(fileName: string, position: CodeMirror.Position): number {
         var script = this.fileNameToScript.get(fileName);
         if (script) {
-            return script.lineMap.getPosition(position.line, position.ch)
+            return script.getPositionFromLine(position.line, position.ch)
         }
         return -1;
     }
@@ -169,13 +173,127 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
     }
 }
 
+
+
+class ScriptInfo {
+    version: number = 1;
+    editRanges: { length: number; textChangeRange: TypeScript.TextChangeRange; }[] = [];
+    lineMap: TypeScript.LineMap = null;
+    fileName: string;
+    content: string;
+    isOpen: boolean;
+    byteOrderMark: TypeScript.ByteOrderMark;
+    
+
+    constructor(fileName: string, content: string, isOpen = false, byteOrderMark: TypeScript.ByteOrderMark = TypeScript.ByteOrderMark.None) {
+        this.fileName = fileName;
+        this.content = content;
+        this.isOpen = isOpen;
+        this.byteOrderMark = byteOrderMark;
+        this.setContent(content);
+    }
+
+    private setContent(content: string): void {
+        this.content = content;
+        this.lineMap = TypeScript.LineMap1.fromString(content);
+    }
+
+    updateContent(content: string): void {
+        if (content !== this.content) {
+            this.editRanges = [];
+            this.setContent(content);
+            this.version++;
+        }
+    }
+
+    editContent(minChar: number, limChar: number, newText: string): void {
+        // Apply edits
+        var prefix = this.content.substring(0, minChar);
+        var middle = newText;
+        var suffix = this.content.substring(limChar);
+        this.setContent(prefix + middle + suffix);
+
+        // Store edit range + new length of script
+        this.editRanges.push({
+            length: this.content.length,
+            textChangeRange: new TypeScript.TextChangeRange(
+                TypeScript.TextSpan.fromBounds(minChar, limChar), newText.length)
+        });
+
+        // Update version #
+        this.version++;
+    }
+
+    getTextChangeRangeBetweenVersions(startVersion: number, endVersion: number): TypeScript.TextChangeRange {
+        if (startVersion === endVersion) {
+            // No edits!
+            return TypeScript.TextChangeRange.unchanged;
+        } else if (this.editRanges.length === 0) {
+            return null;
+        }
+
+        var initialEditRangeIndex = this.editRanges.length - (this.version - startVersion);
+        var lastEditRangeIndex = this.editRanges.length - (this.version - endVersion);
+
+        var entries = this.editRanges.slice(initialEditRangeIndex, lastEditRangeIndex);
+        return TypeScript.TextChangeRange.collapseChangesAcrossMultipleVersions(entries.map(e => e.textChangeRange));
+    }
+     
+     
+    getPositionFromLine(line :number, col:number) {
+        return this.lineMap.getPosition(line, col);
+    }
+     
+    getLineAndColForPositon(position: number) {
+        var lineAndChar = { line: -1, character: -1};
+        this.lineMap.fillLineAndCharacterFromPosition(position, lineAndChar)
+        return lineAndChar;
+    }
+}
+
+ 
+
+class ScriptSnapshot implements TypeScript.IScriptSnapshot {
+    private lineMap: TypeScript.LineMap = null;
+    private textSnapshot: string;
+    private version: number;
+    private scriptInfo: ScriptInfo;
+
+    constructor(scriptInfo: ScriptInfo) {
+        this.scriptInfo = scriptInfo;
+        this.textSnapshot = scriptInfo.content;
+        this.version = scriptInfo.version;
+    }
+
+    getText(start: number, end: number): string {
+        return this.textSnapshot.substring(start, end);
+    }
+
+    getLength(): number {
+        return this.textSnapshot.length;
+    }
+
+    getLineStartPositions(): number[] {
+        if (this.lineMap === null) {
+            this.lineMap = TypeScript.LineMap1.fromString(this.textSnapshot);
+        }
+        return this.lineMap.lineStarts();
+    }
+
+    getTextChangeRangeSinceVersion(scriptVersion: number): TypeScript.TextChangeRange {
+        return this.scriptInfo.getTextChangeRangeBetweenVersions(scriptVersion, this.version);
+    }
+}
+
+
 class LanguageServicesDiagnostics implements TypeScript.Services.ILanguageServicesDiagnostics {
 
     constructor(private destination: string) { }
 
-    public log(content: string): void {
+    log(content: string): void {
         //Imitates the LanguageServicesDiagnostics object when not in Visual Studio
     }
 }
+
 
 export = LanguageServiceHost;
