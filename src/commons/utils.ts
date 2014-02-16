@@ -8,3 +8,11 @@ export function assign(target: any, source: any): any {
 export function clone<T>(target: T): T {
     return assign({}, target);
 }
+
+export function getEnumerablePropertyNames(target: any): string [] {
+    var result: string[] = [];
+    for (var key in target) {
+        result.push(key);
+    }
+    return result;
+}

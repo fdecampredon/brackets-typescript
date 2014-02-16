@@ -125,7 +125,7 @@ module.exports = function (grunt) {
                     specs: 'built/test.js',
                     vendor : [
                         'third_party/jquery.js',
-                        'third_party/path-utils.js',
+                        'third_party/mustache.js',
                         'third_party/typescriptServices.js'
                     ],
                     keepRunner: true,

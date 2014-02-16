@@ -355,5 +355,55 @@ export class ProjectManager {
         return deferred.promise();
     }
 };
+
+
+export class Document {
+    file: brackets.File;
+    isDirty: boolean;
+    
+    lines: string[];
+    getText(useOriginalLineEndings?: boolean): string {
+        return this.lines.join('/n');
+    }
+    replaceRange(text: string, start: CodeMirror.Position, end?: CodeMirror.Position, origin? :string):void {
+    
+    }
+
+    getLine(index: number): string {
+        return this.lines[index]
+    }
+
+}
+    
+
+export class Editor {
+    _codeMirror: CodeMirror.Editor = null;
+    document = new Document();
+    
+    pos: CodeMirror.Position;
+    
+    getCursorPos(): CodeMirror.Position {
+        return this.pos;
+    }
+    
+    getModeForSelection(): string {
+        return 'typescript';
+    }
+    
+    getSelection(boolean: boolean): {
+        start: CodeMirror.Position;
+        end: CodeMirror.Position
+    } {
+        return null;
+    }
+    setCursorPos(line: number, ch: number): void  {
+        this.pos = {line: line, ch: ch};
+    }
+    
+    setFile(file: String, content: String): void {
+        this.document.file = <any>{ fullPath: file};
+        this.document.lines = content.split('\n');
+    }
+}
     
 
