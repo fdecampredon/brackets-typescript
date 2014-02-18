@@ -16,14 +16,15 @@
 
 'use strict';
 
-import fs = require('../main/fileSystem');
+import fs = require('../commons/fileSystem');
+import FileSystem = require('../main/fileSystem');
 import bracketsMock = require('./bracketsMock');
 import d = bracketsMock.d;
 import f = bracketsMock.f;
 
 describe('FileSystem', function() {
     
-    var fileSystem: fs.IFileSystem,
+    var fileSystem: FileSystem,
         fileSystemMock : bracketsMock.FileSystem,
         rootDir: bracketsMock.Directory,
         projectManager: bracketsMock.ProjectManager;
@@ -83,7 +84,7 @@ describe('FileSystem', function() {
         });
         fileSystemMock = new bracketsMock.FileSystem(rootDir);
         projectManager= new bracketsMock.ProjectManager(fileSystemMock);
-        fileSystem = new fs.FileSystem(fileSystemMock, projectManager);
+        fileSystem = new FileSystem(fileSystemMock, projectManager);
     });
     
   

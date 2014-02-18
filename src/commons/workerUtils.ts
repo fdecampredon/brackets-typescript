@@ -46,21 +46,14 @@ function createProxy(expositionMap: any, sendMessage: (args: any) => void, defer
 }
 
 
-function proxy(scope: any, exposedServices: { [key: string]: any }): JQueryPromise<{ dispose: () => void; proxy: any; }> {
-    return $.Deferred<{ dispose: () => void; proxy: any; }>( deferred => {
+function proxy(scope: any, exposedServices: { [key: string]: any }): JQueryPromise<any> {
+    return $.Deferred<any>( deferred => {
         var deferredStack: JQueryDeferred<any>[] = [];
         
         scope.onmessage = (event: MessageEvent) => {
             switch(event.data.operation) {
                 case Operation.EXPOSE:
-                    deferred.resolve({
-                        dispose: () => { 
-                            if (scope instanceof Worker) {
-                                scope.terminate();
-                            }
-                        },
-                        proxy: createProxy(event.data.expositionMap,  (args: any) => scope.postMessage(args), deferredStack)
-                    });
+                    deferred.resolve(createProxy(event.data.expositionMap,  (args: any) => scope.postMessage(args), deferredStack));
                     break;
                 case Operation.REQUEST:
                     try {

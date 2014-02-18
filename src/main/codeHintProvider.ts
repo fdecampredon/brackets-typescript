@@ -41,7 +41,7 @@ class CodeHintProvider implements brackets.CodeHintProvider {
         //TODO we should find a better test here that limits more the implicit request
         if (!implicitChar || /[\w.\($_]/.test(implicitChar)) {
             this.editor = editor;
-            return true;
+            return true;  
         }
         return false;
     }

@@ -778,8 +778,62 @@ declare module brackets {
          * @see getFocusedEditor()
          * @returns {?Editor}
          */
-        getActiveEditor():Editor
+        getActiveEditor():Editor;
+        getCurrentFullEditor(): Editor;
     }
+    
+    
+    
+    //--------------------------------------------------------------------------
+    //
+    //  PanelManager
+    //
+    //--------------------------------------------------------------------------
+    
+    /**
+     * Represents a panel below the editor area (a child of ".content").
+     */
+    interface Panel {
+        isVisible(): boolean;
+        show(): void;
+        hide(): void;
+        setVisible(visible: boolean): void;
+        $panel: JQuery
+    }
+    
+    /**
+     * Manages layout of panels surrounding the editor area, and size of the editor area (but not its contents).
+     * 
+     * Updates panel sizes when the window is resized. Maintains the max resizing limits for panels, based on
+     * currently available window size.
+     * 
+     * Events:
+     *    - editorAreaResize -- When editor-holder's size changes for any reason (including panel show/hide
+     *              panel resize, or the window resize).
+     *              The 2nd arg is the new editor-holder height.
+     *              The 3rd arg is a refreshHint flag for internal EditorManager use.
+     */
+
+    interface PanelManager {
+         /**
+         * Creates a new panel beneath the editor area and above the status bar footer. Panel is initially invisible.
+         * 
+         * @param id  Unique id for this panel. Use package-style naming, e.g. "myextension.feature.panelname"
+         * @param $panel  DOM content to use as the panel. Need not be in the document yet.
+         * @param minSize  Minimum height of panel in px.
+         */
+        createBottomPanel(id: string, $panel: JQuery, minSize: number): Panel;
+    }
+    
+    //--------------------------------------------------------------------------
+    //
+    //  Command
+    //
+    //--------------------------------------------------------------------------
+    interface CommandManager {
+        execute(id: string, args: any): JQueryPromise<any>;
+    }
+    
   
     //--------------------------------------------------------------------------
     //
@@ -890,6 +944,8 @@ declare module brackets {
     function getModule(module: 'editor/EditorManager'): EditorManager;
     function getModule(module: 'editor/MultiRangeInlineEditor'): typeof MultiRangeInlineEditor;
     function getModule(module: 'language/CodeInspection'): CodeInspection;
+    function getModule(module: 'view/PanelManager'): PanelManager;
+    function getModule(module: 'command/CommandManager'): CommandManager;
     function getModule(module: string): any;
     
 }
