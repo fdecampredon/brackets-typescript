@@ -20,6 +20,7 @@ require('./collectionsTest');
 require('./fileSystemTest');
 require('./workingSetTest');
 require('./languageServiceHostTest');
+require('./workerBridgeTest');
 
 
 require('./codeHintProviderTest');
