@@ -16,3 +16,7 @@ export function getEnumerablePropertyNames(target: any): string [] {
     }
     return result;
 }
+
+
+
+

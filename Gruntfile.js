@@ -126,7 +126,7 @@ module.exports = function (grunt) {
                     vendor : [
                         'third_party/jquery.js',
                         'third_party/mustache.js',
-                        'third_party/typescriptServices.js'
+                        'third_party/typescript/typescriptServices.js'
                     ],
                     keepRunner: true,
                     template: require('grunt-template-jasmine-istanbul'),

@@ -8,6 +8,7 @@ import collections = require('../commons/collections');
 import fs = require('../commons/fileSystem');
 import ws = require('../commons/workingSet');
 import logger = require('../commons/logger');
+import TypeScriptProjectConfig = require('../commons/config');
 
 import LanguageServiceHost = require('./languageServiceHost');
 
@@ -18,55 +19,12 @@ import LanguageServiceHost = require('./languageServiceHost');
 //
 //--------------------------------------------------------------------------
 
-/**
- * the TypeScript project config file interface
- */
-export interface TypeScriptProjectConfig {
-    sources?: string[];
-    buildOnSave?: boolean;
-    
-    
-    ///Compiler Settings
-    propagateEnumConstants?: boolean;
-    removeComments?: boolean;
-    noLib?: boolean;
-    target?: string;
-    module?: string;
-    outFile?: string;
-    outDir?: string;
-    mapSource?: boolean;
-    mapRoot?: string;
-    sourceRoot?: string;
-    declaration?: boolean;
-    useCaseSensitiveFileResolution?: boolean;
-    allowImportModule?: boolean;
-    noImplicitAny?: boolean;
-}
-
-/**
- * enum describing the type of file ib a project
- */
-export enum ProjectFileKind {
-    /**
-     * the file is not a part of the project
-     */
-    NONE,
-    /**
-     * the file is a source file of the project
-     */
-    SOURCE,
-    /**
-     * the file is referenced by a source file of the project
-     */
-    REFERENCE
-}
-
 
 /**
  * class representing a typescript project, responsible of synchronizing 
  * languageServiceHost with the file system
  */
-export class TypeScriptProject {
+class TypeScriptProject {
     
     //-------------------------------
     //  constructor
@@ -203,6 +161,18 @@ export class TypeScriptProject {
                                                         TypeScript.ModuleGenTarget.Asynchronous:
                                                         TypeScript.ModuleGenTarget.Synchronous );
         return compilationSettings
+    }
+    
+    /**
+     * for a given path, give the relation between the project an the associated file
+     * @param path
+     */
+    getProjectFileKind(path: string): TypeScriptProject.ProjectFileKind {
+        if (this.projectFilesSet.has(path)) {
+            return this.isProjectSourceFile(path) ? TypeScriptProject.ProjectFileKind.SOURCE :  TypeScriptProject.ProjectFileKind.REFERENCE;
+        } else {
+            return TypeScriptProject.ProjectFileKind.NONE
+        }
     }
     
     //-------------------------------
@@ -431,3 +401,37 @@ export class TypeScriptProject {
         });
     }
 }
+
+module TypeScriptProject {
+    /**
+     * enum describing the type of file ib a project
+     */
+    export enum ProjectFileKind {
+        /**
+         * the file is not a part of the project
+         */
+        NONE,
+        /**
+         * the file is a source file of the project
+         */
+        SOURCE,
+        /**
+         * the file is referenced by a source file of the project
+         */
+        REFERENCE
+    }
+    
+    
+    export function newProject(
+        baseDirectory: string,
+        config: TypeScriptProjectConfig, 
+        fileSystem: fs.FileSystem,
+        workingSet: ws.WorkingSet,
+        servicesFactory: Services.TypeScriptServicesFactory,
+        defaultLibLocation: string
+    ) {
+        return new TypeScriptProject(baseDirectory, config, fileSystem, workingSet, servicesFactory, defaultLibLocation);
+    }
+}
+
+export = TypeScriptProject;
