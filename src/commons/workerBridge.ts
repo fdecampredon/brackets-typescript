@@ -1,8 +1,32 @@
-/*istanbulify ignore file*/
+//   Copyright 2013 François de Campredon
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//       http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+
+'use strict';
+
+
+//--------------------------------------------------------------------------
+//
+//  WorkerBridge
+//
+//--------------------------------------------------------------------------
 
 import utils = require('./utils');
 import Rx = require('rx');
 
+/**
+ * list of operations that can be requested
+ */
 enum Operation {
     REQUEST,
     RESPONSE,
@@ -13,12 +37,21 @@ enum Operation {
     OBSERVABLE_COMPLETED
 }
 
-
+/**
+ * type of function exposed
+ */
 enum Type {
     FUNCTION,
     OBSERVABLE
 }
 
+/**
+ * create a descriptor for a map of exposed services
+ * 
+ * @param services
+ * @param observables
+ * @param baseKeys
+ */
 function createProxyDescriptor(services: any, observables: { [index: string]: Rx.Observable<any> }, baseKeys: string[] = []) {
     return utils.getEnumerablePropertyNames(services)
         .reduce((descriptor: any, key: string) => {
@@ -38,6 +71,9 @@ function createProxyDescriptor(services: any, observables: { [index: string]: Rx
         }, {});
 }
 
+/**
+ * create a query factory for a proxied service method
+ */
 function newQuery(chain: string[], sendMessage: (args: any) => void, deferredStack: JQueryDeferred<any>[]): any {
     return (...args: any []) => {
         sendMessage({
@@ -51,6 +87,10 @@ function newQuery(chain: string[], sendMessage: (args: any) => void, deferredSta
     }
 }
 
+
+/**
+ * create proxy from proxy descriptor
+ */
 function createProxy(descriptor: any, sendMessage: (args: any) => void, deferredStack: JQueryDeferred<any>[], baseKeys: string[] = []): any {
     return Object.keys(descriptor)
         .reduce((proxy: any, key: string) => {
@@ -67,24 +107,48 @@ function createProxy(descriptor: any, sendMessage: (args: any) => void, deferred
         }, {});
 }
 
-
+/**
+ * a simple bridge that will expose services from the 2 sides of a web worker
+ */
 class WorkerBridge {
 
+    /**
+     * disposabmles
+     */
     private disposables: Rx.Disposable[];
     
+    /**
+     * stack of deferred bound to a requres
+     */
     private deferredStack: JQueryDeferred<any>[] = [];
     
+    /**
+     * deffered tracking sate
+     */
     private initDeferred: JQueryDeferred<any>
     
+    /**
+     * @private
+     * exposed services
+     */
     private services: any;
     
+    /**
+     * build proxy of the bridge
+     */
     proxy: any
     
     constructor(
+        /**
+         * target
+         */
         private target: WorkerBridge.MessageTarget
     ) {}
     
-    
+    /**
+     * initialize te bridge, return a promise that resolve to the created proxy 
+     * @param services the exposed services
+     */
     init(services: any): JQueryPromise<any> {
         this.services = services;
         this.initDeferred = $.Deferred<any>();
@@ -120,11 +184,17 @@ class WorkerBridge {
         return this.initDeferred.promise();
     }
     
+    /**
+     * dispose the bridge
+     */
     dispose() {
         this.disposables.forEach(disposable => disposable.dispose());
         this.target.onmessage = null;
     }
     
+    /**
+     * message handler
+     */
     private messageHandler = (message: WorkerBridge.Message) =>  {
         var data = message.data;
         var target = this.target;
