@@ -1,3 +1,4 @@
+'use strict';
 
 import Rx = require('rx');
 import path = require('path');
@@ -11,6 +12,7 @@ import logger = require('../commons/logger');
 import TypeScriptProjectConfig = require('../commons/config');
 
 import LanguageServiceHost = require('./languageServiceHost');
+
 
 
 //--------------------------------------------------------------------------
@@ -82,15 +84,15 @@ class TypeScriptProject {
                     this.languageServiceHost.setScriptIsOpen(fileName, true);
                 }
             });
-            if (!this.config.noLib) {
-                return this.addDefaultLibrary();
-            }
+            
             this.disposables.push(
                 this.workingSet.workingSetChanged.subscribe(this.workingSetChangedHandler),
                 this.workingSet.documentEdited.subscribe(this.documentEditedHandler),
                 this.fileSystem.projectFilesChanged.subscribe(this.filesChangeHandler)
             );
-
+            if (!this.config.noLib) {
+                return this.addDefaultLibrary();
+            }
         }, () => { 
             //todo error recovery
             if (logger.fatal()) {
@@ -130,6 +132,12 @@ class TypeScriptProject {
         return this.languageService;
     }
     
+    /**
+     * return the set of files contained in the project
+     */
+    getProjectFilesSet() {
+        return new collections.StringSet(this.projectFilesSet.values);
+    }
     
     //-------------------------------
     //  private methods
@@ -167,9 +175,9 @@ class TypeScriptProject {
      * for a given path, give the relation between the project an the associated file
      * @param path
      */
-    getProjectFileKind(path: string): TypeScriptProject.ProjectFileKind {
-        if (this.projectFilesSet.has(path)) {
-            return this.isProjectSourceFile(path) ? TypeScriptProject.ProjectFileKind.SOURCE :  TypeScriptProject.ProjectFileKind.REFERENCE;
+    getProjectFileKind(fileName: string): TypeScriptProject.ProjectFileKind {
+        if (this.projectFilesSet.has(fileName)) {
+            return this.isProjectSourceFile(fileName) ? TypeScriptProject.ProjectFileKind.SOURCE :  TypeScriptProject.ProjectFileKind.REFERENCE;
         } else {
             return TypeScriptProject.ProjectFileKind.NONE
         }
@@ -187,10 +195,9 @@ class TypeScriptProject {
         this.references = new collections.StringMap<collections.StringSet>();
         return this.fileSystem.getProjectFiles().then((paths: string[]) => {
             var promises: JQueryPromise<any>[] = [];
-            paths.forEach(path => {
-                if (this.isProjectSourceFile(path)) {
-                    var promise = this.addFile(path, false);
-                    promises.push()
+            paths.forEach(fileName => {
+                if (this.isProjectSourceFile(fileName)) {
+                    promises.push(this.addFile(fileName, false));
                 }
             });
             return $.when.apply($, promises);
@@ -202,8 +209,8 @@ class TypeScriptProject {
      * @param path
      */
     private isProjectSourceFile(fileName: string): boolean {
-        fileName = path.relative(fileName, this.baseDirectory);
-        return this.config.sources.some(pattern => minimatch(pattern, fileName));
+        fileName = path.relative(this.baseDirectory, fileName);
+        return this.config.sources.some(pattern => minimatch(fileName, pattern));
     }
     
    
@@ -276,11 +283,13 @@ class TypeScriptProject {
         if (!this.projectFilesSet.has(fileName)) {
             return []
         }
-        var preProcessedFileInfo = this.coreService.getPreProcessedFileInfo(fileName, this.languageServiceHost.getScriptSnapshot(fileName));
+        var preProcessedFileInfo = this.coreService.getPreProcessedFileInfo(fileName, this.languageServiceHost.getScriptSnapshot(fileName)),
+            dir = path.dirname(fileName);
+        
         return preProcessedFileInfo.referencedFiles.map(fileReference => {
-            return path.resolve(fileName, fileReference.path);
+            return path.resolve(dir, fileReference.path);
         }).concat(preProcessedFileInfo.importedFiles.map(fileReference => {
-            return path.resolve(fileName, fileReference.path + '.ts');
+            return path.resolve(dir, fileReference.path + '.ts');
         }));
     }
     
