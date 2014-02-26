@@ -12,7 +12,7 @@ export interface WorkingSet {
     /**
      * list of files in the working set
      */
-    files: string [];
+    getFiles(): JQueryPromise<string[]>;
     
     /**
      * a signal dispatching events when change occured in the working set

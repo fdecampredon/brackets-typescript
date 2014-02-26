@@ -16,7 +16,8 @@
 
 'use strict';
 
-import ws = require('../main/workingSet');
+import WorkingSet = require('../main/workingSet');
+import ws = require('../commons/workingSet');
 
 describe('WorkingSet', function (): void {
     var workingSetFiles: string[],
@@ -45,18 +46,18 @@ describe('WorkingSet', function (): void {
             }
             
         },
-        currentEditor: ws.BracketsEditor,
+        currentEditor: brackets.Editor,
         editorManagerMock = {
             getActiveEditor() {
                 return currentEditor;
             },
-            setActiveEditor(editor: ws.BracketsEditor) {
+            setActiveEditor(editor:  brackets.Editor) {
                 var previous = currentEditor
                 currentEditor = editor;
                 $(this).triggerHandler("activeEditorChange", [currentEditor, previous]);
             }
         },
-        workingSet: ws.IWorkingSet
+        workingSet: WorkingSet;
     
     beforeEach(function () {
         workingSetFiles = [
@@ -65,13 +66,13 @@ describe('WorkingSet', function (): void {
             '/path/file4.ts'
         ];
         
-        currentEditor = {
+        currentEditor = <brackets.Editor>{
             document : {
                 file: {fullPath : '/path/file1.ts'},
                 getText() { return "hello world"}
             }
         };
-        workingSet = new ws.WorkingSet(documentManagerMock, editorManagerMock);
+        workingSet = new WorkingSet(<any>documentManagerMock, <any>editorManagerMock );
     })
     
     afterEach(function () {
@@ -80,7 +81,7 @@ describe('WorkingSet', function (): void {
     
     describe('files', function () {
         it('should return the list of file in the working set', function () {
-            expect(workingSet.files).toEqual(workingSetFiles);
+            expect(workingSet.getFiles()).toEqual(workingSetFiles);
         });
     });
     
@@ -105,7 +106,7 @@ describe('WorkingSet', function (): void {
                 kind: ws.WorkingSetChangeKind.ADD,
                 paths : ['/path/file5.ts']
             });
-            expect(workingSet.files).toEqual(workingSetFiles);
+            expect(workingSet.getFiles()).toEqual(workingSetFiles);
         });
         
         it('should notify when a list of file has been added to the working set', function () {
@@ -115,7 +116,7 @@ describe('WorkingSet', function (): void {
                 kind: ws.WorkingSetChangeKind.ADD,
                 paths : ['/path/file5.ts', '/path/file6.ts']
             });
-            expect(workingSet.files).toEqual(workingSetFiles);
+            expect(workingSet.getFiles()).toEqual(workingSetFiles);
         });
         
         it('should notify when a file has been removed from the working set', function () {
@@ -125,7 +126,7 @@ describe('WorkingSet', function (): void {
                 kind: ws.WorkingSetChangeKind.REMOVE,
                 paths : ['/path/file3.ts']
             });
-            expect(workingSet.files).toEqual(workingSetFiles);
+            expect(workingSet.getFiles()).toEqual(workingSetFiles);
         });
         
         it('should notify when a list of file has been removed from the working set', function () {
@@ -135,7 +136,7 @@ describe('WorkingSet', function (): void {
                 kind: ws.WorkingSetChangeKind.REMOVE,
                 paths : ['/path/file1.ts', '/path/file3.ts']
             });
-            expect(workingSet.files).toEqual(workingSetFiles);
+            expect(workingSet.getFiles()).toEqual(workingSetFiles);
         });
     });
 
@@ -227,11 +228,11 @@ describe('WorkingSet', function (): void {
             }]);
             
            
-            doc = {
+            doc = <brackets.Document> {
                 file: { fullPath : '/path/file3.ts' },
                 getText() { return ""}
             };
-            editorManagerMock.setActiveEditor({ document: doc });
+            editorManagerMock.setActiveEditor(<brackets.Editor> { document: doc });
             
             $(doc).triggerHandler('change', [doc, {
                 from : {
@@ -293,11 +294,11 @@ describe('WorkingSet', function (): void {
             }]);
             
            
-            doc = {
+            doc = <brackets.Document> {
                 file: { fullPath : '/path/file3.ts' },
                 getText() { return "hello world"}
             };
-            editorManagerMock.setActiveEditor({ document: doc });
+            editorManagerMock.setActiveEditor(<brackets.Editor> { document: doc });
             $(doc).triggerHandler('change', [doc, {
                 to: {
                     ch: 0,

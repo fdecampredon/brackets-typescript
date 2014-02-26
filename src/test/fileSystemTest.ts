@@ -84,7 +84,7 @@ describe('FileSystem', function() {
         });
         fileSystemMock = new bracketsMock.FileSystem(rootDir);
         projectManager= new bracketsMock.ProjectManager(fileSystemMock);
-        fileSystem = new FileSystem(fileSystemMock, projectManager);
+        fileSystem = new FileSystem(<any>fileSystemMock, <any>projectManager);
     });
     
   

@@ -22,6 +22,10 @@ class WorkingSetMock implements ws.WorkingSet {
     workingSetChanged = new Rx.Subject<ws.WorkingSetChangeRecord>();
     documentEdited = new Rx.Subject<ws.DocumentChangeDescriptor[]>();
     
+    getFiles() {
+        return $.Deferred(deferred => deferred.resolve(this.files)).promise();
+    }
+    
     dispose(): void {
         /*this.workingSetChanged.clear();
         this.documentEdited.clear();*/

@@ -31,8 +31,8 @@ class FileSystem implements fs.FileSystem {
     //-------------------------------
     
     constructor(
-        private nativeFileSystem: FileSystem.BracketsFileSystem,
-        private projectManager: FileSystem.BracketsProjectManager
+        private nativeFileSystem: brackets.FileSystem,
+        private projectManager: brackets.ProjectManager
     ) {
         nativeFileSystem.on('change', this.changesHandler);
         nativeFileSystem.on('rename', this.renameHandler);
@@ -441,38 +441,6 @@ class FileSystem implements fs.FileSystem {
         }
         return [];
     }
-}
-
-module FileSystem {
-    
-
-    //--------------------------------------------------------------------------
-    //
-    //  IFileSystem implementation
-    //
-    //--------------------------------------------------------------------------
-
-
-    /**
-     * Extracted interface of the brackets FileSystem
-     */
-    export interface BracketsFileSystem{
-        getFileForPath(path: string): brackets.File; 
-
-        on(event: string, handler: (event: any, newpath: string, oldPath: string) => any): void
-        on(event: string, handler: (event: any, entry?: brackets.FileSystemEntry) => any): void
-
-        off(event: string, handler: (event: any, newpath: string, oldPath: string) => any): void
-        off(event: string, handler: (event: any, entry?: brackets.FileSystemEntry) => any): void
-    } 
-
-    /**
-     * extracted inteface of the brackets ProjectManager
-     */
-    export interface BracketsProjectManager {
-        getAllFiles(filter?: (file: brackets.File) => boolean, includeWorkingSet?: boolean):JQueryPromise<brackets.File[]>;
-    }
-
 }
 
 export = FileSystem;

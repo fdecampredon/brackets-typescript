@@ -79,11 +79,11 @@ class TypeScriptProject {
         this.languageServiceHost.setCompilationSettings(this.createCompilationSettings());
         this.languageService = this.servicesFactory.createPullLanguageService(this.languageServiceHost);
         return this.collectFiles().then(() => {
-            this.workingSet.files.forEach(fileName => {
+            this.workingSet.getFiles().then((files) => files.forEach(fileName => {
                 if (this.projectFilesSet.has(fileName)) {
                     this.languageServiceHost.setScriptIsOpen(fileName, true);
                 }
-            });
+            }));
             
             this.disposables.push(
                 this.workingSet.workingSetChanged.subscribe(this.workingSetChangedHandler),
