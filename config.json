@@ -1,4 +1,4 @@
 {
     "isDebug": false,
-    "logLevel": "error"
+    "logLevel": "warning"
 }

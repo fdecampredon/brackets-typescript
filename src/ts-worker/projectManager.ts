@@ -6,6 +6,8 @@ import ws = require('../commons/workingSet');
 import TypeScriptProjectConfig = require('../commons/config');
 import collections = require('../commons/collections');
 import tsUtils = require('../commons/typeScriptUtils');
+import utils = require('../commons/utils');
+import logger = require('../commons/logger');
 import TypeScriptProject = require('./project');
 import Services = TypeScript.Services;
 
@@ -64,6 +66,8 @@ class TypeScriptProjectManager {
     
     private disposable: Rx.IDisposable;
     
+    private creatingProjects: JQueryPromise<void>
+    
     //-------------------------------
     // Public methods
     //------------------------------- 
@@ -72,9 +76,11 @@ class TypeScriptProjectManager {
     /**
      * initialize the project manager
      */
-    init(): void {
-        this.createProjects();
+    init(): JQueryPromise<void> {
         this.disposable = this.fileSystem.projectFilesChanged.subscribe(this.filesChangeHandler);
+        var initializing = this.createProjects();
+        this.creatingProjects = initializing;
+        return initializing;
     }
     
     
@@ -92,34 +98,58 @@ class TypeScriptProjectManager {
      * it will by priority try to retrive project that have that file as part of 'direct source'
      * before returning projects that just have 'reference' to this file
      * 
-     * @param path the path of the typesrcript file for which project are looked fo
+     * @param fileName the path of the typesrcript file for which project are looked fo
      */
-    getProjectForFile(path: string): TypeScriptProject {
-        var projects = this.projectMap.values,
-            project : TypeScriptProject = null;
-        //first we check for a project that have tha file as source 
-        projects.some(tsProjects  => {
-            return tsProjects.some(tsProject => {
-                if (tsProject.getProjectFileKind(path) === TypeScriptProject.ProjectFileKind.SOURCE) {
+    getProjectForFile(fileName: string): JQueryPromise<TypeScriptProject> {
+        return this.creatingProjects.then(() => {
+            var projects = utils.mergeAll(this.projectMap.values).filter(project => !!project),
+                project : TypeScriptProject = null;
+            //first we check for a project that have tha file as source 
+            projects.some(tsProject => {
+                if (tsProject.getProjectFileKind(fileName) === TypeScriptProject.ProjectFileKind.SOURCE) {
                     project = tsProject;
                     return true;
                 }
             })     
-        });
-        
-        if (!project) {
-            projects.some(tsProjects  => {
-                return tsProjects.some(tsProject => {
-                    if (tsProject.getProjectFileKind(path) === TypeScriptProject.ProjectFileKind.REFERENCE) {
+
+            
+            //then we check if a project has a file referencing the given file
+            if (!project) {
+                projects.some(tsProject => {
+                    if (tsProject.getProjectFileKind(fileName) === TypeScriptProject.ProjectFileKind.REFERENCE) {
                         project = tsProject;
                         return true;
                     }
-                })     
-            });
-        }
-        
-        //TODO return a kind of "single file project" if no project are found
-        return project;
+                });     
+            }
+
+            //then we check if the current temp project has the file
+            if (!project) {
+                if (this.tempProject && this.tempProject.getProjectFilesSet().has(fileName)) {
+                    project = this.tempProject;
+                } else {
+                    this.tempProject.dispose();
+                    this.tempProject = nu
+                }
+            }
+            
+            //then if still no project found we create the temp project
+            if (!project) {
+                var config: TypeScriptProjectConfig = utils.clone(tsUtils.typeScriptProjectConfigDefault);
+                config.target = 'es5';
+                config.sources = [fileName];
+                this.tempProject = project = this.projectFactory(
+                    '', 
+                    config,  
+                    this.fileSystem, 
+                    this.workingSet,
+                    new Services.TypeScriptServicesFactory(),
+                    path.join(this.defaultTypeScriptLocation, 'lib.d.ts')
+                );
+            }
+            
+            return project;
+        });
     }
     
     //-------------------------------
@@ -129,11 +159,13 @@ class TypeScriptProjectManager {
     /**
      * find bracketsTypescript config files and create a project for each file founds
      */
-    private createProjects():void {
-        this.fileSystem.getProjectFiles().then((paths: string[]) => {
-            paths
-                .filter(tsUtils.isTypeScriptProjectConfigFile)
-                .forEach(this.createProjectsFromFile, this);     
+    private createProjects(): JQueryPromise<void> {
+        return this.fileSystem.getProjectFiles().then(files => {
+            return $.when.apply($,
+                files
+                    .filter(tsUtils.isTypeScriptProjectConfigFile)
+                    .map(configFile => this.createProjectsFromFile(configFile))
+            );
         });
     }
     
@@ -146,6 +178,10 @@ class TypeScriptProjectManager {
             projectMap.get(path).forEach(project => project.dispose())
         });
         this.projectMap.clear();
+        if (this.tempProject) {
+            this.tempProject.dispose();
+            this.tempProject = null;
+        }
     }
     
     /**
@@ -153,30 +189,29 @@ class TypeScriptProjectManager {
      * 
      * @param configFilePath the config file path
      */
-    private createProjectsFromFile(configFilePath: string) {
-        this.retrieveConfig(configFilePath).then(configs => {
+    private createProjectsFromFile(configFilePath: string): JQueryPromise<void> {
+        return this.retrieveConfig(configFilePath).then(configs => {
             if (configs.length === 0) {
                 this.projectMap.delete(configFilePath);
                 return;
             }
             
             var projects: TypeScriptProject[];
-            if (!this.projectMap.has(configFilePath)) {
-                projects = [];
-                this.projectMap.set(configFilePath, projects);
-            } else {
+            if (this.projectMap.has(configFilePath)) {
                 projects = this.projectMap.get(configFilePath);
+                projects.forEach(project => project && project.dispose());
             }
             
-            configs.forEach( (config: TypeScriptProjectConfig, index: number) => {
-                var project = projects[index];
-                if (project) {
-                    project.dispose();
-                } 
-                this.createProjectFromConfig(configFilePath, config).then(project => {
-                    projects[index] = project;
-                });
-            });
+            projects = [];
+            this.projectMap.set(configFilePath, projects);
+
+            return $.when.apply($,
+                configs.map( (config: TypeScriptProjectConfig, index: number) => {
+                    return this.createProjectFromConfig(configFilePath, config).then(project => {
+                        projects[index] = project;
+                    });
+                })
+            );
         });
     }
     
@@ -187,12 +222,8 @@ class TypeScriptProjectManager {
      * @param config the config created from the file
      */
     private createProjectFromConfig(configFile: string, config : TypeScriptProjectConfig): JQueryPromise<TypeScriptProject> {
-        var deferred = $.Deferred<TypeScriptProject>()
-        if (!config) {
-            deferred.reject('invalid config file');
-        }
         var typescriptPath: string = config.typescriptPath || this.defaultTypeScriptLocation;
-        this.getTypeScriptInfosForPath(typescriptPath).then(factory => {
+        return this.getTypeScriptInfosForPath(typescriptPath).then(factory => {
             var project = this.projectFactory(
                 path.dirname(configFile), 
                 config,  
@@ -201,14 +232,63 @@ class TypeScriptProjectManager {
                 factory,
                 path.join(typescriptPath, 'lib.d.ts')
             );
-            project.init();
-            deferred.resolve(project);
-        }, (e?) => {
-            deferred.reject(e)
+            return project.init().then(() => {
+                return project;
+            })
+        }, (): TypeScriptProject => {
+            if (logger.warning()) {
+                logger.log('could not retrieve typescript service at path :' + typescriptPath)
+            }
+            return null;
         })
-        return deferred.promise();
     }
 
+
+    
+    /**
+     * try to create a config from a given config file path
+     * validate the config file, then add default values if needed
+     * 
+     * @param configFilePath
+     */
+    private retrieveConfig(configFilePath: string): JQueryPromise<TypeScriptProjectConfig[]> {
+        return this.fileSystem.readFile(configFilePath).then((content: string) => {
+            var data : any;
+            try {
+                data =  JSON.parse(content);
+            } catch(e) {
+                if (logger.warning()) {
+                    logger.log('invalid json for brackets-typescript config file: ' + configFilePath);
+                }
+            }
+            
+            if (!data) {
+                return [];
+            }
+            
+            var configs : TypeScriptProjectConfig[];
+            if (Array.isArray(data)) {
+                configs = data;
+            } else {
+                configs = [data]
+            }
+            
+            return configs.map((config : TypeScriptProjectConfig, index: number) => {
+                if(config) {
+                    config = utils.assign(utils.clone(tsUtils.typeScriptProjectConfigDefault), config);
+                    if(!tsUtils.validateTypeScriptProjectConfig(config)) {
+                        if (logger.warning()) {
+                            logger.log('invalid config file for brackets-typescript config file: ' +
+                                configFilePath + ' with index : ' + index);
+                        }
+                        config = null;
+                    }
+                }
+                return config; 
+            }).filter(config => !!config);
+        });
+    }
+    
     
     /**
      * Retrieve a ServiceFactory from a given typeScriptService file path
@@ -232,51 +312,8 @@ class TypeScriptProjectManager {
         });
         return deferred.promise();
     }
-    
-    /**
-     * try to create a config from a given config file path
-     * validate the config file, then add default values if needed
-     * 
-     * @param configFilePath
-     */
-    private retrieveConfig(configFilePath: string): JQueryPromise<TypeScriptProjectConfig[]> {
-        return this.fileSystem.readFile(configFilePath).then((content: string) => {
-            var data : any;
-            try {
-                data =  JSON.parse(content);
-            } catch(e) {
-                //TODO logging strategy
-                console.log('invalid json for brackets-typescript config file: ' + configFilePath);
-            }
-            
-            if (!data) {
-                return [];
-            }
-            
-            var configs : TypeScriptProjectConfig[];
-            if (Array.isArray(data)) {
-                configs = data;
-            } else {
-                configs = [data]
-            }
-            
-            return configs.map(config => {
-                if(config) {
-                    for (var property in tsUtils.typeScriptProjectConfigDefault) {
-                        if (!config.hasOwnProperty(property)) {
-                            config[property] = tsUtils.typeScriptProjectConfigDefault[property]
-                        }
-                    }
-                    if(!tsUtils.validateTypeScriptProjectConfig(config)) {
-                        config = null;
-                    }
-                }
-                return config; 
-            }).filter(config => !!config);
-        });
-    }
-    
-    
+
+
     //-------------------------------
     //  Events Handler
     //------------------------------- 
@@ -293,6 +330,8 @@ class TypeScriptProjectManager {
                 this.createProjects();
                 return false;
             } else if (tsUtils.isTypeScriptProjectConfigFile(record.path)) {
+                this.tempProject.dispose();
+                this.tempProject = null;
                 switch (record.kind) { 
                     // a config file has been deleted detele the project
                     case fs.FileChangeKind.DELETE:
@@ -304,13 +343,9 @@ class TypeScriptProjectManager {
                         }
                         break;
                         
-                    // a config file has been created create a new project
-                    case fs.FileChangeKind.ADD:
-                        this.createProjectsFromFile(record.path);
-                        break;
-                        
-                    case fs.FileChangeKind.UPDATE:
-                        this.createProjectsFromFile(record.path);
+                    // a config file has been created or updated update project
+                    default:
+                        this.creatingProjects = this.creatingProjects.then(() => this.createProjectsFromFile(record.path));
                         break;
                 }
             }

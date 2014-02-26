@@ -17,6 +17,16 @@ export function getEnumerablePropertyNames(target: any): string [] {
     return result;
 }
 
+export function mergeAll<T>(array: T[][]): T[] {
+    var results: T[] = [];
+    array.forEach(subArray => {
+        Array.prototype.push.apply(results, subArray);
+    });
+    
+    return results;
+};
+
+
 
 
 
