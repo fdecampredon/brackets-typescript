@@ -12,6 +12,24 @@ export function isTypeScriptProjectConfigFile(path: string): boolean {
 
 
 /**
+ * helper function that valid a config file
+ * @param config the config file to validate
+ */
+export function validateTypeScriptProjectConfig(config : TypeScriptProjectConfig): boolean {
+    if (!config) {
+        return false;
+    }    
+    if (!config.sources || !Array.isArray(config.sources) || !config.sources.every(pattern => typeof pattern === 'string')) {
+        return false;
+    }
+    if (config.buildAutomaticly && !(config.outDir && typeof config.outDir === 'string') && !(config.outFile && typeof config.outFile === 'string')) {
+        return false
+    }
+    return true;
+}
+
+
+/**
  * Default configuration for typescript project
  */
 export var typeScriptProjectConfigDefault: TypeScriptProjectConfig = {

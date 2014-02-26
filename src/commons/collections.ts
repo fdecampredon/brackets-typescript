@@ -185,7 +185,7 @@ export class StringMap<T> {
             (obj: {[key: string]: T}, key: string) => {
                 obj[key] = this.map[key];
                 return obj;
-            }, {});
+            }, <{[key: string]: T}>{});
     }
     
     /**

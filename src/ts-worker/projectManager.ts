@@ -1,5 +1,6 @@
 import Rx = require('rx');
 import path = require('path');
+import vm = require('vm');
 import fs = require('../commons/fileSystem');
 import ws = require('../commons/workingSet');
 import TypeScriptProjectConfig = require('../commons/config');
@@ -54,6 +55,12 @@ class TypeScriptProjectManager {
      * a map containing the projects 
      */
     private projectMap = new collections.StringMap<TypeScriptProject[]>();
+    
+    
+    /**
+     * 
+     */
+    private tempProject: TypeScriptProject;
     
     private disposable: Rx.IDisposable;
     
@@ -166,7 +173,9 @@ class TypeScriptProjectManager {
                 if (project) {
                     project.dispose();
                 } 
-                projects[index] = this.createProjectFromConfig(configFilePath, config);
+                this.createProjectFromConfig(configFilePath, config).then(project => {
+                    projects[index] = project;
+                });
             });
         });
     }
@@ -177,17 +186,52 @@ class TypeScriptProjectManager {
      * @param configFilePath the config file path
      * @param config the config created from the file
      */
-    private createProjectFromConfig(configFile: string, config : TypeScriptProjectConfig): TypeScriptProject {
-        if (config) {
-            //todo
-            /*var project = this.projectFactory(path.directory(configFilePath), config, this.fileSystem, this.workingSet, null);
-            project.init(this.servicesFactory.map(serviceFactory => serviceFactory(project)));
-            return project;*/
-            return null;
-        } 
+    private createProjectFromConfig(configFile: string, config : TypeScriptProjectConfig): JQueryPromise<TypeScriptProject> {
+        var deferred = $.Deferred<TypeScriptProject>()
+        if (!config) {
+            deferred.reject('invalid config file');
+        }
+        var typescriptPath: string = config.typescriptPath || this.defaultTypeScriptLocation;
+        this.getTypeScriptInfosForPath(typescriptPath).then(factory => {
+            var project = this.projectFactory(
+                path.dirname(configFile), 
+                config,  
+                this.fileSystem, 
+                this.workingSet,
+                factory,
+                path.join(typescriptPath, 'lib.d.ts')
+            );
+            project.init();
+            deferred.resolve(project);
+        }, (e?) => {
+            deferred.reject(e)
+        })
+        return deferred.promise();
     }
 
-
+    
+    /**
+     * Retrieve a ServiceFactory from a given typeScriptService file path
+     * @param typescriptPath
+     */
+    private getTypeScriptInfosForPath(typescriptPath: string): JQueryPromise<TypeScript.Services.TypeScriptServicesFactory> {
+        var typescriptServicesFile = path.join('typescriptPath', 'typescriptServices.js');
+        var deferred = $.Deferred<TypeScript.Services.TypeScriptServicesFactory>()
+        this.fileSystem.readFile(typescriptServicesFile).then(code => {
+            var factory: TypeScript.Services.TypeScriptServicesFactory
+            try {
+                var context = vm.createContext();
+                vm.runInNewContext(code, context, typescriptServicesFile);
+                factory = (<any>context).TypeScript.Services.TypeScriptServicesFactory;
+            } catch(e) {
+                deferred.reject(e);
+            }
+            deferred.resolve(factory);
+        }, (e?) => {
+            deferred.reject(e)
+        });
+        return deferred.promise();
+    }
     
     /**
      * try to create a config from a given config file path
@@ -218,15 +262,14 @@ class TypeScriptProjectManager {
             
             return configs.map(config => {
                 if(config) {
-                    for (var property in typeScriptProjectConfigDefault) {
+                    for (var property in tsUtils.typeScriptProjectConfigDefault) {
                         if (!config.hasOwnProperty(property)) {
-                            config[property] = typeScriptProjectConfigDefault[property]
+                            config[property] = tsUtils.typeScriptProjectConfigDefault[property]
                         }
                     }
-                    //todo
-                    /*if(!utils.validateTypeScriptProjectConfig(config)) {
+                    if(!tsUtils.validateTypeScriptProjectConfig(config)) {
                         config = null;
-                    }*/
+                    }
                 }
                 return config; 
             }).filter(config => !!config);

@@ -73,7 +73,7 @@ export enum Level {
  *  'fatal'
  */
 export function setLogLevel(level: string): void {
-    currentLogLevel = Level[level];
+    currentLogLevel = (<any>Level)[level];
 }
 
 /**

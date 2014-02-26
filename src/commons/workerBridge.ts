@@ -197,12 +197,11 @@ class WorkerBridge {
      */
     private messageHandler = (message: WorkerBridge.Message) =>  {
         var data = message.data;
-        var target = this.target;
         switch(data.operation) {
             case Operation.EXPOSE:
                 this.proxy = createProxy(
                     data.descriptor,  
-                    (args: any) => target.postMessage(args), 
+                    (args: any) => this.target.postMessage(args), 
                     this.deferredStack
                 );
 
@@ -230,13 +229,13 @@ class WorkerBridge {
                         deferred.reject.bind(deferred)
                     )
                 }).then(result => {
-                    target.postMessage({
+                    this.target.postMessage({
                         operation: Operation.RESPONSE,
                         chain: data.chain,
                         result: result
                     });
                 }, (error?) => {
-                    target.postMessage({
+                    this.target.postMessage({
                         operation: Operation.ERROR,
                         chain: data.chain,
                         errorMessage: error instanceof Error? error.message : error
@@ -259,7 +258,7 @@ class WorkerBridge {
                 var chain: string[] = data.chain.slice(),
                     subject: Rx.Subject<any> = this.proxy;
                 while (chain.length) {
-                    subject = subject[chain.shift()];
+                    subject = (<any>subject)[chain.shift()];
                 }
                 switch(data.operation) {
                     case Operation.OBSERVABLE_NEXT:

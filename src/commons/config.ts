@@ -4,6 +4,7 @@
 interface TypeScriptProjectConfig {
     sources?: string[];
     buildAutomaticly?: boolean;
+    typescriptPath?: string;
     
     
     ///Compiler Settings
