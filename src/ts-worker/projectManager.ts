@@ -12,13 +12,13 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+/*istanbulify ignore file */
 
 'use strict'
 
 
 import Rx = require('rx');
 import path = require('path');
-import vm = require('vm');
 import fs = require('../commons/fileSystem');
 import ws = require('../commons/workingSet');
 import TypeScriptProjectConfig = require('../commons/config');
@@ -323,9 +323,8 @@ class TypeScriptProjectManager {
             this.fileSystem.readFile(typescriptServicesFile).then(code => {
                 var factory: TypeScript.Services.TypeScriptServicesFactory
                 try {
-                    var context = vm.createContext();
-                    vm.runInNewContext(code, context, typescriptServicesFile);
-                    factory = (<any>context).TypeScript.Services.TypeScriptServicesFactory;
+                    var func = new Function(code + ";return TypeScript;")
+                    factory = func().Services.TypeScriptServicesFactory;
                 } catch(e) {
                     deferred.reject(e);
                 }
