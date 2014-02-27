@@ -162,6 +162,33 @@ describe('TypeScriptProjectManager', function () {
         expect(projectFactorySpy.callCount).toBe(1);
     });
     
+    it('should replace a Project when a config file is added', function () {
+        
+        fileSystemMock.setFiles({
+            'dir/.brackets-typescript': JSON.stringify({
+                module: 'amd',
+                sources: [
+                    './file1.ts',
+                    './file2.ts'
+                ],
+                outDir: 'bin'
+            })
+        });
+        
+        typeScriptProjectManager.init();
+        
+        fileSystemMock.updateFile('dir/.brackets-typescript', JSON.stringify({
+            module: 'amd',
+            sources: [
+                './file3.ts',
+                './file4.ts'
+            ],
+            outDir: 'bin'
+        }));
+        
+        expect(projectSpy.dispose.callCount).toBe(1);
+        expect(projectFactorySpy.callCount).toBe(2);
+    });
     
     /* it('should update a project when a config file as been updated', function () {
         fileSystemMock.setFiles({
