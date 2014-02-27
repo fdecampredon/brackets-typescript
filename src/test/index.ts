@@ -22,6 +22,7 @@ require('./workingSetTest');
 require('./languageServiceHostTest');
 require('./workerBridgeTest');
 require('./projectTest');
+require('./projectManagerTest');
 
 
 require('./codeHintProviderTest');

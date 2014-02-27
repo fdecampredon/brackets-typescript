@@ -1,3 +1,21 @@
+//   Copyright 2013 François de Campredon
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//       http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+
+
+'use strict'
+
+
 import Rx = require('rx');
 import path = require('path');
 import vm = require('vm');
@@ -127,9 +145,9 @@ class TypeScriptProjectManager {
             if (!project) {
                 if (this.tempProject && this.tempProject.getProjectFilesSet().has(fileName)) {
                     project = this.tempProject;
-                } else {
+                } else if (this.tempProject) {
                     this.tempProject.dispose();
-                    this.tempProject = nu
+                    this.tempProject = null;
                 }
             }
             
@@ -222,22 +240,21 @@ class TypeScriptProjectManager {
      * @param config the config created from the file
      */
     private createProjectFromConfig(configFile: string, config : TypeScriptProjectConfig): JQueryPromise<TypeScriptProject> {
-        var typescriptPath: string = config.typescriptPath || this.defaultTypeScriptLocation;
-        return this.getTypeScriptInfosForPath(typescriptPath).then(factory => {
+        return this.getTypeScriptInfosForPath(config.typescriptPath).then(infos => {
             var project = this.projectFactory(
                 path.dirname(configFile), 
                 config,  
                 this.fileSystem, 
                 this.workingSet,
-                factory,
-                path.join(typescriptPath, 'lib.d.ts')
+                infos.factory,
+                infos.libLocation
             );
             return project.init().then(() => {
                 return project;
             })
         }, (): TypeScriptProject => {
             if (logger.warning()) {
-                logger.log('could not retrieve typescript service at path :' + typescriptPath)
+                logger.log('could not retrieve typescript service at path :' + config.typescriptPath)
             }
             return null;
         })
@@ -294,22 +311,33 @@ class TypeScriptProjectManager {
      * Retrieve a ServiceFactory from a given typeScriptService file path
      * @param typescriptPath
      */
-    private getTypeScriptInfosForPath(typescriptPath: string): JQueryPromise<TypeScript.Services.TypeScriptServicesFactory> {
-        var typescriptServicesFile = path.join('typescriptPath', 'typescriptServices.js');
-        var deferred = $.Deferred<TypeScript.Services.TypeScriptServicesFactory>()
-        this.fileSystem.readFile(typescriptServicesFile).then(code => {
-            var factory: TypeScript.Services.TypeScriptServicesFactory
-            try {
-                var context = vm.createContext();
-                vm.runInNewContext(code, context, typescriptServicesFile);
-                factory = (<any>context).TypeScript.Services.TypeScriptServicesFactory;
-            } catch(e) {
-                deferred.reject(e);
-            }
-            deferred.resolve(factory);
-        }, (e?) => {
-            deferred.reject(e)
-        });
+    private getTypeScriptInfosForPath(typescriptPath: string): JQueryPromise<TypeScriptInfo> {
+        var deferred = $.Deferred<TypeScriptInfo>()
+        if (!typescriptPath) {
+            deferred.resolve({
+                factory: Services.TypeScriptServicesFactory,
+                libLocation: path.join(this.defaultTypeScriptLocation, 'lib.d.ts')
+            })
+        } else {
+            var typescriptServicesFile = path.join('typescriptPath', 'typescriptServices.js');
+            this.fileSystem.readFile(typescriptServicesFile).then(code => {
+                var factory: TypeScript.Services.TypeScriptServicesFactory
+                try {
+                    var context = vm.createContext();
+                    vm.runInNewContext(code, context, typescriptServicesFile);
+                    factory = (<any>context).TypeScript.Services.TypeScriptServicesFactory;
+                } catch(e) {
+                    deferred.reject(e);
+                }
+                deferred.resolve({
+                    factory: factory,
+                    libLocation: path.join(typescriptPath, 'lib.d.ts')
+                });
+            }, (e?) => {
+                deferred.reject(e)
+            });
+        }
+        
         return deferred.promise();
     }
 
@@ -330,8 +358,10 @@ class TypeScriptProjectManager {
                 this.createProjects();
                 return false;
             } else if (tsUtils.isTypeScriptProjectConfigFile(record.path)) {
-                this.tempProject.dispose();
-                this.tempProject = null;
+                if (this.tempProject) {
+                    this.tempProject.dispose();
+                    this.tempProject = null;
+                }
                 switch (record.kind) { 
                     // a config file has been deleted detele the project
                     case fs.FileChangeKind.DELETE:
@@ -352,6 +382,11 @@ class TypeScriptProjectManager {
             return true;
         }); 
     }
+}
+
+interface TypeScriptInfo {
+    factory: Services.TypeScriptServicesFactory;
+    libLocation: string;
 }
 
 export = TypeScriptProjectManager;
