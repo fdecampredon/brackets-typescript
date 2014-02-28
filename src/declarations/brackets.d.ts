@@ -864,15 +864,11 @@ declare module brackets {
     //
     //--------------------------------------------------------------------------
     
-    enum ErrorType {
-        ERROR,
-        WARNING,
-        META
-    }
+
     
     interface CodeInspection {
         register(languageId: string, provider: InspectionProvider): void;
-        Type:typeof ErrorType;
+        Type: { [index: string]: string}
     }
     
     
@@ -880,7 +876,7 @@ declare module brackets {
         pos: CodeMirror.Position; 
         endPos?: CodeMirror.Position;
         message: string; 
-        type?: ErrorType; 
+        type?: string; 
     }
     
     interface InspectionProvider {

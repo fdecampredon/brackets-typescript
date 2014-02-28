@@ -431,7 +431,9 @@ module TypeScriptProject {
     }
     
     
-    export function newProject(
+    
+    
+    export function projectFactory(
         baseDirectory: string,
         config: TypeScriptProjectConfig, 
         fileSystem: fs.FileSystem,

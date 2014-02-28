@@ -45,7 +45,7 @@ describe('TypeScriptProjectManager', function () {
         };   
         var i = 0;
         projectFactorySpy = jasmine.createSpy('newProject').andReturn(projectSpy);
-        typeScriptProjectManager = new TypeScriptProjectManager(fileSystemMock, null, "", projectFactorySpy);
+        typeScriptProjectManager = new TypeScriptProjectManager();
        
     });
     
@@ -82,7 +82,7 @@ describe('TypeScriptProjectManager', function () {
             });
 
 
-            typeScriptProjectManager.init();
+            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
             expect(projectFactorySpy.callCount).toBe(2);
         });
 
@@ -111,7 +111,7 @@ describe('TypeScriptProjectManager', function () {
             });
 
 
-            typeScriptProjectManager.init();
+            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
             expect(projectFactorySpy.callCount).toBe(2);
         });
 
@@ -121,7 +121,7 @@ describe('TypeScriptProjectManager', function () {
             fileSystemMock.setFiles({
                 'dir1/.brackets-typescript': '{',
             });
-            typeScriptProjectManager.init();
+            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
             expect(projectFactorySpy.callCount).toBe(0)
         });
 
@@ -131,7 +131,7 @@ describe('TypeScriptProjectManager', function () {
                     module: 'commonjs'
                 })
             });
-            typeScriptProjectManager.init();
+            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
             expect(projectFactorySpy.callCount).toBe(0)
         });
         
@@ -154,7 +154,7 @@ describe('TypeScriptProjectManager', function () {
                 })
             });
 
-            typeScriptProjectManager.init();
+            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
 
             expect(projectFactorySpy.callCount).toBe(1);
             expect(projectFactorySpy.argsForCall[0][4]).toEqual({id: "hello"})
@@ -175,7 +175,7 @@ describe('TypeScriptProjectManager', function () {
                 })
             });
 
-            typeScriptProjectManager.init();
+            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
 
             expect(projectFactorySpy.callCount).toBe(0);
         });
@@ -195,7 +195,7 @@ describe('TypeScriptProjectManager', function () {
                     outFile: 'index.js'
                 })
             });
-            typeScriptProjectManager.init();
+            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
             waits(15)
             runs(function() {
                 fileSystemMock.removeFile('dir1/.brackets-typescript');
@@ -206,7 +206,7 @@ describe('TypeScriptProjectManager', function () {
 
         it('should create a new Project when a config file is added', function () {
 
-            typeScriptProjectManager.init();
+            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
 
             fileSystemMock.addFile('dir/.brackets-typescript', JSON.stringify({
                 module: 'amd',
@@ -233,7 +233,7 @@ describe('TypeScriptProjectManager', function () {
                 })
             });
 
-            typeScriptProjectManager.init();
+            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
 
             fileSystemMock.updateFile('dir/.brackets-typescript', JSON.stringify({
                 module: 'amd',
@@ -260,7 +260,7 @@ describe('TypeScriptProjectManager', function () {
                 'dir/.brackets-typescript': '{}'
             });
 
-            typeScriptProjectManager.init();
+            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
 
             expect(projectFactorySpy.callCount).toBe(0)
 
@@ -290,7 +290,7 @@ describe('TypeScriptProjectManager', function () {
                 })
             });
 
-            typeScriptProjectManager.init();
+            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
             typeScriptProjectManager.dispose();
             waits(15);
             runs(function() {
@@ -309,7 +309,7 @@ describe('TypeScriptProjectManager', function () {
                     outDir: 'bin'
                 })
             });
-            typeScriptProjectManager.init();
+            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
             fileSystemMock.reset();
             waits(15);
             runs(function() {
@@ -388,7 +388,7 @@ describe('TypeScriptProjectManager', function () {
                 '/file3.ts': '',
                 '/file4.ts': ''
             });
-            typeScriptProjectManager.init();
+            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
         })
         
         it('should return a project that have the file as source if this project exist ', function () {

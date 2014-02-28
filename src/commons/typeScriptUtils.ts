@@ -22,7 +22,8 @@ export function validateTypeScriptProjectConfig(config : TypeScriptProjectConfig
     if (!config.sources || !Array.isArray(config.sources) || !config.sources.every(pattern => typeof pattern === 'string')) {
         return false;
     }
-    if (config.buildAutomaticly && !(config.outDir && typeof config.outDir === 'string') && !(config.outFile && typeof config.outFile === 'string')) {
+    if (config.buildAutomaticly && !(config.outDir && typeof config.outDir === 'string') && 
+            !(config.outFile && typeof config.outFile === 'string')) {
         return false
     }
     return true;

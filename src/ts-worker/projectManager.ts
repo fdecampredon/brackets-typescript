@@ -43,31 +43,16 @@ import Services = TypeScript.Services;
  */
 class TypeScriptProjectManager {
     
-    //-------------------------------
-    //  constructor
-    //-------------------------------
-    
-    /**
-     * @param fileSystem the fileSystem wrapper used by the projectManager
-     * @param workingSet the working set wrapper used by the projectManager
-     */
-    constructor(
-        private fileSystem: fs.FileSystem, 
-        private workingSet: ws.WorkingSet,
-        private defaultTypeScriptLocation: string,
-        private projectFactory: (
-            baseDirectory: string,
-            config: TypeScriptProjectConfig, 
-            fileSystem: fs.FileSystem,
-            workingSet: ws.WorkingSet,
-            servicesFactory: Services.TypeScriptServicesFactory,
-            defaultLibLocation: string
-        )  => TypeScriptProject
-    ) {}
+  
     
     //-------------------------------
     //  variables
     //-------------------------------
+    
+    private fileSystem: fs.FileSystem; 
+    private workingSet: ws.WorkingSet;
+    private projectFactory: TypeScriptProjectManager.ProjectFactory;
+    
     
     /**
      * a map containing the projects 
@@ -82,7 +67,10 @@ class TypeScriptProjectManager {
     
     private disposable: Rx.IDisposable;
     
-    private creatingProjects: JQueryPromise<void>
+    private creatingProjects: JQueryPromise<void>;
+    
+    
+    private defaultTypeScriptLocation: string;
     
     //-------------------------------
     // Public methods
@@ -92,7 +80,10 @@ class TypeScriptProjectManager {
     /**
      * initialize the project manager
      */
-    init(): JQueryPromise<void> {
+    init(defaultTypeScriptLocation: string, fileSystem: fs.FileSystem, 
+        workingSet: ws.WorkingSet, projectFactory: TypeScriptProjectManager.ProjectFactory): JQueryPromise<void> {
+        
+        this.defaultTypeScriptLocation = defaultTypeScriptLocation;
         var initializing = this.createProjects();
         this.creatingProjects = initializing;
         this.disposable = this.fileSystem.projectFilesChanged.subscribe(this.filesChangeHandler);
@@ -383,6 +374,19 @@ class TypeScriptProjectManager {
             });    
         })
          
+    }
+}
+
+module TypeScriptProjectManager {
+    export interface ProjectFactory {
+        (
+            baseDirectory: string,
+            config: TypeScriptProjectConfig, 
+            fileSystem: fs.FileSystem,
+            workingSet: ws.WorkingSet,
+            servicesFactory: Services.TypeScriptServicesFactory,
+            defaultLibLocation: string
+        ): TypeScriptProject
     }
 }
 
