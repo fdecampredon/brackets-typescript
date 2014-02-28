@@ -12,8 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-/*istanbulify ignore file */
-
 'use strict'
 
 
@@ -95,9 +93,9 @@ class TypeScriptProjectManager {
      * initialize the project manager
      */
     init(): JQueryPromise<void> {
-        this.disposable = this.fileSystem.projectFilesChanged.subscribe(this.filesChangeHandler);
         var initializing = this.createProjects();
         this.creatingProjects = initializing;
+        this.disposable = this.fileSystem.projectFilesChanged.subscribe(this.filesChangeHandler);
         return initializing;
     }
     
@@ -107,8 +105,9 @@ class TypeScriptProjectManager {
      */
     dispose(): void {
         this.disposable.dispose(); 
-        this.disposeProjects();
-        
+        this.creatingProjects.then(() => {
+            this.disposeProjects();    
+        });
     }
     
     /**
@@ -319,12 +318,13 @@ class TypeScriptProjectManager {
                 libLocation: path.join(this.defaultTypeScriptLocation, 'lib.d.ts')
             })
         } else {
-            var typescriptServicesFile = path.join('typescriptPath', 'typescriptServices.js');
+            var typescriptServicesFile = path.join(typescriptPath, 'typescriptServices.js');
             this.fileSystem.readFile(typescriptServicesFile).then(code => {
                 var factory: TypeScript.Services.TypeScriptServicesFactory
                 try {
-                    var func = new Function(code + ";return TypeScript;")
-                    factory = func().Services.TypeScriptServicesFactory;
+                    var func = new Function("var TypeScript;" + code + ";return TypeScript;");
+                    var typeScript: typeof TypeScript = func();
+                    factory = new typeScript.Services.TypeScriptServicesFactory();
                 } catch(e) {
                     deferred.reject(e);
                 }
@@ -350,36 +350,39 @@ class TypeScriptProjectManager {
      * handle changes in the file system, update / delete / create project accordingly
      */
     private filesChangeHandler = (changeRecords: fs.FileChangeRecord[]) => {
-        changeRecords.forEach(record => {
-            if (record.kind === fs.FileChangeKind.RESET) {
-                //reinitialize the projects if file system reset
-                this.disposeProjects();
-                this.createProjects();
-                return false;
-            } else if (tsUtils.isTypeScriptProjectConfigFile(record.path)) {
-                if (this.tempProject) {
-                    this.tempProject.dispose();
-                    this.tempProject = null;
+        this.creatingProjects.then(() => {
+            changeRecords.forEach(record => {
+                if (record.kind === fs.FileChangeKind.RESET) {
+                    //reinitialize the projects if file system reset
+                    this.disposeProjects();
+                    this.createProjects();
+                    return false;
+                } else if (tsUtils.isTypeScriptProjectConfigFile(record.path)) {
+                    if (this.tempProject) {
+                        this.tempProject.dispose();
+                        this.tempProject = null;
+                    }
+                    switch (record.kind) { 
+                        // a config file has been deleted detele the project
+                        case fs.FileChangeKind.DELETE:
+                            if (this.projectMap.has(record.path)) {
+                                this.projectMap.get(record.path).forEach(project => {
+                                    project.dispose();
+                                })
+                                this.projectMap.delete(record.path);
+                            }
+                            break;
+
+                        // a config file has been created or updated update project
+                        default:
+                            this.creatingProjects = this.creatingProjects.then(() => this.createProjectsFromFile(record.path));
+                            break;
+                    }
                 }
-                switch (record.kind) { 
-                    // a config file has been deleted detele the project
-                    case fs.FileChangeKind.DELETE:
-                        if (this.projectMap.has(record.path)) {
-                            this.projectMap.get(record.path).forEach(project => {
-                                project.dispose();
-                            })
-                            this.projectMap.delete(record.path);
-                        }
-                        break;
-                        
-                    // a config file has been created or updated update project
-                    default:
-                        this.creatingProjects = this.creatingProjects.then(() => this.createProjectsFromFile(record.path));
-                        break;
-                }
-            }
-            return true;
-        }); 
+                return true;
+            });    
+        })
+         
     }
 }
 
