@@ -1,3 +1,10 @@
+declare var require: any;
+global.TypeScript = require('typescriptServices');
+global.$ = require('jQuery');
+
+
+
+
 import TypeScriptProjectManager = require('./projectManager');
 import TypeScriptProject = require('./project');
 import ErrorService = require('./errorService');
@@ -7,6 +14,7 @@ import WorkerBridge = require('../commons/workerBridge');
 import logger = require('../commons/logger');
 
 import path = require('path');
+
 
 var projectManager = new TypeScriptProjectManager(),
     errorService = new ErrorService(projectManager),
@@ -20,7 +28,6 @@ bridge.init({
     definitionService: definitionService
 }).then(proxy => {
     proxy.getTypeScriptLocation().then( (location: string) => {
-        importScripts(path.join(location, 'typeScriptService'));
         proxy.getLogLevel().then((logLevel: string) => {  
             self.console = proxy.console;
             logger.setLogLevel(logLevel);

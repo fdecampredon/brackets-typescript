@@ -22,6 +22,7 @@
 //--------------------------------------------------------------------------
 
 import utils = require('./utils');
+import collections = require('./collections');
 import Rx = require('rx');
 
 /**
@@ -53,6 +54,9 @@ enum Type {
  * @param baseKeys
  */
 function createProxyDescriptor(services: any, observables: { [index: string]: Rx.Observable<any> }, baseKeys: string[] = []) {
+    if (baseKeys.length> 5) {
+        return {};
+    } 
     return utils.getEnumerablePropertyNames(services)
         .reduce((descriptor: any, key: string) => {
             var value = services[key],
@@ -71,18 +75,21 @@ function createProxyDescriptor(services: any, observables: { [index: string]: Rx
         }, {});
 }
 
+var uidHelper = 0
 /**
  * create a query factory for a proxied service method
  */
-function newQuery(chain: string[], sendMessage: (args: any) => void, deferredStack: JQueryDeferred<any>[]): any {
+function newQuery(chain: string[], sendMessage: (args: any) => void, deferredMap: collections.StringMap<JQueryDeferred<any>>): any {
     return (...args: any []) => {
+        var uid = "operation" + (uidHelper++);
         sendMessage({
             operation: Operation.REQUEST,
             chain: chain,
-            args: args
+            args: args,
+            uid: uid
         });
         var deferred = $.Deferred<any>();
-        deferredStack.push(deferred);
+        deferredMap.set(uid, deferred);
         return deferred.promise();
     }
 }
@@ -91,17 +98,18 @@ function newQuery(chain: string[], sendMessage: (args: any) => void, deferredSta
 /**
  * create proxy from proxy descriptor
  */
-function createProxy(descriptor: any, sendMessage: (args: any) => void, deferredStack: JQueryDeferred<any>[], baseKeys: string[] = []): any {
+function createProxy(descriptor: any, sendMessage: (args: any) => void, 
+        deferredMap: collections.StringMap<JQueryDeferred<any>>, baseKeys: string[] = []): any {
     return Object.keys(descriptor)
         .reduce((proxy: any, key: string) => {
             var value = descriptor[key],
                 keys = baseKeys.concat(key);
             if (value === Type.FUNCTION) {
-                proxy[key] = newQuery(keys, sendMessage, deferredStack);
+                proxy[key] = newQuery(keys, sendMessage, deferredMap);
             } else if (value === Type.OBSERVABLE) {
                 proxy[key] = new Rx.Subject();
             } else if (typeof value === 'object') {
-                proxy[key] = createProxy(descriptor[key], sendMessage, deferredStack, keys)
+                proxy[key] = createProxy(descriptor[key], sendMessage, deferredMap, keys)
             }
             return proxy;
         }, {});
@@ -120,7 +128,7 @@ class WorkerBridge {
     /**
      * stack of deferred bound to a requres
      */
-    private deferredStack: JQueryDeferred<any>[] = [];
+    private deferredMap = new collections.StringMap<JQueryDeferred<any>>();
     
     /**
      * deffered tracking sate
@@ -202,7 +210,7 @@ class WorkerBridge {
                 this.proxy = createProxy(
                     data.descriptor,  
                     (args: any) => this.target.postMessage(args), 
-                    this.deferredStack
+                    this.deferredMap
                 );
 
                 this.initDeferred.resolve(this.proxy);
@@ -232,26 +240,30 @@ class WorkerBridge {
                     this.target.postMessage({
                         operation: Operation.RESPONSE,
                         chain: data.chain,
-                        result: result
+                        result: result,
+                        uid: data.uid
                     });
                 }, (error?) => {
                     this.target.postMessage({
                         operation: Operation.ERROR,
                         chain: data.chain,
-                        errorMessage: error instanceof Error? error.message : error
+                        errorMessage: error instanceof Error? error.message : error,
+                        uid: data.uid
                     });
                 });
 
                 break;
 
             case Operation.RESPONSE:
-                var deferred = this.deferredStack.shift();
+                var deferred = this.deferredMap.get(data.uid);
                 deferred.resolve(data.result);
+                this.deferredMap.delete(data.uid);
                 break;
 
             case Operation.ERROR:
-                var deferred = this.deferredStack.shift();
+                var deferred = this.deferredMap.get(data.uid);
                 deferred.reject(new Error(data.errorMessage));
+                this.deferredMap.delete(data.uid);
                 break;
                 
             default:

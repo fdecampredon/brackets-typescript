@@ -57,11 +57,11 @@ export function log(s: string): void {
  * Logging level
  */
 export enum Level {
-    information,
-    debug, 
-    warning,
+    fatal,
     error,
-    fatal
+    warning,
+    debug, 
+    information
 }
 
 /**

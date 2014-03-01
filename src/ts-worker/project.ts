@@ -220,18 +220,21 @@ class TypeScriptProject {
      */
     private addFile(fileName: string, notify = true): JQueryPromise<void>  {
         if (!this.projectFilesSet.has(fileName)) {
+            var deferred = $.Deferred();
             this.projectFilesSet.add(fileName);
-            this.fileSystem.readFile(fileName).then(content => {
+            return this.fileSystem.readFile(fileName).then(content => {
                 var promises: JQueryPromise<any>[] = [];
                 this.languageServiceHost.addScript(fileName, content);
-                this.getReferencedOrImportedFiles(fileName).forEach((referencedFile: string) => {
+                this.getReferencedOrImportedFiles(fileName).forEach(referencedFile => {
                     promises.push(this.addFile(referencedFile));
                     this.addReference(fileName, referencedFile);
                 });
-                return $.when.apply($, promises);
+                return $.when.apply($, promises).then(() => deferred.resolve(), () => deferred.resolve())
             }, () => {
                 this.projectFilesSet.remove(fileName);
+                deferred.resolve();
             });
+            return deferred.promise();
         }
         return null;
     }

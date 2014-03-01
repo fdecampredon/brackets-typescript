@@ -17,13 +17,14 @@ define(function (require, exports, module) {
                 workerLocation: require.toUrl(baseUrl + 'worker.js')
             };
             
-            if (config.isDebug) {
-                init(initConfig);
-            } else {
-                AppInit.appReady(function () {
+            AppInit.appReady(function () {
+                try {
                     init(initConfig);
-                });
-            }
+                } catch(e) {
+                    console.error(e.stack);
+                }
+            });
+            
         });
     });
 });

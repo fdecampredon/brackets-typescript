@@ -98,14 +98,27 @@ module.exports = function (grunt) {
             main: {
                 files: {
                     'built/main.js': ['tmp/main/index.js']
+                },
+                options : {
+                    standalone: 'bracketsTypescript'
                 }
             },
             worker: {
                 files: {
                     'built/worker.js': ['tmp/ts-worker/index.js']
                 },
-                options : {
-                    standalone: 'brackets-typescript'
+                options: {
+                    shim: {
+                        jQuery: {
+                            path: 'third_party/jquery.deferred.js',
+                            exports: '$'
+                        },
+                        typescriptServices: {
+                            path: 'third_party/typescript/typescriptServices.js',
+                            exports: 'TypeScript'
+                        }
+                    },
+                    noParse: ['third_party/jquery.deferred.js','third_party/typescript/typescriptServices.js'] 
                 }
             },
             
@@ -161,52 +174,52 @@ module.exports = function (grunt) {
     //grunt.registerTask('release', ['test', 'build', 'clean:release', 'copy:release']);
     
     
-    var commented = {
-    
-        
-        copy: {
-            release: {
-                expand: true,
-                cwd: '<%= localBinFolder %>',
-                src: '**/*.js',
-                dest: '<%= releaseBinFolder %>'
-            }
-        },
-        // later when the editor support tslint himself
-        tslint: {
-            options: {
-                configuration: grunt.file.readJSON("tslint.json")
-            },
-            main: {
-                src: ['src/main/**/*.ts']
-            },
-            test: {
-                src: ['src/test/**/*.ts']
-            }
-        },
-        
-        compress: {
-            main: {
-                options: {
-                    archive: 'brackets-typescript.zip',
-                    mode: 'zip'
-                },
-                files: [
-                    {
-                        expand: true,
-                        cwd: 'release-templates',
-                        src: '*',
-                        dest: '/',
-                        filter: 'isFile'
-                    }, {
-                        expand : true,
-                        src: ['main.js', 'bin/**/*', 'third_party/**/*'],
-                        dest : '/'
-                    }
-                ]
-            }
-        }
-};    
+//    var commented = {
+//    
+//        
+//        copy: {
+//            release: {
+//                expand: true,
+//                cwd: '<%= localBinFolder %>',
+//                src: '**/*.js',
+//                dest: '<%= releaseBinFolder %>'
+//            }
+//        },
+//        // later when the editor support tslint himself
+//        tslint: {
+//            options: {
+//                configuration: grunt.file.readJSON("tslint.json")
+//            },
+//            main: {
+//                src: ['src/main/**/*.ts']
+//            },
+//            test: {
+//                src: ['src/test/**/*.ts']
+//            }
+//        },
+//        
+//        compress: {
+//            main: {
+//                options: {
+//                    archive: 'brackets-typescript.zip',
+//                    mode: 'zip'
+//                },
+//                files: [
+//                    {
+//                        expand: true,
+//                        cwd: 'release-templates',
+//                        src: '*',
+//                        dest: '/',
+//                        filter: 'isFile'
+//                    }, {
+//                        expand : true,
+//                        src: ['main.js', 'bin/**/*', 'third_party/**/*'],
+//                        dest : '/'
+//                    }
+//                ]
+//            }
+//        }
+//};    
 };
 
 

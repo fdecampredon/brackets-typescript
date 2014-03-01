@@ -43,7 +43,10 @@ import Services = TypeScript.Services;
  */
 class TypeScriptProjectManager {
     
-  
+    constructor() {
+        this.initialized = $.Deferred();
+        this.creatingProjects = this.initialized.promise();
+    }
     
     //-------------------------------
     //  variables
@@ -68,6 +71,7 @@ class TypeScriptProjectManager {
     private disposable: Rx.IDisposable;
     
     private creatingProjects: JQueryPromise<void>;
+    private initialized: JQueryDeferred<void>;
     
     
     private defaultTypeScriptLocation: string;
@@ -88,10 +92,10 @@ class TypeScriptProjectManager {
         this.workingSet = workingSet;
         this.projectFactory = projectFactory;
         
-        var initializing = this.createProjects();
-        this.creatingProjects = initializing;
-        this.disposable = this.fileSystem.projectFilesChanged.subscribe(this.filesChangeHandler);
-        return initializing;
+        return this.createProjects().then(()=> {
+            this.initialized.resolve();
+            this.disposable = this.fileSystem.projectFilesChanged.subscribe(this.filesChangeHandler);
+        }, () =>  this.initialized.reject());
     }
     
     
@@ -309,7 +313,7 @@ class TypeScriptProjectManager {
         var deferred = $.Deferred<TypeScriptInfo>()
         if (!typescriptPath) {
             deferred.resolve({
-                factory: Services.TypeScriptServicesFactory,
+                factory: new Services.TypeScriptServicesFactory(),
                 libLocation: path.join(this.defaultTypeScriptLocation, 'lib.d.ts')
             })
         } else {
