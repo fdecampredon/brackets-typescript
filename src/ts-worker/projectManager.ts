@@ -46,7 +46,7 @@ import Services = TypeScript.Services;
 class TypeScriptProjectManager {
     
     constructor() {
-        this.busy = new Promise<any>(resolve => this.resolveBusy = resolve);
+        this.busy = new Promise<any>(resolve => this.initializationResolver = resolve);
     }
     
     //-------------------------------
@@ -72,7 +72,7 @@ class TypeScriptProjectManager {
     private disposable: Rx.IDisposable;
     
     
-    private resolveBusy: (promise: Promise<any>) => any;
+    private initializationResolver: (promise: Promise<any>) => any;
     private busy: Promise<any>;
     
     
@@ -94,7 +94,7 @@ class TypeScriptProjectManager {
         this.workingSet = workingSet;
         this.projectFactory = projectFactory;
         
-        return this.resolveBusy(this.createProjects().then(()=> {
+        return this.initializationResolver(this.createProjects().then(()=> {
             this.disposable = this.fileSystem.projectFilesChanged.subscribe(this.filesChangeHandler);
         }));
     }
