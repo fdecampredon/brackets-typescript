@@ -16,6 +16,8 @@
 
 
 import TypeScriptProjectManager = require('./projectManager');
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;;
 
 
 class DefinitionService {
@@ -32,14 +34,14 @@ class DefinitionService {
             if (index < 0) {
                 return [];
             }
-            languageService.getDefinitionAtPosition(fileName, index)
+            return languageService.getDefinitionAtPosition(fileName, index)
                 .map(definition => ({
                     path: definition.fileName,
                     name: (definition.containerName ? (definition.containerName + '.') : '') + definition.name,
                     lineStart : languageServiceHost.indexToPosition(fileName, definition.minChar).line,
                     lineEnd : languageServiceHost.indexToPosition(fileName, definition.limChar).line
                 }))
-        });
+        }).catch(() => [])
     }
 }
 

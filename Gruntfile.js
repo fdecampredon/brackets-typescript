@@ -109,16 +109,12 @@ module.exports = function (grunt) {
                 },
                 options: {
                     shim: {
-                        jQuery: {
-                            path: 'third_party/jquery.deferred.js',
-                            exports: '$'
-                        },
                         typescriptServices: {
                             path: 'third_party/typescript/typescriptServices.js',
                             exports: 'TypeScript'
                         }
                     },
-                    noParse: ['third_party/jquery.deferred.js','third_party/typescript/typescriptServices.js'] 
+                    noParse: ['third_party/typescript/typescriptServices.js'] 
                 }
             },
             

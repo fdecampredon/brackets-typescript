@@ -16,6 +16,8 @@
 
 
 import TypeScriptProjectManager = require('./projectManager');
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;;
 
  var Type = {
     /** Unambiguous error, such as a syntax error */
@@ -33,7 +35,7 @@ class ErrorService {
     ) {}
 
     
-    getErrorsForFile(fileName: string): JQueryPromise<{ errors: brackets.LintingError[];  aborted: boolean }> {
+    getErrorsForFile(fileName: string): Promise<{ errors: brackets.LintingError[];  aborted: boolean }> {
         return this.projectManager.getProjectForFile(fileName).then(project => {
             var languageService = project.getLanguageService(),
                 syntacticDiagnostics = languageService.getSyntacticDiagnostics(fileName),
@@ -48,7 +50,7 @@ class ErrorService {
                 errors: errors, 
                 aborted: false
             };
-        }, () => {
+        }).catch(() => {
             return { 
                 errors: [], 
                 aborted: false

@@ -6,6 +6,8 @@
 
 import WorkerBridge = require('../commons/workerBridge');
 import Rx = require('rx');
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;;
 
 class FakeWorker {
     private initialized: boolean;
@@ -137,11 +139,9 @@ describe('bridge', function () {
             createBridge(this, {
                 myService: {
                     myMethod: function () {
-                        var deferred = $.Deferred();
-                        setTimeout(function () {
-                            deferred.resolve(10);
-                        });
-                        return deferred.promise();
+                        return new Promise(resolve =>{
+                            resolve(10)
+                        })
                     }
                 }
             })
@@ -216,11 +216,7 @@ describe('bridge', function () {
             createBridge(this, {
                 myService: {
                     myMethod: function () {
-                        var deferred = $.Deferred();
-                        setTimeout(function () {
-                            deferred.reject('my error');
-                        });
-                        return deferred.promise();
+                        return new Promise((reject, resolve) => reject('my error'));
                     }
                 }
             })

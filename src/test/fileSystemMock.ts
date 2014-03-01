@@ -19,6 +19,8 @@
 
 import fs = require('../commons/fileSystem');
 import Rx = require('rx');
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;;
 
 class FileSystem implements fs.FileSystem {
     
@@ -26,20 +28,20 @@ class FileSystem implements fs.FileSystem {
         private files: { [path: string]: string } = {}
     ) {}
     
-    getProjectFiles(forceRefresh?: boolean): JQueryPromise<string> {
-        var deferred = $.Deferred();
-        deferred.resolve(Object.keys(this.files));
-        return deferred.promise();
+    getProjectFiles(forceRefresh?: boolean): Promise<string[]> {
+        return new Promise(resolve => {
+            resolve(Object.keys(this.files))
+        });
     }
     
-    readFile(path: string): JQueryPromise<string> {
-        var deferred = $.Deferred();
-        if (this.files.hasOwnProperty(path)) {
-            deferred.resolve(this.files[path]);
-        } else {
-            deferred.reject('Not found');
-        }
-        return deferred.promise();
+    readFile(path: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            if (this.files.hasOwnProperty(path)) {
+                resolve(this.files[path]);
+            } else {
+                reject('Not found');
+            } 
+        })
     }
     
     projectFilesChanged = new Rx.Subject<fs.FileChangeRecord[]>();

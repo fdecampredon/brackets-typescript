@@ -16,6 +16,8 @@
 /*istanbulify ignore file*/
 import ws = require('../commons/workingSet');
 import Rx = require('rx');
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;;
 
 class WorkingSetMock implements ws.WorkingSet {
     files: string [] = [];
@@ -23,7 +25,7 @@ class WorkingSetMock implements ws.WorkingSet {
     documentEdited = new Rx.Subject<ws.DocumentChangeDescriptor[]>();
     
     getFiles() {
-        return $.Deferred(deferred => deferred.resolve(this.files)).promise();
+        return new Promise(resolve => resolve(this.files));
     }
     
     dispose(): void {

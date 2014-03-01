@@ -1,3 +1,6 @@
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;;
+
 export interface DefinitionInfo {
     path: string;
     name: string;
@@ -7,5 +10,5 @@ export interface DefinitionInfo {
 
 export interface DefinitionService {
     
-    getDefinitionForFile(fileName: string, position: CodeMirror.Position): JQueryPromise<DefinitionInfo[]>;
+    getDefinitionForFile(fileName: string, position: CodeMirror.Position): Promise<DefinitionInfo[]>;
 }

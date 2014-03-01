@@ -1,4 +1,7 @@
 
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;
+
 
 
 //--------------------------------------------------------------------------
@@ -12,7 +15,7 @@ export interface WorkingSet {
     /**
      * list of files in the working set
      */
-    getFiles(): JQueryPromise<string[]>;
+    getFiles(): Promise<string[]>;
     
     /**
      * a signal dispatching events when change occured in the working set

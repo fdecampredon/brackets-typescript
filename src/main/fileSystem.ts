@@ -17,6 +17,8 @@
 
 import collections = require('../commons/collections');
 import Rx = require('rx');
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;;
 import fs = require('../commons/fileSystem');
 
 
@@ -80,38 +82,38 @@ class FileSystem implements fs.FileSystem {
     /**
      * @see IFileSystem.getProjectFiles
      */
-    getProjectFiles(): JQueryPromise<string[]> {
-        var deferred = $.Deferred<string[]>();
-        this.addToInitializatioStack(() => deferred.resolve(this.filesPath));
-        return deferred.promise();
+    getProjectFiles(): Promise<string[]> {
+        return new Promise(resolve => {
+            this.addToInitializatioStack(() => resolve(this.filesPath));
+        })
     }
       
     /**
      * @see IFileSystem.readFile
      */
-    readFile(path: string): JQueryPromise<string> {
-        var result = $.Deferred<string>();
-        this.addToInitializatioStack(() => {
-            if (this.filesContent.has(path)) {
-                result.resolve(this.filesContent.get(path))
-            } else {
-                var file = this.nativeFileSystem.getFileForPath(path);
-                if (file.isDirectory) {
-                    result.reject('not found');
-                    return;
-                }
-                file.read({}, (err: string, content: string) => {
-                    if (err) {
-                        result.reject(err);
-                    } else {
-                        content = content && this.normalizeText(content);
-                        this.filesContent.set(path, content); 
-                        result.resolve(content);
+    readFile(path: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            this.addToInitializatioStack(() => {
+                if (this.filesContent.has(path)) {
+                    resolve(this.filesContent.get(path))
+                } else {
+                    var file = this.nativeFileSystem.getFileForPath(path);
+                    if (file.isDirectory) {
+                        reject('not found');
+                        return;
                     }
-                });
-            }
-        });
-        return result.promise();
+                    file.read({}, (err: string, content: string) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            content = content && this.normalizeText(content);
+                            this.filesContent.set(path, content); 
+                            resolve(content);
+                        }
+                    });
+                }
+            });    
+        })
     }
     
     /**
@@ -173,19 +175,18 @@ class FileSystem implements fs.FileSystem {
     /**
      * retrieves all files contained in a directory (and in subdirectory)
      */
-    private getDirectoryFiles(directory: brackets.Directory): JQueryPromise<brackets.File[]> {
-        var deferred = $.Deferred(),
-            files: brackets.File[] = []; 
-        
-        directory.visit(entry => {
-            if (entry.isFile) {
-                files.push(<brackets.File> entry);
-            }
-            return true;
-        }, {} , (err) => {
-            deferred.resolve(files);
-        });
-        return deferred.promise()
+    private getDirectoryFiles(directory: brackets.Directory): Promise<brackets.File[]> {
+        return new Promise((resolve, reject) => {
+            var  files: brackets.File[] = []; 
+            directory.visit(entry => {
+                if (entry.isFile) {
+                    files.push(<brackets.File> entry);
+                }
+                return true;
+            }, {} , (err) => {
+                resolve(files);
+            });
+        })
     }
 
     /**
@@ -223,24 +224,25 @@ class FileSystem implements fs.FileSystem {
                     fileDeleted: string[] = [],
                     fileUpdated: string[] = [],
                     newPathsSet = new collections.StringSet(),
-                    promises: JQueryPromise<any>[] = []; 
+                    promises: Promise<any>[] = []; 
                 
                 this.filesPath = (files || []).map(file => {
                     if (!oldPathsSet.has(file.fullPath)) {
                         fileAdded.push(file.fullPath);
                     }
                     if (oldFilesContent.has(file.fullPath)) {
-                        var deferred = $.Deferred<any>();
-                        promises.push(deferred.promise());
-                        file.read({}, (err: string, content: string) => {
-                            if (!err) {
-                                this.filesContent.set(file.fullPath, content)
-                            }
-                            if (err || content !== oldFilesContent.get(file.fullPath)) {
-                                fileUpdated.push(file.fullPath);
-                            } 
-                            deferred.resolve();
-                        });
+                        promises.push(new Promise((resolve, reject) => {
+                            file.read({}, (err: string, content: string) => {
+                                if (!err) {
+                                    this.filesContent.set(file.fullPath, content)
+                                }
+                                if (err || content !== oldFilesContent.get(file.fullPath)) {
+                                    fileUpdated.push(file.fullPath);
+                                } 
+                                resolve(true);
+                            });    
+                        }));
+                        
                     }
                     newPathsSet.add(file.fullPath);
                     return file.fullPath;
@@ -252,7 +254,7 @@ class FileSystem implements fs.FileSystem {
                     }
                 });
                 
-                (<JQueryPromise<any>>$.when.apply($, promises)).then(() => {
+                Promise.all(promises).then(() => {
                     
                     var changes: fs.FileChangeRecord[] = [];
                     
@@ -303,7 +305,7 @@ class FileSystem implements fs.FileSystem {
                 this.filesContent.delete(file.fullPath);
                 this.readFile(file.fullPath).then((content) => {
                     this.filesContent.set(file.fullPath, content)
-                }).always(dispatchUpdate);
+                }).catch().then(dispatchUpdate);
             } else {
                 dispatchUpdate()
             }
@@ -362,7 +364,7 @@ class FileSystem implements fs.FileSystem {
                     }
                 }
                 
-                var promises: JQueryPromise<any>[] = []
+                var promises: Promise<any>[] = []
                 for (var path in newFiles) {
                     if (newFiles.hasOwnProperty(path) && !oldFiles.hasOwnProperty(path))  {
                         //if a file has been added just add a ADD record
@@ -389,7 +391,7 @@ class FileSystem implements fs.FileSystem {
                 };
                 
                
-                (<JQueryPromise<any>>$.when.apply($, promises)).then(() => {
+                Promise.all(promises).then(() => {
                     if (changes.length > 0) {
                         this._projectFilesChanged.onNext(changes);  
                     }  

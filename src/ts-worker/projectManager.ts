@@ -16,6 +16,8 @@
 
 
 import Rx = require('rx');
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;;
 import path = require('path');
 import fs = require('../commons/fileSystem');
 import ws = require('../commons/workingSet');
@@ -44,8 +46,7 @@ import Services = TypeScript.Services;
 class TypeScriptProjectManager {
     
     constructor() {
-        this.initialized = $.Deferred();
-        this.creatingProjects = this.initialized.promise();
+        this.busy = new Promise<any>(resolve => this.resolveBusy = resolve);
     }
     
     //-------------------------------
@@ -70,8 +71,9 @@ class TypeScriptProjectManager {
     
     private disposable: Rx.IDisposable;
     
-    private creatingProjects: JQueryPromise<void>;
-    private initialized: JQueryDeferred<void>;
+    
+    private resolveBusy: (promise: Promise<any>) => any;
+    private busy: Promise<any>;
     
     
     private defaultTypeScriptLocation: string;
@@ -85,17 +87,16 @@ class TypeScriptProjectManager {
      * initialize the project manager
      */
     init(defaultTypeScriptLocation: string, fileSystem: fs.FileSystem, 
-        workingSet: ws.WorkingSet, projectFactory: TypeScriptProjectManager.ProjectFactory): JQueryPromise<void> {
+        workingSet: ws.WorkingSet, projectFactory: TypeScriptProjectManager.ProjectFactory): Promise<void> {
         
         this.defaultTypeScriptLocation = defaultTypeScriptLocation;
         this.fileSystem = fileSystem;
         this.workingSet = workingSet;
         this.projectFactory = projectFactory;
         
-        return this.createProjects().then(()=> {
-            this.initialized.resolve();
+        return this.resolveBusy(this.createProjects().then(()=> {
             this.disposable = this.fileSystem.projectFilesChanged.subscribe(this.filesChangeHandler);
-        }, () =>  this.initialized.reject());
+        }));
     }
     
     
@@ -104,7 +105,7 @@ class TypeScriptProjectManager {
      */
     dispose(): void {
         this.disposable.dispose(); 
-        this.creatingProjects.then(() => {
+        this.busy.then(() => {
             this.disposeProjects();    
         });
     }
@@ -116,8 +117,8 @@ class TypeScriptProjectManager {
      * 
      * @param fileName the path of the typesrcript file for which project are looked fo
      */
-    getProjectForFile(fileName: string): JQueryPromise<TypeScriptProject> {
-        return this.creatingProjects.then(() => {
+    getProjectForFile(fileName: string): Promise<TypeScriptProject> {
+        return this.busy.then(() => {
             var projects = utils.mergeAll(this.projectMap.values).filter(project => !!project),
                 project : TypeScriptProject = null;
             //first we check for a project that have tha file as source 
@@ -175,12 +176,11 @@ class TypeScriptProjectManager {
     /**
      * find bracketsTypescript config files and create a project for each file founds
      */
-    private createProjects(): JQueryPromise<void> {
+    private createProjects(): Promise<any> {
         return this.fileSystem.getProjectFiles().then(files => {
-            return $.when.apply($,
-                files
-                    .filter(tsUtils.isTypeScriptProjectConfigFile)
-                    .map(configFile => this.createProjectsFromFile(configFile))
+            return Promise.all(files
+                .filter(tsUtils.isTypeScriptProjectConfigFile)
+                .map(configFile => this.createProjectsFromFile(configFile))
             );
         });
     }
@@ -205,7 +205,7 @@ class TypeScriptProjectManager {
      * 
      * @param configFilePath the config file path
      */
-    private createProjectsFromFile(configFilePath: string): JQueryPromise<void> {
+    private createProjectsFromFile(configFilePath: string): Promise<any> {
         return this.retrieveConfig(configFilePath).then(configs => {
             if (configs.length === 0) {
                 this.projectMap.delete(configFilePath);
@@ -221,7 +221,7 @@ class TypeScriptProjectManager {
             projects = [];
             this.projectMap.set(configFilePath, projects);
 
-            return $.when.apply($,
+            return Promise.all(
                 configs.map( (config: TypeScriptProjectConfig, index: number) => {
                     return this.createProjectFromConfig(configFilePath, config).then(project => {
                         projects[index] = project;
@@ -237,7 +237,7 @@ class TypeScriptProjectManager {
      * @param configFilePath the config file path
      * @param config the config created from the file
      */
-    private createProjectFromConfig(configFile: string, config : TypeScriptProjectConfig): JQueryPromise<TypeScriptProject> {
+    private createProjectFromConfig(configFile: string, config : TypeScriptProjectConfig): Promise<TypeScriptProject> {
         return this.getTypeScriptInfosForPath(config.typescriptPath).then(infos => {
             var project = this.projectFactory(
                 path.dirname(configFile), 
@@ -266,7 +266,7 @@ class TypeScriptProjectManager {
      * 
      * @param configFilePath
      */
-    private retrieveConfig(configFilePath: string): JQueryPromise<TypeScriptProjectConfig[]> {
+    private retrieveConfig(configFilePath: string): Promise<TypeScriptProjectConfig[]> {
         return this.fileSystem.readFile(configFilePath).then((content: string) => {
             var data : any;
             try {
@@ -309,34 +309,29 @@ class TypeScriptProjectManager {
      * Retrieve a ServiceFactory from a given typeScriptService file path
      * @param typescriptPath
      */
-    private getTypeScriptInfosForPath(typescriptPath: string): JQueryPromise<TypeScriptInfo> {
-        var deferred = $.Deferred<TypeScriptInfo>()
-        if (!typescriptPath) {
-            deferred.resolve({
-                factory: new Services.TypeScriptServicesFactory(),
-                libLocation: path.join(this.defaultTypeScriptLocation, 'lib.d.ts')
-            })
-        } else {
-            var typescriptServicesFile = path.join(typescriptPath, 'typescriptServices.js');
-            this.fileSystem.readFile(typescriptServicesFile).then(code => {
-                var factory: TypeScript.Services.TypeScriptServicesFactory
-                try {
-                    var func = new Function("var TypeScript;" + code + ";return TypeScript;");
-                    var typeScript: typeof TypeScript = func();
-                    factory = new typeScript.Services.TypeScriptServicesFactory();
-                } catch(e) {
-                    deferred.reject(e);
-                }
-                deferred.resolve({
-                    factory: factory,
-                    libLocation: path.join(typescriptPath, 'lib.d.ts')
-                });
-            }, (e?) => {
-                deferred.reject(e)
-            });
-        }
+    private getTypeScriptInfosForPath(typescriptPath: string): Promise<TypeScriptInfo> {
         
-        return deferred.promise();
+        return new Promise<TypeScriptInfo>((resolve, reject) => {
+            if (!typescriptPath) {
+                resolve({
+                    factory: new Services.TypeScriptServicesFactory(),
+                    libLocation: path.join(this.defaultTypeScriptLocation, 'lib.d.ts')
+                })
+            } else {
+                var typescriptServicesFile = path.join(typescriptPath, 'typescriptServices.js');
+                this.fileSystem.readFile(typescriptServicesFile).then(code => {
+                    var factory: TypeScript.Services.TypeScriptServicesFactory,
+                        func = new Function("var TypeScript;" + code + ";return TypeScript;"),
+                        typeScript: typeof TypeScript = func();
+                    
+                    factory = new typeScript.Services.TypeScriptServicesFactory();
+                    resolve({
+                        factory: factory,
+                        libLocation: path.join(typescriptPath, 'lib.d.ts')
+                    })
+                }).catch((e) => reject(e));
+            }
+        });
     }
 
 
@@ -349,7 +344,7 @@ class TypeScriptProjectManager {
      * handle changes in the file system, update / delete / create project accordingly
      */
     private filesChangeHandler = (changeRecords: fs.FileChangeRecord[]) => {
-        this.creatingProjects.then(() => {
+        this.busy.then(() => {
             changeRecords.forEach(record => {
                 if (record.kind === fs.FileChangeKind.RESET) {
                     //reinitialize the projects if file system reset
@@ -374,7 +369,7 @@ class TypeScriptProjectManager {
 
                         // a config file has been created or updated update project
                         default:
-                            this.creatingProjects = this.creatingProjects.then(() => this.createProjectsFromFile(record.path));
+                            this.busy = this.busy.then(() => this.createProjectsFromFile(record.path));
                             break;
                     }
                 }

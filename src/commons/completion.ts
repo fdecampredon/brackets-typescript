@@ -1,3 +1,5 @@
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;
 
 /**
  * enum representing the different kind of hint
@@ -31,5 +33,5 @@ export interface CompletionResult {
 }
 
 export interface CompletionService {
-    getCompletionAtPosition(fileName: string, position: CodeMirror.Position): JQueryPromise<CompletionResult>;
+    getCompletionAtPosition(fileName: string, position: CodeMirror.Position): Promise<CompletionResult>;
 }

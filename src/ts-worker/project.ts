@@ -3,6 +3,9 @@
 import Rx = require('rx');
 import path = require('path');
 import minimatch = require('minimatch');
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;;
+
 import Services = TypeScript.Services;
 
 import collections = require('../commons/collections');
@@ -73,7 +76,7 @@ class TypeScriptProject {
     //  public methods
     //-------------------------------
     
-    init(): JQueryPromise<void> {
+    init(): Promise<void> {
         this.coreService = this.servicesFactory.createCoreServices({ logger: new logger.LogingClass()});
         this.languageServiceHost = new LanguageServiceHost();
         this.languageServiceHost.setCompilationSettings(this.createCompilationSettings());
@@ -93,12 +96,12 @@ class TypeScriptProject {
             if (!this.config.noLib) {
                 return this.addDefaultLibrary();
             }
-        }, () => { 
+        }).catch(() => { 
             //todo error recovery
             if (logger.fatal()) {
                 logger.log('could not retrieve project files');
             }
-        });
+        })
     }
     
     public dispose() {
@@ -190,17 +193,17 @@ class TypeScriptProject {
     /**
      * retrive files content for path described in the config
      */
-    private collectFiles(): JQueryPromise<void> { 
+    private collectFiles(): Promise<any> { 
         this.projectFilesSet = new collections.StringSet();
         this.references = new collections.StringMap<collections.StringSet>();
         return this.fileSystem.getProjectFiles().then((paths: string[]) => {
-            var promises: JQueryPromise<any>[] = [];
+            var promises: Promise<any>[] = [];
             paths.forEach(fileName => {
                 if (this.isProjectSourceFile(fileName)) {
                     promises.push(this.addFile(fileName, false));
                 }
             });
-            return $.when.apply($, promises);
+            return Promise.all(promises);
         });
     }
     
@@ -218,23 +221,20 @@ class TypeScriptProject {
      * add a file to the project
      * @param path
      */
-    private addFile(fileName: string, notify = true): JQueryPromise<void>  {
+    private addFile(fileName: string, notify = true): Promise<any>  {
         if (!this.projectFilesSet.has(fileName)) {
-            var deferred = $.Deferred();
             this.projectFilesSet.add(fileName);
             return this.fileSystem.readFile(fileName).then(content => {
-                var promises: JQueryPromise<any>[] = [];
+                var promises: Promise<any>[] = [];
                 this.languageServiceHost.addScript(fileName, content);
                 this.getReferencedOrImportedFiles(fileName).forEach(referencedFile => {
                     promises.push(this.addFile(referencedFile));
                     this.addReference(fileName, referencedFile);
                 });
-                return $.when.apply($, promises).then(() => deferred.resolve(), () => deferred.resolve())
-            }, () => {
+                return Promise.all(promises)
+            }, (): any => {
                 this.projectFilesSet.remove(fileName);
-                deferred.resolve();
             });
-            return deferred.promise();
         }
         return null;
     }

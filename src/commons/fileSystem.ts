@@ -1,3 +1,5 @@
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;;
 
 
 //--------------------------------------------------------------------------
@@ -19,13 +21,13 @@ export interface FileSystem {
     /**
      * return a promise that resolve with a string containing the files in the project
      */
-    getProjectFiles(): JQueryPromise<string[]>;
+    getProjectFiles(): Promise<string[]>;
     
     /**
      * read a file, return a promise with the file content
      * @param path the file to read
      */
-    readFile(path: string): JQueryPromise<string>;
+    readFile(path: string): Promise<string>;
     
     /**
      * reset the wrapper and dispatch a refresh event

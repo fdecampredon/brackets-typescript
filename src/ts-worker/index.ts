@@ -1,6 +1,5 @@
 declare var require: any;
 global.TypeScript = require('typescriptServices');
-global.$ = require('jQuery');
 
 
 

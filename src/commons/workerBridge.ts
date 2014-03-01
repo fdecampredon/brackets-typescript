@@ -24,6 +24,8 @@
 import utils = require('./utils');
 import collections = require('./collections');
 import Rx = require('rx');
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;
 
 /**
  * list of operations that can be requested
@@ -44,6 +46,11 @@ enum Operation {
 enum Type {
     FUNCTION,
     OBSERVABLE
+}
+
+interface Resolver {
+    resolve(result: any): any;
+    reject(error: any):any;
 }
 
 /**
@@ -79,7 +86,7 @@ var uidHelper = 0
 /**
  * create a query factory for a proxied service method
  */
-function newQuery(chain: string[], sendMessage: (args: any) => void, deferredMap: collections.StringMap<JQueryDeferred<any>>): any {
+function newQuery(chain: string[], sendMessage: (args: any) => void, resolverMap: collections.StringMap<Resolver>): any {
     return (...args: any []) => {
         var uid = "operation" + (uidHelper++);
         sendMessage({
@@ -88,9 +95,12 @@ function newQuery(chain: string[], sendMessage: (args: any) => void, deferredMap
             args: args,
             uid: uid
         });
-        var deferred = $.Deferred<any>();
-        deferredMap.set(uid, deferred);
-        return deferred.promise();
+        return new Promise((resolve, reject) => {
+            resolverMap.set(uid, {
+                resolve: resolve,
+                reject: reject
+            });
+        });
     }
 }
 
@@ -99,17 +109,17 @@ function newQuery(chain: string[], sendMessage: (args: any) => void, deferredMap
  * create proxy from proxy descriptor
  */
 function createProxy(descriptor: any, sendMessage: (args: any) => void, 
-        deferredMap: collections.StringMap<JQueryDeferred<any>>, baseKeys: string[] = []): any {
+        resolverMap: collections.StringMap<Resolver>, baseKeys: string[] = []): any {
     return Object.keys(descriptor)
         .reduce((proxy: any, key: string) => {
             var value = descriptor[key],
                 keys = baseKeys.concat(key);
             if (value === Type.FUNCTION) {
-                proxy[key] = newQuery(keys, sendMessage, deferredMap);
+                proxy[key] = newQuery(keys, sendMessage, resolverMap);
             } else if (value === Type.OBSERVABLE) {
                 proxy[key] = new Rx.Subject();
             } else if (typeof value === 'object') {
-                proxy[key] = createProxy(descriptor[key], sendMessage, deferredMap, keys)
+                proxy[key] = createProxy(descriptor[key], sendMessage, resolverMap, keys)
             }
             return proxy;
         }, {});
@@ -128,12 +138,12 @@ class WorkerBridge {
     /**
      * stack of deferred bound to a requres
      */
-    private deferredMap = new collections.StringMap<JQueryDeferred<any>>();
+    private resolverMap = new collections.StringMap<Resolver>();
     
     /**
      * deffered tracking sate
      */
-    private initDeferred: JQueryDeferred<any>
+    private initDeferred: Resolver
     
     /**
      * @private
@@ -157,39 +167,39 @@ class WorkerBridge {
      * initialize te bridge, return a promise that resolve to the created proxy 
      * @param services the exposed services
      */
-    init(services: any): JQueryPromise<any> {
+    init(services: any): Promise<any> {
         this.services = services;
-        this.initDeferred = $.Deferred<any>();
+        return new Promise((resolve, reject) => {
+            var target = this.target;
+            target.onmessage = this.messageHandler
 
-        var target = this.target;
-        target.onmessage = this.messageHandler
+            var observables: { [index: string]: Rx.Observable<any> } = {};
+            target.postMessage({
+                operation : Operation.EXPOSE,
+                descriptor: createProxyDescriptor(services, observables)
+            });
 
-        var observables: { [index: string]: Rx.Observable<any> } = {};
-        target.postMessage({
-            operation : Operation.EXPOSE,
-            descriptor: createProxyDescriptor(services, observables)
-        });
+            this.disposables =  Object.keys(observables).map(key => {
+                var observable = observables[key];
+                return observable.subscribe(
+                    value => target.postMessage({ 
+                        operation: Operation.OBSERVABLE_NEXT, 
+                        chain: key.split('.') , 
+                        value: value
+                    }),
+                    error => target.postMessage({ 
+                        operation: Operation.OBSERVABLE_ERROR, 
+                        chain: key.split('.'), 
+                        error: error
+                    }),
+                    () => target.postMessage({ 
+                        operation: Operation.OBSERVABLE_COMPLETED, 
+                        chain: key.split('.'), 
+                    })
+                )
+            });    
+        })
 
-        this.disposables =  Object.keys(observables).map(key => {
-            var observable = observables[key];
-            return observable.subscribe(
-                value => target.postMessage({ 
-                    operation: Operation.OBSERVABLE_NEXT, 
-                    chain: key.split('.') , 
-                    value: value
-                }),
-                error => target.postMessage({ 
-                    operation: Operation.OBSERVABLE_ERROR, 
-                    chain: key.split('.'), 
-                    error: error
-                }),
-                () => target.postMessage({ 
-                    operation: Operation.OBSERVABLE_COMPLETED, 
-                    chain: key.split('.'), 
-                })
-            )
-        });
-        return this.initDeferred.promise();
     }
     
     /**
@@ -210,32 +220,22 @@ class WorkerBridge {
                 this.proxy = createProxy(
                     data.descriptor,  
                     (args: any) => this.target.postMessage(args), 
-                    this.deferredMap
+                    this.resolverMap
                 );
 
                 this.initDeferred.resolve(this.proxy);
                 break;
 
             case Operation.REQUEST:
-                $.Deferred(deferred => {
-                    try {
-                        var chain: string[] = data.chain.slice(),
-                            thisObject: any = null,
-                            method: any = this.services;
-                        while (chain.length) {
-                            thisObject = method;
-                            method = method[chain.shift()];
-                        }
-                        var result: any = method.apply(thisObject, data.args);
-                    } catch(e) {
-                        deferred.reject(e);
-                        return;
+                new Promise((resolve, reject) => {
+                    var chain: string[] = data.chain.slice(),
+                        thisObject: any = null,
+                        method: any = this.services;
+                    while (chain.length) {
+                        thisObject = method;
+                        method = method[chain.shift()];
                     }
-
-                    $.when(result).then(
-                        deferred.resolve.bind(deferred), 
-                        deferred.reject.bind(deferred)
-                    )
+                    return method.apply(thisObject, data.args);
                 }).then(result => {
                     this.target.postMessage({
                         operation: Operation.RESPONSE,
@@ -255,15 +255,15 @@ class WorkerBridge {
                 break;
 
             case Operation.RESPONSE:
-                var deferred = this.deferredMap.get(data.uid);
+                var deferred = this.resolverMap.get(data.uid);
                 deferred.resolve(data.result);
-                this.deferredMap.delete(data.uid);
+                this.resolverMap.delete(data.uid);
                 break;
 
             case Operation.ERROR:
-                var deferred = this.deferredMap.get(data.uid);
+                var deferred = this.resolverMap.get(data.uid);
                 deferred.reject(new Error(data.errorMessage));
-                this.deferredMap.delete(data.uid);
+                this.resolverMap.delete(data.uid);
                 break;
                 
             default:

@@ -22,6 +22,8 @@ import fs = require('../commons/fileSystem');
 import utils = require('../commons/utils');
 import collections = require('../commons/collections');
 import FileSystemMock = require('./fileSystemMock');
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;;
 
 
 describe('TypeScriptProjectManager', function () {
@@ -37,9 +39,9 @@ describe('TypeScriptProjectManager', function () {
         fileSystemMock = new FileSystemMock();
         projectSpy = {
             init: jasmine.createSpy('init').andCallFake(function () {
-                var deferred = $.Deferred()
-                setTimeout(() => deferred.resolve(), 10)
-                return deferred.promise();    
+                return new Promise(resolve => {
+                    setTimeout(() => resolve(true), 10)
+                })
             }),
             dispose: jasmine.createSpy('dispose')
         };   

@@ -14,7 +14,8 @@
 
 'use strict'
 
-
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;;
 import TypeScriptProjectManager = require('./projectManager');
 import completion = require('../commons/completion')
 
@@ -25,7 +26,12 @@ class CompletionService implements completion.CompletionService {
         private projectManager: TypeScriptProjectManager
     ) {}
     
-     getCompletionAtPosition(fileName: string, position: CodeMirror.Position): JQueryPromise<completion.CompletionResult> {
+    private isValidTokenKind(tokenKind: number) {
+        return tokenKind === TypeScript.SyntaxKind.IdentifierName ||
+            (tokenKind >= TypeScript.SyntaxKind.BreakKeyword && tokenKind < TypeScript.SyntaxKind.OpenBraceToken) 
+    }
+        
+    getCompletionAtPosition(fileName: string, position: CodeMirror.Position): Promise<completion.CompletionResult> {
         return this.projectManager.getProjectForFile(fileName).then(project => {
             var languageService = project.getLanguageService(),
                 languageServiceHost = project.getLanguageServiceHost(),
@@ -40,7 +46,7 @@ class CompletionService implements completion.CompletionService {
              var currentToken = languageService.getSyntaxTree(fileName).sourceUnit().findToken(index),
                  match: string;
                  
-            if (currentToken) {
+            if (currentToken && this.isValidTokenKind(currentToken.token().tokenKind)) {
                 match= currentToken.token().fullText();
                 typeScriptEntries = typeScriptEntries.filter(entry => {
                     return entry.name && entry.name.toLowerCase().indexOf(match.toLowerCase()) === 0;
@@ -127,7 +133,7 @@ class CompletionService implements completion.CompletionService {
                 entries: completionEntries,
                 match : match
             }
-        }, () => ({
+        }).catch(() => ({
             entries: [],
             match : ''
         }));
