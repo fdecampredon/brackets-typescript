@@ -17,7 +17,6 @@ import TypeScriptProjectConfig = require('../commons/config');
 import LanguageServiceHost = require('./languageServiceHost');
 
 
-
 //--------------------------------------------------------------------------
 //
 //  TypeScriptProject
@@ -72,6 +71,8 @@ class TypeScriptProject {
     
     private disposables: Rx.IDisposable[] = [];
     
+    private initializing: Promise<any>
+    
     //-------------------------------
     //  public methods
     //-------------------------------
@@ -81,18 +82,19 @@ class TypeScriptProject {
         this.languageServiceHost = new LanguageServiceHost();
         this.languageServiceHost.setCompilationSettings(this.createCompilationSettings());
         this.languageService = this.servicesFactory.createPullLanguageService(this.languageServiceHost);
-        return this.collectFiles().then(() => {
+        this.disposables.push(
+            this.workingSet.workingSetChanged.subscribe(this.workingSetChangedHandler),
+            this.workingSet.documentEdited.subscribe(this.documentEditedHandler),
+            this.fileSystem.projectFilesChanged.subscribe(this.filesChangeHandler)
+        );
+        return this.initializing = this.collectFiles().then(() => {
             this.workingSet.getFiles().then((files) => files.forEach(fileName => {
                 if (this.projectFilesSet.has(fileName)) {
                     this.languageServiceHost.setScriptIsOpen(fileName, true);
                 }
             }));
             
-            this.disposables.push(
-                this.workingSet.workingSetChanged.subscribe(this.workingSetChangedHandler),
-                this.workingSet.documentEdited.subscribe(this.documentEditedHandler),
-                this.fileSystem.projectFilesChanged.subscribe(this.filesChangeHandler)
-            );
+            
             if (!this.config.noLib) {
                 return this.addDefaultLibrary();
             }
@@ -347,69 +349,75 @@ class TypeScriptProject {
      * handle changes in the fileSystem
      */
     private filesChangeHandler = (changeRecords: fs.FileChangeRecord[]) => {
-        changeRecords.forEach(record => {
-            switch (record.kind) { 
-                case fs.FileChangeKind.ADD:
-                    if (this.isProjectSourceFile(record.path) || this.references.has(record.path)) {
-                        this.addFile(record.path);
-                    }
-                    break;
-                case fs.FileChangeKind.DELETE:
-                    if (this.projectFilesSet.has(record.path)) {
-                        this.removeFile(record.path);
-                    }
-                    break;
-                case fs.FileChangeKind.UPDATE:
-                    if (this.projectFilesSet.has(record.path)) {
-                        this.updateFile(record.path);
-                    }
-                    break;
-            }
-        });
+        this.initializing.then(() => {
+            changeRecords.forEach(record => {
+                switch (record.kind) { 
+                    case fs.FileChangeKind.ADD:
+                        if (this.isProjectSourceFile(record.path) || this.references.has(record.path)) {
+                            this.addFile(record.path);
+                        }
+                        break;
+                    case fs.FileChangeKind.DELETE:
+                        if (this.projectFilesSet.has(record.path)) {
+                            this.removeFile(record.path);
+                        }
+                        break;
+                    case fs.FileChangeKind.UPDATE:
+                        if (this.projectFilesSet.has(record.path)) {
+                            this.updateFile(record.path);
+                        }
+                        break;
+                }
+            });
+        })
     }
     
     /**
      * handle changes in the workingSet
      */
     private workingSetChangedHandler = (changeRecord:  ws.WorkingSetChangeRecord) => {
-        switch (changeRecord.kind) { 
-            case ws.WorkingSetChangeKind.ADD:
-                changeRecord.paths.forEach(fileName  => {
-                    if (this.projectFilesSet.has(fileName)) {
-                        this.languageServiceHost.setScriptIsOpen(fileName, true);
-                    }
-                });
-                break;
-            case ws.WorkingSetChangeKind.REMOVE:
-                changeRecord.paths.forEach(fileName  => {
-                    if (this.projectFilesSet.has(fileName)) {
-                        this.languageServiceHost.setScriptIsOpen(fileName, false);
-                        this.updateFile(fileName);
-                    }
-                });
-                break;
-        }
+        this.initializing.then(() => {
+            switch (changeRecord.kind) { 
+                case ws.WorkingSetChangeKind.ADD:
+                    changeRecord.paths.forEach(fileName  => {
+                        if (this.projectFilesSet.has(fileName)) {
+                            this.languageServiceHost.setScriptIsOpen(fileName, true);
+                        }
+                    });
+                    break;
+                case ws.WorkingSetChangeKind.REMOVE:
+                    changeRecord.paths.forEach(fileName  => {
+                        if (this.projectFilesSet.has(fileName)) {
+                            this.languageServiceHost.setScriptIsOpen(fileName, false);
+                            this.updateFile(fileName);
+                        }
+                    });
+                    break;
+            }
+        });
     }
     
     /**
      * handle document edition
      */
     private documentEditedHandler = (records: ws.DocumentChangeDescriptor[]) => {
-        records.forEach(record => {
-            if (this.projectFilesSet.has(record.path)) {
-                var oldPaths = new collections.StringSet(this.getReferencedOrImportedFiles(record.path));
-                   
-                if (!record.from || !record.to) {
-                    this.languageServiceHost.updateScript(record.path, record.documentText);
-                } else {
-                    var minChar = this.languageServiceHost.getIndexFromPos(record.path, record.from),
-                        limChar = this.languageServiceHost.getIndexFromPos(record.path, record.to);
-                    
-                    this.languageServiceHost.editScript(record.path, minChar, limChar, record.text);
+        this.initializing.then(() => {
+            records.forEach(record => {
+                if (this.projectFilesSet.has(record.path)) {
+                    var oldPaths = new collections.StringSet(this.getReferencedOrImportedFiles(record.path));
+
+                    if (!record.from || !record.to) {
+                        this.languageServiceHost.updateScript(record.path, record.documentText);
+                    } else {
+                        var minChar = this.languageServiceHost.getIndexFromPos(record.path, record.from),
+                            limChar = this.languageServiceHost.getIndexFromPos(record.path, record.to);
+
+                        this.languageServiceHost.editScript(record.path, minChar, limChar, record.text);
+                    }
+
+                    this.updateReferences(record.path, oldPaths);
                 }
-                
-                this.updateReferences(record.path, oldPaths);
-            }
+            });
         });
     }
 }

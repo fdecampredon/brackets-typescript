@@ -216,7 +216,7 @@ describe('bridge', function () {
             createBridge(this, {
                 myService: {
                     myMethod: function () {
-                        return new Promise((reject, resolve) => reject('my error'));
+                        return new Promise((resolve, reject) => reject('my error'));
                     }
                 }
             })

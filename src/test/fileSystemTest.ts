@@ -95,7 +95,7 @@ describe('FileSystem', function() {
             var files: string[];
             fileSystem.getProjectFiles().then(result => files = result);
             
-            waitsFor(() => !!files, 'files should be set', 10);
+            waitsFor(() => !!files, 'files should be set', 20);
             runs(() => expect(files).toEqual([
                 '/file1.ts',
                 '/file2.ts',
@@ -113,7 +113,7 @@ describe('FileSystem', function() {
         it('should return the file content', function () {
             var content: string;
             fileSystem.readFile('/subdir2/subdir3/file6.ts').then(data => content = data)   
-            waitsFor(() => !!content, 'file should be read', 10);
+            waitsFor(() => !!content, 'file should be read', 20);
             runs(() => {
                 expect(content).toBe('File6 content'); 
             })
@@ -122,7 +122,7 @@ describe('FileSystem', function() {
         it('should normalize the file content', function () {
             var content: string;
             fileSystem.readFile('/subdir2/subdir3/file7.ts').then(data => content = data)   
-            waitsFor(() => !!content, 'file should be read', 10);
+            waitsFor(() => !!content, 'file should be read', 20);
             runs(() => {
                 expect(content).toBe('File7 content\nline2\nline3\nline4'); 
             })
@@ -151,7 +151,7 @@ describe('FileSystem', function() {
             var spy = spyOn(fileSystemMock,'getFileForPath').andCallThrough(),
                 content: string;
             fileSystem.readFile('/subdir2/subdir3/file6.ts').then(data => content = data);    
-            waitsFor(() => !!content, 'file should be read', 10);
+            waitsFor(() => !!content, 'file should be read', 20);
             runs(() => {
                 fileSystem.readFile('/subdir2/subdir3/file6.ts').then(data => expect(data).toBe(content)) 
                 expect(spy.callCount).toBe(1);
@@ -164,7 +164,7 @@ describe('FileSystem', function() {
             fileSystem.readFile('/subdir2/subdir3/file6.ts');
             fileSystemMock.updateFile('/subdir2/subdir3/file6.ts', 'new content')
             fileSystem.readFile('/subdir2/subdir3/file6.ts').then(data => content = data)    
-            waitsFor(() => content === 'new content', 'file should be read', 10);
+            waitsFor(() => content === 'new content', 'file should be read', 20);
             runs(() => {
                 expect(content).toBe('new content'); 
             })
@@ -330,7 +330,7 @@ describe('FileSystem', function() {
             fileSystem.readFile('/subdir2/file5.ts').then(result => file5Content = result);
             fileSystem.readFile('/subdir1/file3.ts').then(result => file3Content = result);
             
-            waitsFor(() => !!file3Content && !!file5Content, 'files should have been read', 10);
+            waitsFor(() => !!file3Content && !!file5Content, 'files should have been read', 20);
             runs(function () {
                 fileSystemMock.refresh(d({
                     name: '/',
@@ -428,7 +428,7 @@ describe('FileSystem', function() {
             }]);
             
             fileSystem.getProjectFiles().then(result => files = result);
-            waitsFor(() => !!files, 'files should be set', 10);
+            waitsFor(() => !!files, 'files should be set', 20);
             runs(() => expect(files).toEqual([
                 '/file1.ts',
                 '/file2.ts',
@@ -447,7 +447,7 @@ describe('FileSystem', function() {
                 newContent: string;
             
             fileSystem.readFile('/subdir2/file4.ts').then(result => content = result);  
-            waitsFor(() => !!content, 'file should be read', 10);
+            waitsFor(() => !!content, 'file should be read', 20);
             
             runs(() => {
                 fileSystemMock.renameFile('/subdir2/file4.ts', '/subdir2/newFile.ts');
@@ -457,7 +457,7 @@ describe('FileSystem', function() {
             runs(() => {
                 fileSystem.readFile('/subdir2/newFile.ts').then(result => newContent = result);  
             });
-            waitsFor(() => !!newContent, 'file should be read', 10);
+            waitsFor(() => !!newContent, 'file should be read', 20);
             runs(() => {
                 expect(spy.callCount).toBe(1);
                 expect(content).toBe(newContent);

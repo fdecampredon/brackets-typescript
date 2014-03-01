@@ -85,7 +85,11 @@ describe('TypeScriptProjectManager', function () {
 
 
             typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
-            expect(projectFactorySpy.callCount).toBe(2);
+            waits(15);
+            runs(function () {
+                expect(projectFactorySpy.callCount).toBe(2);
+            })
+            
         });
 
         it('should support multiple configuration in a config file', function () {
@@ -114,7 +118,10 @@ describe('TypeScriptProjectManager', function () {
 
 
             typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
-            expect(projectFactorySpy.callCount).toBe(2);
+            waits(15);
+            runs(function () {
+                expect(projectFactorySpy.callCount).toBe(2);
+            });
         });
 
 
@@ -124,7 +131,10 @@ describe('TypeScriptProjectManager', function () {
                 'dir1/.brackets-typescript': '{',
             });
             typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
-            expect(projectFactorySpy.callCount).toBe(0)
+            waits(15);
+            runs(function () {
+                expect(projectFactorySpy.callCount).toBe(0)
+            });
         });
 
         it('should not create a project if the config file is not valid',  function () {
@@ -134,7 +144,10 @@ describe('TypeScriptProjectManager', function () {
                 })
             });
             typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
-            expect(projectFactorySpy.callCount).toBe(0)
+            waits(15);
+            runs(function () {
+                expect(projectFactorySpy.callCount).toBe(0);
+            })
         });
         
         it('should  create a new typescript factory instance if a typescript path is specified',  function () {
@@ -157,9 +170,11 @@ describe('TypeScriptProjectManager', function () {
             });
 
             typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
-
-            expect(projectFactorySpy.callCount).toBe(1);
-            expect(projectFactorySpy.argsForCall[0][4]).toEqual({id: "hello"})
+            waits(15);
+            runs(function () {
+                expect(projectFactorySpy.callCount).toBe(1);
+                expect(projectFactorySpy.argsForCall[0][4]).toEqual({id: "hello"})
+            })
         });
         
         
@@ -178,8 +193,10 @@ describe('TypeScriptProjectManager', function () {
             });
 
             typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
-
-            expect(projectFactorySpy.callCount).toBe(0);
+            waits(15);
+            runs(function () {
+                expect(projectFactorySpy.callCount).toBe(0);
+            })
         });
     })
     
@@ -198,9 +215,12 @@ describe('TypeScriptProjectManager', function () {
                 })
             });
             typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
-            waits(15)
-            runs(function() {
+            waits(15);
+            runs(function () {
                 fileSystemMock.removeFile('dir1/.brackets-typescript');
+            })
+            waits(15);
+            runs(function() {
                 expect(projectSpy.dispose.callCount).toBe(1);
             })
         });
@@ -218,8 +238,10 @@ describe('TypeScriptProjectManager', function () {
                 ],
                 outDir: 'bin'
             }))
-
-            expect(projectFactorySpy.callCount).toBe(1);
+            waits(15);
+            runs(function () {
+                expect(projectFactorySpy.callCount).toBe(1);
+            })
         });
 
         it('should replace a Project when a config file is added', function () {
@@ -236,19 +258,21 @@ describe('TypeScriptProjectManager', function () {
             });
 
             typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
-
-            fileSystemMock.updateFile('dir/.brackets-typescript', JSON.stringify({
-                module: 'amd',
-                sources: [
-                    './file3.ts',
-                    './file4.ts'
-                ],
-                outDir: 'bin'
-            }));
+            waits(15);
+            runs(function () {
+                fileSystemMock.updateFile('dir/.brackets-typescript', JSON.stringify({
+                    module: 'amd',
+                    sources: [
+                        './file3.ts',
+                        './file4.ts'
+                    ],
+                    outDir: 'bin'
+                }));
+            })
             
-            waits(15)
+            waits(10)
             runs(function() {
-                 expect(projectSpy.dispose.callCount).toBe(1);
+                expect(projectSpy.dispose.callCount).toBe(1);
                 expect(projectFactorySpy.callCount).toBe(2);
             })
 
@@ -263,19 +287,24 @@ describe('TypeScriptProjectManager', function () {
             });
 
             typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
+            waits(15);
+            runs(function () {
+                expect(projectFactorySpy.callCount).toBe(0)
 
-            expect(projectFactorySpy.callCount).toBe(0)
-
-            fileSystemMock.updateFile( 'dir/.brackets-typescript', JSON.stringify({
-                module: 'amd',
-                sources: [
-                    './file1.ts',
-                    './file2.ts'
-                ],
-                outDir: 'bin'
-            }));
-
-            expect(projectFactorySpy.callCount).toBe(1);
+                fileSystemMock.updateFile( 'dir/.brackets-typescript', JSON.stringify({
+                    module: 'amd',
+                    sources: [
+                        './file1.ts',
+                        './file2.ts'
+                    ],
+                    outDir: 'bin'
+                }));
+            })
+            
+            waits(15);
+            runs(function () {
+                expect(projectFactorySpy.callCount).toBe(1);
+            })
         });
 
 

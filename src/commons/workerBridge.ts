@@ -143,7 +143,7 @@ class WorkerBridge {
     /**
      * deffered tracking sate
      */
-    private initDeferred: Resolver
+    private initResolver: Resolver
     
     /**
      * @private
@@ -198,6 +198,8 @@ class WorkerBridge {
                     })
                 )
             });    
+            
+            this.initResolver = {resolve: resolve, reject: reject};
         })
 
     }
@@ -223,11 +225,11 @@ class WorkerBridge {
                     this.resolverMap
                 );
 
-                this.initDeferred.resolve(this.proxy);
+                this.initResolver.resolve(this.proxy);
                 break;
 
             case Operation.REQUEST:
-                new Promise((resolve, reject) => {
+                new Promise(resolve => {
                     var chain: string[] = data.chain.slice(),
                         thisObject: any = null,
                         method: any = this.services;
@@ -235,7 +237,7 @@ class WorkerBridge {
                         thisObject = method;
                         method = method[chain.shift()];
                     }
-                    return method.apply(thisObject, data.args);
+                    resolve(method.apply(thisObject, data.args));
                 }).then(result => {
                     this.target.postMessage({
                         operation: Operation.RESPONSE,

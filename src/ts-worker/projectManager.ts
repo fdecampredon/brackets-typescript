@@ -94,9 +94,11 @@ class TypeScriptProjectManager {
         this.workingSet = workingSet;
         this.projectFactory = projectFactory;
         
-        return this.initializationResolver(this.createProjects().then(()=> {
-            this.disposable = this.fileSystem.projectFilesChanged.subscribe(this.filesChangeHandler);
-        }));
+        this.disposable = this.fileSystem.projectFilesChanged.subscribe(this.filesChangeHandler);
+        
+        this.createProjects().then(result => this.initializationResolver(result));
+        
+        return this.busy;
     }
     
     
@@ -104,7 +106,9 @@ class TypeScriptProjectManager {
      * dispose the project manager
      */
     dispose(): void {
-        this.disposable.dispose(); 
+        if (this.disposable) {
+            this.disposable.dispose(); 
+        }
         this.busy.then(() => {
             this.disposeProjects();    
         });
@@ -301,7 +305,7 @@ class TypeScriptProjectManager {
                 }
                 return config; 
             }).filter(config => !!config);
-        });
+        }).catch(() => []);
     }
     
     
