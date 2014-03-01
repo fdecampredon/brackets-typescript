@@ -15,6 +15,7 @@
 
 'use strict';
 
+
 import collections = require('../commons/collections');
 import Rx = require('rx');
 import es6Promise = require('es6-promise');
@@ -38,6 +39,8 @@ class FileSystem implements fs.FileSystem {
     ) {
         nativeFileSystem.on('change', this.changesHandler);
         nativeFileSystem.on('rename', this.renameHandler);
+
+
         this.init();
     }
     

@@ -15,6 +15,7 @@
 
 'use strict';
 
+
 import logger = require('../commons/logger');
 import FileSystem = require('./fileSystem');
 import WorkingSet = require('./workingSet');
@@ -22,6 +23,9 @@ import WorkerBridge = require('../commons/workerBridge');
 import TypeScriptErrorReporter = require('./errorReporter');
 import TypeScriptQuickEditProvider = require('./quickEdit')
 import CodeHintProvider = require('./codeHintProvider');
+import typeScriptModeFactory = require('./mode')
+
+
 
 //--------------------------------------------------------------------------
 //
@@ -51,16 +55,16 @@ var fileSystem: FileSystem,
 
 function init(config: { logLevel: string; typeScriptLocation: string; workerLocation: string;}) {
     logger.setLogLevel(config.logLevel);
-    
-     LanguageManager.defineLanguage('typescript', {
+    CodeMirror.defineMode('typescript', typeScriptModeFactory); 
+
+    //Register the language extension
+    LanguageManager.defineLanguage('typescript', {
 	    name: 'TypeScript',
-	    mode: 'javascript',
+	    mode: 'typescript',
 	    fileExtensions: ['ts'],
 	    blockComment: ['/*', '*/'],
 	    lineComment: ['//']
 	});
-    
-   
     
     // Register code hint
     codeHintProvider = new CodeHintProvider();

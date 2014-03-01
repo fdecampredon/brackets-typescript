@@ -16,6 +16,7 @@
 import immediate = require('../commons/immediate');
 import ErrorService =  require('../commons/errorService');
 
+
 //--------------------------------------------------------------------------
 //
 //  TypeScriptProject
@@ -44,12 +45,23 @@ class TypeScriptErrorReporter implements brackets.InspectionProvider {
      * scan file
      */
     scanFileAsync(content: string, path: string): JQueryPromise<{ errors: brackets.LintingError[];  aborted: boolean }> {
-        return this.errorService.then(service => {
-            return service.getErrorsForFile(path)
-        }).fail(() => ({ 
-            errors: [], 
-            aborted : false
-        }));
+        return $.Deferred(deferred => {
+            immediate.setImmediate(() => {
+                this.errorService.then(service => {
+                    service.getErrorsForFile(path).then(
+                        result => {
+                            deferred.resolve(result);
+                        },
+                        () => {
+                            deferred.resolve({ 
+                                errors: [], 
+                                aborted : false
+                            });
+                        }
+                    );
+                })    
+            })
+        }).promise()
     }
     
     
