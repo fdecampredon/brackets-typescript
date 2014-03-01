@@ -14,7 +14,7 @@
 
 
 import immediate = require('../commons/immediate');
-import ErrorService =  require('../commons/ErrorService');
+import ErrorService =  require('../commons/errorService');
 
 //--------------------------------------------------------------------------
 //

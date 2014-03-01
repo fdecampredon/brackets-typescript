@@ -84,6 +84,10 @@ class TypeScriptProjectManager {
         workingSet: ws.WorkingSet, projectFactory: TypeScriptProjectManager.ProjectFactory): JQueryPromise<void> {
         
         this.defaultTypeScriptLocation = defaultTypeScriptLocation;
+        this.fileSystem = fileSystem;
+        this.workingSet = workingSet;
+        this.projectFactory = projectFactory;
+        
         var initializing = this.createProjects();
         this.creatingProjects = initializing;
         this.disposable = this.fileSystem.projectFilesChanged.subscribe(this.filesChangeHandler);
