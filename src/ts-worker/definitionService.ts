@@ -27,8 +27,8 @@ class DefinitionService {
     getDefinitionForFile(fileName: string, position: CodeMirror.Position) {
         return this.projectManager.getProjectForFile(fileName).then(project => {
             var languageService = project.getLanguageService(),
-                languageServiceHost = project.getLanguageServiceHost();
-            var index = languageServiceHost.getIndexFromPos(fileName, position);
+                languageServiceHost = project.getLanguageServiceHost(),
+                index = languageServiceHost.getIndexFromPos(fileName, position);
             if (index < 0) {
                 return [];
             }

@@ -4,6 +4,7 @@ import ErrorService = require('./errorService');
 import DefinitionService = require('./definitionService');
 import CompletionService = require('./completionService');
 import WorkerBridge = require('../commons/workerBridge');
+import logger = require('../commons/logger');
 
 
 var projectManager = new TypeScriptProjectManager(),
@@ -18,6 +19,10 @@ bridge.init({
     definitionService: definitionService
 }).then(proxy => {
     proxy.getTypeScriptLocation().then( (location: string) => {
-        projectManager.init(location, proxy.fileSystem, proxy.workingSet, TypeScriptProject.newProject); 
-    });
+        proxy.getLogLevel().then((logLevel: string) => {  
+            self.console = proxy.console;
+            logger.setLogLevel(logLevel);
+            projectManager.init(location, proxy.fileSystem, proxy.workingSet, TypeScriptProject.newProject); 
+        });
+    })
 });

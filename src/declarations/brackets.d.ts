@@ -881,7 +881,8 @@ declare module brackets {
     
     interface InspectionProvider {
         name: string;
-        scanFile(content: string, path: string):{ errors: LintingError[];  aborted: boolean }; 
+        scanFile?(content: string, path: string):{ errors: LintingError[];  aborted: boolean };
+        scanFileAsync?(content: string, path: string):JQueryPromise<{ errors: LintingError[];  aborted: boolean }>; 
     }
     
     
