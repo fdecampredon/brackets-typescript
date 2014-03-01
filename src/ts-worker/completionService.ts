@@ -20,12 +20,12 @@ import completion = require('../commons/completion')
 
 var ScriptElementKind = TypeScript.Services.ScriptElementKind;
 
-class CompletionService {
+class CompletionService implements completion.CompletionService {
     constructor(
         private projectManager: TypeScriptProjectManager
     ) {}
     
-     getDefinitionAtPosition(fileName: string, position: CodeMirror.Position): JQueryPromise<completion.CompletionEntry[]> {
+     getCompletionAtPosition(fileName: string, position: CodeMirror.Position): JQueryPromise<completion.CompletionResult> {
         return this.projectManager.getProjectForFile(fileName).then(project => {
             var languageService = project.getLanguageService(),
                 languageServiceHost = project.getLanguageServiceHost(),
@@ -34,15 +34,16 @@ class CompletionService {
                 typeScriptEntries = completionInfo && completionInfo.entries;
             
             if(!typeScriptEntries) {
-                return [];
+                return { entries: [], match: '' };
             }
             
-             var currentToken = languageService.getSyntaxTree(fileName).sourceUnit().findToken(index)
+             var currentToken = languageService.getSyntaxTree(fileName).sourceUnit().findToken(index),
+                 match: string;
                  
             if (currentToken) {
-                var tokenText = currentToken.token().fullText();
+                match= currentToken.token().fullText();
                 typeScriptEntries = typeScriptEntries.filter(entry => {
-                    return entry.name && entry.name.toLowerCase().indexOf(tokenText.toLowerCase()) === 0;
+                    return entry.name && entry.name.toLowerCase().indexOf(match.toLowerCase()) === 0;
                 });
             }
             
@@ -122,8 +123,14 @@ class CompletionService {
                 return completionEntry;
             });
             
-            return completionEntries;
-        }, () => []);
+            return {
+                entries: completionEntries,
+                match : match
+            }
+        }, () => ({
+            entries: [],
+            match : ''
+        }));
     }
 }
 

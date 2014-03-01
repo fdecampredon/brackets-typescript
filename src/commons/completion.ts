@@ -29,3 +29,7 @@ export interface CompletionResult {
     match: string;
     entries: CompletionEntry[]
 }
+
+export interface CompletionService {
+    getCompletionAtPosition(fileName: string, position: CodeMirror.Position): JQueryPromise<CompletionResult>;
+}

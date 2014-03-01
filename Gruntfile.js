@@ -103,6 +103,9 @@ module.exports = function (grunt) {
             worker: {
                 files: {
                     'built/worker.js': ['tmp/ts-worker/index.js']
+                },
+                options : {
+                    standalone: 'brackets-typescript'
                 }
             },
             
@@ -135,12 +138,12 @@ module.exports = function (grunt) {
                         coverage: 'coverage/coverage.json',
                         report: 'coverage',
                         files: ['!**/test/**/*'],
-                        thresholds: {
+                        /*thresholds: {
                             lines: 70,
                             statements: 70,
                             branches: 70,
                             functions: 70
-                        }
+                        }*/
                     }
                 }
             }
@@ -151,8 +154,8 @@ module.exports = function (grunt) {
     grunt.registerTask('build-main',['clean:tmp', 'typescript:main', 'browserify:main','clean:tmp']);
     grunt.registerTask('build-worker',['clean:tmp', 'typescript:worker', 'browserify:worker', 'clean:tmp']);
     grunt.registerTask('test', ['clean:tmp', 'typescript:test', 'browserify:test', 'jasmine', 'clean:tmp']);
-    grunt.registerTask('build',['clean:local', 'build-main']);
-    grunt.registerTask('default', ['build', 'test']);
+    grunt.registerTask('build',['clean:local', 'build-main', 'build-worker']);
+    grunt.registerTask('default', ['test', 'build']);
     
     
     //grunt.registerTask('release', ['test', 'build', 'clean:release', 'copy:release']);

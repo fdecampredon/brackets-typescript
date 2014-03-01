@@ -20,6 +20,8 @@ import FileSystem = require('./fileSystem');
 import WorkingSet = require('./workingSet');
 import WorkerBridge = require('../commons/workerBridge');
 import TypeScriptErrorReporter = require('./errorReporter');
+import TypeScriptQuickEditProvider = require('./quickEdit')
+import CodeHintProvider = require('./codeHintProvider');
 
 //--------------------------------------------------------------------------
 //
@@ -36,7 +38,11 @@ var LanguageManager = brackets.getModule('language/LanguageManager'),
     CodeInspection = brackets.getModule('language/CodeInspection'),
     EditorManager = brackets.getModule('editor/EditorManager');
 
-var tsErrorReporter : TypeScriptErrorReporter;
+var tsErrorReporter : TypeScriptErrorReporter,
+    quickEditProvider: TypeScriptQuickEditProvider,
+    codeHintProvider : CodeHintProvider;
+    
+    
  
 var fileSystem: FileSystem,
     workingSet: WorkingSet,
@@ -46,7 +52,30 @@ var fileSystem: FileSystem,
 function init(config: { logLevel: string; typeScriptLocation: string; workerLocation: string;}) {
     logger.setLogLevel(config.logLevel);
     
-    tsErrorReporter = new TypeScriptErrorReporter()
+     LanguageManager.defineLanguage('typescript', {
+	    name: 'TypeScript',
+	    mode: 'javascript',
+	    fileExtensions: ['ts'],
+	    blockComment: ['/*', '*/'],
+	    lineComment: ['//']
+	});
+    
+   
+    
+    // Register code hint
+    codeHintProvider = new CodeHintProvider();
+    CodeHintManager.registerHintProvider(codeHintProvider, ['typescript'], 0);
+    
+    
+    // Register quickEdit
+    quickEditProvider = new TypeScriptQuickEditProvider();
+    EditorManager.registerInlineEditProvider(quickEditProvider.typeScriptInlineEditorProvider);    
+    
+      
+    //Register error provider
+    tsErrorReporter = new TypeScriptErrorReporter();
+    CodeInspection.register('typescript', tsErrorReporter); 
+
     
     initServices(config.workerLocation, config.typeScriptLocation, config.logLevel);
     
@@ -83,6 +112,8 @@ function initServices(workerLocation: string, typeScriptLocation: string, logLev
         }
     }).then(proxy => {
         tsErrorReporter.setErrorService(proxy.errorService);
+        codeHintProvider.setCompletionService(proxy.completionService);
+        quickEditProvider.setDefinitionService(proxy.definitionService);
     });
 }
 
