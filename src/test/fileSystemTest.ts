@@ -92,7 +92,7 @@ describe('FileSystem', function() {
     describe('getProjectFiles', function() {
         
         it('should return a list of the project files paths', function () {
-            var files: string[] = [];
+            var files: string[];
             fileSystem.getProjectFiles().then(result => files = result);
             
             waitsFor(() => !!files, 'files should be set', 10);
@@ -189,21 +189,27 @@ describe('FileSystem', function() {
         
         it('should dispatch an event when a file is updated', function () {
             fileSystemMock.updateFile('/subdir2/file4.ts', 'New content');
-            expect(changeSpy.callCount).toBe(1);
-            expect(changeSpy).toHaveBeenCalledWith([{
-                kind: fs.FileChangeKind.UPDATE,
-                path: '/subdir2/file4.ts'
-            }]);
+            waits(10)
+            runs(function () {
+                expect(changeSpy.callCount).toBe(1);
+                expect(changeSpy).toHaveBeenCalledWith([{
+                    kind: fs.FileChangeKind.UPDATE,
+                    path: '/subdir2/file4.ts'
+                }]);
+            });
         });
         
         
         it('should ispatch an event when a file is deleted', function () {
             fileSystemMock.deleteEntry('/subdir2/file4.ts');
-            expect(changeSpy.callCount).toBe(1);
-            expect(changeSpy).toHaveBeenCalledWith([{
-                kind: fs.FileChangeKind.DELETE,
-                path: '/subdir2/file4.ts'
-            }]);
+            waits(10)
+            runs(function () {
+                expect(changeSpy.callCount).toBe(1);
+                expect(changeSpy).toHaveBeenCalledWith([{
+                    kind: fs.FileChangeKind.DELETE,
+                    path: '/subdir2/file4.ts'
+                }]);
+            })
         });
         
         
@@ -212,36 +218,45 @@ describe('FileSystem', function() {
                 name : 'file8.ts',
                 content : 'File8 Content'
             }, '/subdir2/file8.ts', '/subdir2/'));
-            expect(changeSpy.callCount).toBe(1);
-            expect(changeSpy).toHaveBeenCalledWith([{
-                kind: fs.FileChangeKind.ADD,
-                path: '/subdir2/file8.ts'
-            }]);
+            waits(10)
+            runs(function () {
+                expect(changeSpy.callCount).toBe(1);
+                expect(changeSpy).toHaveBeenCalledWith([{
+                    kind: fs.FileChangeKind.ADD,
+                    path: '/subdir2/file8.ts'
+                }]);
+            })
         });
         
         
         it('should dispatch an event when a non empty directory is deleted', function () {
             fileSystemMock.deleteEntry('/subdir2/');
-            expect(changeSpy.callCount).toBe(1);
-            expect(changeSpy).toHaveBeenCalledWith([{
-                kind: fs.FileChangeKind.DELETE,
-                path: '/subdir2/file4.ts'
-            },{
-                kind: fs.FileChangeKind.DELETE,
-                path: '/subdir2/file5.ts'
-            },{
-                kind: fs.FileChangeKind.DELETE,
-                path: '/subdir2/subdir3/file6.ts'
-            },{
-                kind: fs.FileChangeKind.DELETE,
-                path: '/subdir2/subdir3/file7.ts'
-            }]);
+            waits(10)
+            runs(function () {
+                expect(changeSpy.callCount).toBe(1);
+                expect(changeSpy).toHaveBeenCalledWith([{
+                    kind: fs.FileChangeKind.DELETE,
+                    path: '/subdir2/file4.ts'
+                },{
+                    kind: fs.FileChangeKind.DELETE,
+                    path: '/subdir2/file5.ts'
+                },{
+                    kind: fs.FileChangeKind.DELETE,
+                    path: '/subdir2/subdir3/file6.ts'
+                },{
+                    kind: fs.FileChangeKind.DELETE,
+                    path: '/subdir2/subdir3/file7.ts'
+                }]);
+            });
         });
         
         
         it('should not dispatch an event when an empty directory is deleted', function () {
             fileSystemMock.deleteEntry('/subdir2/subdir3/subdir4/');
-            expect(changeSpy.callCount).toBe(0);
+            waits(10)
+            runs(function () {
+                expect(changeSpy.callCount).toBe(0);
+            });
         });
         
         
@@ -275,17 +290,21 @@ describe('FileSystem', function() {
             dir.setParent(fileSystemMock.getEntryForFile('/subdir1/', 'directory'));        
             
             fileSystemMock.addEntry(dir);
-            expect(changeSpy.callCount).toBe(1);
-            expect(changeSpy).toHaveBeenCalledWith([{
-                kind: fs.FileChangeKind.ADD,
-                path: '/subdir1/subdir5/file8.ts'
-            },{
-                kind: fs.FileChangeKind.ADD,
-                path: '/subdir1/subdir5/file9.ts'
-            },{
-                kind: fs.FileChangeKind.ADD,
-                path: '/subdir1/subdir5/subdir6/file10.ts'
-            }]);
+            waits(10)
+            runs(function () {
+                expect(changeSpy.callCount).toBe(1);
+                expect(changeSpy).toHaveBeenCalledWith([{
+                    kind: fs.FileChangeKind.ADD,
+                    path: '/subdir1/subdir5/file8.ts'
+                },{
+                    kind: fs.FileChangeKind.ADD,
+                    path: '/subdir1/subdir5/file9.ts'
+                },{
+                    kind: fs.FileChangeKind.ADD,
+                    path: '/subdir1/subdir5/subdir6/file10.ts'
+                }]);
+            })
+            
             
         });
         
@@ -298,7 +317,10 @@ describe('FileSystem', function() {
             dir.setParent(fileSystemMock.getEntryForFile('/subdir1/', 'directory'));        
             
             fileSystemMock.addEntry(dir);
-            expect(changeSpy.callCount).toBe(0);
+            waits(10)
+            runs(function () {
+                expect(changeSpy.callCount).toBe(0);
+            });
         });
         
         
@@ -443,35 +465,39 @@ describe('FileSystem', function() {
         });
         
         
-        it('should dispatch an event  with a delete record and an add fo reach file subfile of the directory when a directory has been renamed', function () {
+        it('should dispatch an event  with a delete record and an add fo reach file subfile of ' +
+                'the directory when a directory has been renamed', function () {
+                
             fileSystemMock.renameFile('/subdir2/', '/subdir4/');
-             
-            expect(changeSpy.callCount).toBe(1);
-            expect(changeSpy).toHaveBeenCalledWith([{
-                kind: fs.FileChangeKind.DELETE,
-                path: '/subdir2/file4.ts'
-            },{
-                kind: fs.FileChangeKind.ADD,
-                path: '/subdir4/file4.ts'
-            },{
-                kind: fs.FileChangeKind.DELETE,
-                path: '/subdir2/file5.ts'
-            },{
-                kind: fs.FileChangeKind.ADD,
-                path: '/subdir4/file5.ts'
-            },{
-                kind: fs.FileChangeKind.DELETE,
-                path: '/subdir2/subdir3/file6.ts'
-            },{
-                kind: fs.FileChangeKind.ADD,
-                path: '/subdir4/subdir3/file6.ts'
-            },{
-                kind: fs.FileChangeKind.DELETE,
-                path: '/subdir2/subdir3/file7.ts'
-            },{
-                kind: fs.FileChangeKind.ADD,
-                path: '/subdir4/subdir3/file7.ts'
-            }]);
+            waits(10);
+            runs(function () {
+                expect(changeSpy.callCount).toBe(1);
+                expect(changeSpy).toHaveBeenCalledWith([{
+                    kind: fs.FileChangeKind.DELETE,
+                    path: '/subdir2/file4.ts'
+                },{
+                    kind: fs.FileChangeKind.ADD,
+                    path: '/subdir4/file4.ts'
+                },{
+                    kind: fs.FileChangeKind.DELETE,
+                    path: '/subdir2/file5.ts'
+                },{
+                    kind: fs.FileChangeKind.ADD,
+                    path: '/subdir4/file5.ts'
+                },{
+                    kind: fs.FileChangeKind.DELETE,
+                    path: '/subdir2/subdir3/file6.ts'
+                },{
+                    kind: fs.FileChangeKind.ADD,
+                    path: '/subdir4/subdir3/file6.ts'
+                },{
+                    kind: fs.FileChangeKind.DELETE,
+                    path: '/subdir2/subdir3/file7.ts'
+                },{
+                    kind: fs.FileChangeKind.ADD,
+                    path: '/subdir4/subdir3/file7.ts'
+                }]);
+            });
         });
         
     });
@@ -488,7 +514,7 @@ describe('FileSystem', function() {
             fileSystem.getProjectFiles().then(result => files = result);
             fileSystem.readFile('/file1.ts').then(result => content = result);
             
-            waitsFor(() => !!files && !!content, 'operation should have been resolved', 20);
+            waitsFor(() => !!files && !!content, 'operation should have been resolved', 100);
             runs(() => {
                 expect(spy).toHaveBeenCalled();
                 expect(files).toEqual([
