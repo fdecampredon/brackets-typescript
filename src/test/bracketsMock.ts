@@ -34,6 +34,7 @@ export class FileSystem {
             result.parentPath = path.substr(0, path.lastIndexOf('/'))
             result.id = path;
         }
+        
         return result;
     }
     
@@ -350,7 +351,7 @@ export class ProjectManager {
         if (this.async) {
             setTimeout(resolve, 0);
         } else {
-            resolve();   
+            resolve();
         }
         return deferred.promise();
     }

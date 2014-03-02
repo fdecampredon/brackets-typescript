@@ -64,16 +64,26 @@ class CompletionService implements completion.CompletionService {
             }
             
             typeScriptEntries.sort((entry1, entry2) => {
-                var name1 = entry1 && entry1.name.toLowerCase(),
-                    name2 = entry2 && entry2.name.toLowerCase();
-                if(name1 < name2) {
+                var match1 = entry1? entry1.name.indexOf(match): -1,
+                    match2 = entry2? entry2.name.indexOf(match): -1;
+                if (match1 === 0 && match2 !== 0) {
                     return -1;
-                }
-                else if(name1 > name2) {
+                } else if (match2 === 0 && match1 !== 0) {
                     return 1;
-                }
-                else {
-                    return 0;
+                } else {
+                    var name1 = entry1 && entry1.name.toLowerCase(),
+                        name2 = entry2 && entry2.name.toLowerCase();
+                    
+                    if(name1 < name2) {
+                        return -1;
+                    }
+                    else if(name1 > name2) {
+                        return 1;
+                    }
+                    
+                    else {
+                        return 0
+                    }
                 }
             });
             
