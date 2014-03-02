@@ -22,5 +22,16 @@
         "module": "AMD",
         "outDir": "./bin/",
         "noImplicitAny": true
+    },{
+        "sources" : [
+            "src/declarations/**/*.ts",
+            "src/ts-worker/**/*.ts"
+        ],
+        "compileOnSave": false,
+        
+        "target": "ES5",
+        "module": "AMD",
+        "outFile": "./bin/ts-worker.js",
+        "noImplicitAny": true
     }
 ]
