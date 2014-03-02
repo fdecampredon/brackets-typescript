@@ -84,10 +84,3 @@ interface MiniMatchStatic {
     (path: string, pattern: string, options?: MiniMatchOptions): boolean;
     filter(pattern: string, options?: MiniMatchOptions): { (path: string): boolean };
 }
-
-declare module "minimatch" {
-    var minimatch: MiniMatchStatic;
-    export = minimatch;
-}
-
-

@@ -13,19 +13,165 @@
 //   limitations under the License.
 
 
-import Rx = require('rx');
-import collections = require('../commons/collections');
-import ws = require('../commons/workingSet');
+import signal = require('./utils/signal');
+import collections = require('./utils/collections');
 
 
 
+//--------------------------------------------------------------------------
+//
+//  IWorkingSet
+//
+//--------------------------------------------------------------------------
+
+/**
+ * A simple wrapper over brackets Document and DocumentManager that
+ * provide information of change in the working set and
+ * in the edited document.
+ */
+export interface IWorkingSet {
+    /**
+     * list of files in the working set
+     */
+    files: string [];
+    
+    /**
+     * a signal dispatching events when change occured in the working set
+     */
+    workingSetChanged: signal.ISignal<ChangeRecord>;
+    
+    /**
+     * a signal that provide fine grained change over edited document
+     */
+    documentEdited: signal.ISignal<DocumentChangeDescriptor[]>;
+
+    /**
+     * dispose the working set 
+     */
+    dispose(): void;
+}
 
 
+
+//--------------------------------------------------------------------------
+//
+//  ChangeRecord
+//
+//--------------------------------------------------------------------------
+
+
+/**
+ * describe change in the working set
+ */
+export interface ChangeRecord {
+    /**
+     * kind of change that occured in the working set
+     */
+    kind: WorkingSetChangeKind;
+    
+    /**
+     * list of paths that has been added or removed from the working set
+     */
+    paths : string[];
+}
+
+
+/**
+ * enum listing the change kind that occur in a working set
+ */
+export enum WorkingSetChangeKind {
+    ADD,
+    REMOVE
+}
+
+
+//--------------------------------------------------------------------------
+//
+//  DocumentChangeDescriptor
+//
+//--------------------------------------------------------------------------
+
+/**
+ * describe a change in a document
+ */
+export interface DocumentChangeDescriptor {
+    /**
+     * path of the files that has changed
+     */
+    path: string;
+    
+    /**
+     * start position of the change
+     */
+    from?: Position;
+    
+    /**
+     * end positon of the change
+     */
+    to?: Position;
+    
+    /**
+     * text that has been inserted (if any)
+     */
+    text?: string;
+    
+    /**
+     * text that has been removed (if any)
+     */
+    removed?: string;
+    
+    documentText?: string
+    
+}
+
+/**
+ * describe a positon in a document by line/character
+ */
+export interface Position {
+    line: number;
+    ch: number;
+}
+
+
+//--------------------------------------------------------------------------
+//
+//  IWorkingSet implementation
+//
+//--------------------------------------------------------------------------
+
+/**
+ * extracted interface of the brackets DocumentManager 
+ */
+export interface BracketesDocumentManager {
+    getWorkingSet(): { fullPath: string }[];
+}
+
+/**
+ * extracted interface of the brackets Document
+ */
+export interface BracketsDocument {
+    file: { fullPath: string };
+    getText(): string;
+}
+
+/**
+ * extracted interface of the brackets EditorManager
+ */
+export interface BracketsEditorManager {
+    getActiveEditor(): BracketsEditor;
+}
+
+/**
+ * extracted interface of the brackets Editor
+ */
+export interface BracketsEditor {
+    document: BracketsDocument;
+}
 
 /**
  * implementation of the IWorkingSet
  */
-class WorkingSet  {
+export class WorkingSet implements IWorkingSet {
     
     //-------------------------------
     //  constructor
@@ -33,15 +179,15 @@ class WorkingSet  {
 
 
     constructor(
-            private documentManager: brackets.DocumentManager,
-            private editorManager: brackets.EditorManager
+            private documentManager: BracketesDocumentManager,
+            private editorManager: BracketsEditorManager
     ) {
-        $(documentManager).on('workingSetAdd', <any>this.workingSetAddHandler);
-        $(documentManager).on('workingSetAddList', <any>this.workingSetAddListHandler);
-        $(documentManager).on('workingSetRemove', <any>this.workingSetRemoveHandler);
-        $(documentManager).on('workingSetRemoveList', <any>this.workingSetRemoveListHandler);
+        $(documentManager).on('workingSetAdd', this.workingSetAddHandler);
+        $(documentManager).on('workingSetAddList', this.workingSetAddListHandler);
+        $(documentManager).on('workingSetRemove', this.workingSetRemoveHandler);
+        $(documentManager).on('workingSetRemoveList', this.workingSetRemoveListHandler);
         
-        $(editorManager).on('activeEditorChange', <any>this.activeEditorChangeHandler); 
+        $(editorManager).on('activeEditorChange', this.activeEditorChangeHandler); 
         
         this.setFiles(documentManager.getWorkingSet().map(file => file.fullPath));
         this.setActiveEditor(editorManager.getActiveEditor());
@@ -54,12 +200,12 @@ class WorkingSet  {
     /**
      * internal signal for workingSetChanged
      */
-    private _workingSetChanged = new Rx.Subject<ws.WorkingSetChangeRecord>();
+    private _workingSetChanged = new signal.Signal<ChangeRecord>();
     
     /**
      * internal signal for documentEdited
      */
-    private _documentEdited = new Rx.Subject<ws.DocumentChangeDescriptor[]>();
+    private _documentEdited = new signal.Signal<DocumentChangeDescriptor[]>();
     
         
     /**
@@ -70,7 +216,7 @@ class WorkingSet  {
     /**
      * Set of file path in the working set
      */
-    private currentDocument: brackets.Document;
+    private currentDocument: BracketsDocument;
 
     
     //-------------------------------
@@ -79,9 +225,9 @@ class WorkingSet  {
     
     
     /**
-     * @see IWorkingSet#getFiles
+     * @see IWorkingSet#files
      */
-    getFiles() {
+    get files(): string[] {
         return this.filesSet.values;
     }
     
@@ -104,11 +250,11 @@ class WorkingSet  {
      * @see IWorkingSet#dispose
      */    
     dispose(): void {
-        $(this.documentManager).off('workingSetAdd', <any>this.workingSetAddHandler);
-        $(this.documentManager).off('workingSetAddList', <any>this.workingSetAddListHandler);
-        $(this.documentManager).off('workingSetRemove', <any>this.workingSetRemoveHandler);
-        $(this.documentManager).off('workingSetRemoveList', <any>this.workingSetRemoveListHandler);
-        $(this.editorManager).off('activeEditorChange', <any>this.activeEditorChangeHandler); 
+        $(this.documentManager).off('workingSetAdd', this.workingSetAddHandler);
+        $(this.documentManager).off('workingSetAddList', this.workingSetAddListHandler);
+        $(this.documentManager).off('workingSetRemove', this.workingSetRemoveHandler);
+        $(this.documentManager).off('workingSetRemoveList', this.workingSetRemoveListHandler);
+        $(this.editorManager).off('activeEditorChange', this.activeEditorChangeHandler); 
         this.setFiles(null);
         this.setActiveEditor(null);
     }
@@ -121,7 +267,7 @@ class WorkingSet  {
      * set working set files
      */
     private setFiles(files: string[]) {
-        this.getFiles().forEach(path => this.filesSet.remove(path))
+        this.files.forEach(path => this.filesSet.remove(path))
         if (files) {
             files.forEach(path => this.filesSet.add(path));
         }
@@ -136,8 +282,8 @@ class WorkingSet  {
      */
     private workingSetAddHandler = (event: any, file: brackets.File) => {
         this.filesSet.add(file.fullPath);
-        this.workingSetChanged.onNext({
-            kind: ws.WorkingSetChangeKind.ADD,
+        this.workingSetChanged.dispatch({
+            kind: WorkingSetChangeKind.ADD,
             paths: [file.fullPath]
         });
     }
@@ -151,8 +297,8 @@ class WorkingSet  {
             return file.fullPath;
         });
         if (paths.length > 0) {
-            this.workingSetChanged.onNext({
-                kind: ws.WorkingSetChangeKind.ADD,
+            this.workingSetChanged.dispatch({
+                kind: WorkingSetChangeKind.ADD,
                 paths: paths
             });
         }
@@ -163,8 +309,8 @@ class WorkingSet  {
      */      
     private workingSetRemoveHandler = (event: any, file: brackets.File) => {
         this.filesSet.remove(file.fullPath);
-        this.workingSetChanged.onNext({
-            kind: ws.WorkingSetChangeKind.REMOVE,
+        this.workingSetChanged.dispatch({
+            kind: WorkingSetChangeKind.REMOVE,
             paths: [file.fullPath]
         });
     }
@@ -178,20 +324,20 @@ class WorkingSet  {
             return file.fullPath
         });
         if (paths.length > 0) {
-            this.workingSetChanged.onNext({
-                kind: ws.WorkingSetChangeKind.REMOVE,
+            this.workingSetChanged.dispatch({
+                kind: WorkingSetChangeKind.REMOVE,
                 paths: paths
             });
         }
     }
  
-    private setActiveEditor(editor: brackets.Editor) {
+    private setActiveEditor(editor: BracketsEditor) {
         if (this.currentDocument) {
-            $(this.currentDocument).off('change', <any>this.documentChangesHandler);
+            $(this.currentDocument).off('change', this.documentChangesHandler);
         }
         this.currentDocument = editor && editor.document;
         if (this.currentDocument) {
-            $(this.currentDocument).on('change', <any>this.documentChangesHandler);
+            $(this.currentDocument).on('change', this.documentChangesHandler);
         }
     }
             
@@ -199,10 +345,10 @@ class WorkingSet  {
     /**
      * handle 'change' on document
      */
-    private documentChangesHandler = (event: any, document: brackets.Document, change: CodeMirror.EditorChangeLinkedList) => {
-        var changesDescriptor: ws.DocumentChangeDescriptor[] = [];
+    private documentChangesHandler = (event: any, document: BracketsDocument, change: CodeMirror.EditorChangeLinkedList) => {
+        var changesDescriptor: DocumentChangeDescriptor[] = [];
         while (change) {
-            var changeDescriptor: ws.DocumentChangeDescriptor ={
+            var changeDescriptor: DocumentChangeDescriptor ={
                 path: document.file.fullPath,
                 from: change.from,
                 to: change.to,
@@ -216,17 +362,15 @@ class WorkingSet  {
             change = change.next; 
         }
         if (changesDescriptor.length > 0) {
-            this.documentEdited.onNext(changesDescriptor);
+            this.documentEdited.dispatch(changesDescriptor);
         }   
     }
     
-    private activeEditorChangeHandler = (event: any, current: brackets.Editor, previous: brackets.Editor) => {
+    private activeEditorChangeHandler = (event: any, current: BracketsEditor, previous: BracketsEditor) => {
         this.setActiveEditor(current);
     }
 
 }
-
-export = WorkingSet;
 
 
 

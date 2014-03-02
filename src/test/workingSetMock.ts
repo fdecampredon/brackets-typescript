@@ -13,29 +13,22 @@
 //   limitations under the License.
 
 
-/*istanbulify ignore file*/
-import ws = require('../commons/workingSet');
-import Rx = require('rx');
-import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;;
+import ws = require('../main/workingSet');
+import signal = require('../main/utils/signal');
 
-class WorkingSetMock implements ws.WorkingSet {
+class WorkingSetMock implements ws.IWorkingSet {
     files: string [] = [];
-    workingSetChanged = new Rx.Subject<ws.WorkingSetChangeRecord>();
-    documentEdited = new Rx.Subject<ws.DocumentChangeDescriptor[]>();
-    
-    getFiles() {
-        return new Promise(resolve => resolve(this.files));
-    }
+    workingSetChanged = new signal.Signal<ws.ChangeRecord>();
+    documentEdited = new signal.Signal<ws.DocumentChangeDescriptor[]>();
     
     dispose(): void {
-        /*this.workingSetChanged.clear();
-        this.documentEdited.clear();*/
+        this.workingSetChanged.clear();
+        this.documentEdited.clear();
     }
     
     addFiles(paths: string[]) {
         this.files = this.files.concat(paths);
-        this.workingSetChanged.onNext({
+        this.workingSetChanged.dispatch({
             kind: ws.WorkingSetChangeKind.ADD,
             paths: paths
         });
@@ -44,7 +37,7 @@ class WorkingSetMock implements ws.WorkingSet {
     
     removeFiles(paths: string[]) {
         this.files = this.files.filter(path => paths.indexOf(path) === -1)
-        this.workingSetChanged.onNext({
+        this.workingSetChanged.dispatch({
             kind: ws.WorkingSetChangeKind.REMOVE,
             paths: paths
         });

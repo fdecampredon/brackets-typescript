@@ -13,9 +13,8 @@
 //   limitations under the License.
 
 
-import immediate = require('../commons/immediate');
-import ErrorService =  require('../commons/errorService');
-
+import project = require('./project');
+import immediate = require('./utils/immediate');
 
 //--------------------------------------------------------------------------
 //
@@ -27,15 +26,16 @@ import ErrorService =  require('../commons/errorService');
  * TypeScript Inspection Provider
  */
 class TypeScriptErrorReporter implements brackets.InspectionProvider {
+    private typescriptProjectManager: project.TypeScriptProjectManager;
     
-    private errorService: JQueryDeferred<ErrorService> = $.Deferred()
-    
-    
+    constructor(
+        private errorType: typeof brackets.ErrorType
+    ) {}
 
-    setErrorService(service: ErrorService) {
-        this.errorService.resolve(service);
+    init(typescriptProjectManager: project.TypeScriptProjectManager) {
+        this.typescriptProjectManager = typescriptProjectManager;
     }
-    
+
     /**
      * name of the error reporter
      */
@@ -44,30 +44,73 @@ class TypeScriptErrorReporter implements brackets.InspectionProvider {
     /**
      * scan file
      */
-    scanFileAsync(content: string, path: string): JQueryPromise<{ errors: brackets.LintingError[];  aborted: boolean }> {
-        return $.Deferred(deferred => {
-            immediate.setImmediate(() => {
-                this.errorService.then(service => {
-                    service.getErrorsForFile(path).then(
-                        result => {
-                            deferred.resolve(result);
-                        },
-                        () => {
-                            deferred.resolve({ 
-                                errors: [], 
-                                aborted : false
-                            });
-                        }
-                    );
-                })    
-            })
-        }).promise()
+    scanFile(content: string, path: string): { errors: brackets.LintingError[];  aborted: boolean } {
+        try { 
+            var project = this.typescriptProjectManager.getProjectForFile(path),
+                languageService = project && project.getLanguageService();
+            
+            if (!project || !languageService) {
+                return { errors: [],  aborted: true };
+            }
+            
+            var syntacticDiagnostics = languageService.getSyntacticDiagnostics(path),
+                errors = this.diagnosticToError(syntacticDiagnostics);
+            
+            if (errors.length === 0) {
+                var semanticDiagnostic = languageService.getSemanticDiagnostics(path);
+                errors = this.diagnosticToError(semanticDiagnostic);
+            }
+            
+            return { 
+                errors: errors, 
+                aborted: false
+            };
+        } catch(e) {
+            return { errors: [],  aborted: true };
+        }
     }
     
-    
-    reset() {
-        this.errorService = $.Deferred();
-    }
+    /**
+     * convert TypeScript Diagnostic or brackets error format
+     * @param diagnostics
+     */
+    private diagnosticToError(diagnostics: TypeScript.Diagnostic[]): brackets.LintingError[] {
+        if (!diagnostics) {
+            return [];
+        }
+        return diagnostics.map(diagnostic => {
+            var info = diagnostic.info(),
+                type: brackets.ErrorType;
+            
+            switch(info.category) {
+                case TypeScript.DiagnosticCategory.Error:
+                    type = this.errorType.ERROR;
+                    break;
+                case TypeScript.DiagnosticCategory.Warning:
+                    type = this.errorType.WARNING;
+                    break;
+                case TypeScript.DiagnosticCategory.NoPrefix:
+                    type = this.errorType.ERROR;
+                    break;
+                case TypeScript.DiagnosticCategory.Message:
+                    type = this.errorType.META;
+                    break;
+            }
+            
+            return {
+                pos: {
+                    line: diagnostic.line(),
+                    ch: diagnostic.character()
+                },
+                endpos: {
+                    line: diagnostic.line(),
+                    ch: diagnostic.character() + diagnostic.length()
+                },
+                message: diagnostic.message(),
+                type: type
+            };
+        });
+    }   
 }
 
 export = TypeScriptErrorReporter

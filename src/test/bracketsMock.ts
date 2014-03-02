@@ -12,7 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-/*istanbulify ignore file*/
 
 export var FILE_NOT_FOUND = 'not found';
 
@@ -261,13 +260,11 @@ export class File extends FileSystemEntry implements brackets.File {
      * @param callback Callback that is passed the FileSystemError string or the file's contents and its stats.
      */
     read(options: {}, callback: (err: string, data: string, stat: brackets.FileSystemStats) => any): void {
-        setTimeout(() => {
-            if (this.content) {
-                callback(null, this.content, null);
-            } else {
-                callback(FILE_NOT_FOUND, null, null)
-            }
-        }, 0);
+        if (this.content) {
+            callback(null, this.content, null);
+        } else {
+            callback(FILE_NOT_FOUND, null, null)
+        }
     }
        
     
@@ -331,79 +328,19 @@ export class ProjectManager {
     constructor(
         private fs:FileSystem
     ){}
-    
-    async: boolean = false;
-    
     getAllFiles(filter? : (file: brackets.File) => boolean, includeWorkingSet? : boolean)  {
         var deferred = $.Deferred<brackets.File[]>(),
             files: brackets.File[] = [];
-        var resolve = () => {
-            this.fs.root.visit(entry => {
-                if (entry.isFile) {
-                    files.push(<brackets.File> entry)
-                }
-                return true;
-            }, null, () => {
-                deferred.resolve(files);    
-            });
-        };
-        if (this.async) {
-            setTimeout(resolve, 0);
-        } else {
-            resolve();   
-        }
+        this.fs.root.visit(entry => {
+            if (entry.isFile) {
+                files.push(<brackets.File> entry)
+            }
+            return true;
+        }, null, () => {
+            deferred.resolve(files);    
+        })
         return deferred.promise();
     }
 };
-
-
-export class Document {
-    file: brackets.File;
-    isDirty: boolean;
-    
-    lines: string[];
-    getText(useOriginalLineEndings?: boolean): string {
-        return this.lines.join('/n');
-    }
-    replaceRange(text: string, start: CodeMirror.Position, end?: CodeMirror.Position, origin? :string):void {
-    
-    }
-
-    getLine(index: number): string {
-        return this.lines[index]
-    }
-
-}
-    
-
-export class Editor {
-    _codeMirror: CodeMirror.Editor = null;
-    document = new Document();
-    
-    pos: CodeMirror.Position;
-    
-    getCursorPos(): CodeMirror.Position {
-        return this.pos;
-    }
-    
-    getModeForSelection(): string {
-        return 'typescript';
-    }
-    
-    getSelection(boolean: boolean): {
-        start: CodeMirror.Position;
-        end: CodeMirror.Position
-    } {
-        return null;
-    }
-    setCursorPos(line: number, ch: number): void  {
-        this.pos = {line: line, ch: ch};
-    }
-    
-    setFile(file: String, content: String): void {
-        this.document.file = <any>{ fullPath: file};
-        this.document.lines = content.split('\n');
-    }
-}
     
 

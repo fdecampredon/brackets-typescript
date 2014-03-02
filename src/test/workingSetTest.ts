@@ -12,12 +12,9 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-/*istanbulify ignore file */
-
 'use strict';
 
-import WorkingSet = require('../main/workingSet');
-import ws = require('../commons/workingSet');
+import ws = require('../main/workingSet');
 
 describe('WorkingSet', function (): void {
     var workingSetFiles: string[],
@@ -46,18 +43,18 @@ describe('WorkingSet', function (): void {
             }
             
         },
-        currentEditor: brackets.Editor,
+        currentEditor: ws.BracketsEditor,
         editorManagerMock = {
             getActiveEditor() {
                 return currentEditor;
             },
-            setActiveEditor(editor:  brackets.Editor) {
+            setActiveEditor(editor: ws.BracketsEditor) {
                 var previous = currentEditor
                 currentEditor = editor;
                 $(this).triggerHandler("activeEditorChange", [currentEditor, previous]);
             }
         },
-        workingSet: WorkingSet;
+        workingSet: ws.IWorkingSet
     
     beforeEach(function () {
         workingSetFiles = [
@@ -66,13 +63,13 @@ describe('WorkingSet', function (): void {
             '/path/file4.ts'
         ];
         
-        currentEditor = <brackets.Editor>{
+        currentEditor = {
             document : {
                 file: {fullPath : '/path/file1.ts'},
                 getText() { return "hello world"}
             }
         };
-        workingSet = new WorkingSet(<any>documentManagerMock, <any>editorManagerMock );
+        workingSet = new ws.WorkingSet(documentManagerMock, editorManagerMock);
     })
     
     afterEach(function () {
@@ -81,20 +78,19 @@ describe('WorkingSet', function (): void {
     
     describe('files', function () {
         it('should return the list of file in the working set', function () {
-            expect(workingSet.getFiles()).toEqual(workingSetFiles);
+            expect(workingSet.files).toEqual(workingSetFiles);
         });
     });
     
     describe('workingSetChanged', function () {
-        var spy = jasmine.createSpy('workingSetChangedHandler'),
-            disposable: Rx.IDisposable;
+        var spy = jasmine.createSpy('workingSetChangedHandler');
         
         beforeEach(function () {
-            disposable = workingSet.workingSetChanged.subscribe(spy);
+            workingSet.workingSetChanged.add(spy);
         });
         
         afterEach(function () {
-            disposable.dispose();
+            workingSet.workingSetChanged.remove(spy);
             spy.reset();
         });
         
@@ -106,7 +102,7 @@ describe('WorkingSet', function (): void {
                 kind: ws.WorkingSetChangeKind.ADD,
                 paths : ['/path/file5.ts']
             });
-            expect(workingSet.getFiles()).toEqual(workingSetFiles);
+            expect(workingSet.files).toEqual(workingSetFiles);
         });
         
         it('should notify when a list of file has been added to the working set', function () {
@@ -116,7 +112,7 @@ describe('WorkingSet', function (): void {
                 kind: ws.WorkingSetChangeKind.ADD,
                 paths : ['/path/file5.ts', '/path/file6.ts']
             });
-            expect(workingSet.getFiles()).toEqual(workingSetFiles);
+            expect(workingSet.files).toEqual(workingSetFiles);
         });
         
         it('should notify when a file has been removed from the working set', function () {
@@ -126,7 +122,7 @@ describe('WorkingSet', function (): void {
                 kind: ws.WorkingSetChangeKind.REMOVE,
                 paths : ['/path/file3.ts']
             });
-            expect(workingSet.getFiles()).toEqual(workingSetFiles);
+            expect(workingSet.files).toEqual(workingSetFiles);
         });
         
         it('should notify when a list of file has been removed from the working set', function () {
@@ -136,20 +132,19 @@ describe('WorkingSet', function (): void {
                 kind: ws.WorkingSetChangeKind.REMOVE,
                 paths : ['/path/file1.ts', '/path/file3.ts']
             });
-            expect(workingSet.getFiles()).toEqual(workingSetFiles);
+            expect(workingSet.files).toEqual(workingSetFiles);
         });
     });
 
     describe('documentEdited', function () {
-        var spy = jasmine.createSpy('documentEdited'),
-            disposable: Rx.IDisposable;
+        var spy = jasmine.createSpy('documentEdited');
         
         beforeEach(function () {
-            disposable = workingSet.documentEdited.subscribe(spy);
+            workingSet.documentEdited.add(spy);
         });
         
         afterEach(function () {
-            disposable.dispose();
+            workingSet.documentEdited.remove(spy);
             spy.reset();
         });
         
@@ -228,11 +223,11 @@ describe('WorkingSet', function (): void {
             }]);
             
            
-            doc = <brackets.Document> {
+            doc = {
                 file: { fullPath : '/path/file3.ts' },
                 getText() { return ""}
             };
-            editorManagerMock.setActiveEditor(<brackets.Editor> { document: doc });
+            editorManagerMock.setActiveEditor({ document: doc });
             
             $(doc).triggerHandler('change', [doc, {
                 from : {
@@ -294,11 +289,11 @@ describe('WorkingSet', function (): void {
             }]);
             
            
-            doc = <brackets.Document> {
+            doc = {
                 file: { fullPath : '/path/file3.ts' },
                 getText() { return "hello world"}
             };
-            editorManagerMock.setActiveEditor(<brackets.Editor> { document: doc });
+            editorManagerMock.setActiveEditor({ document: doc });
             $(doc).triggerHandler('change', [doc, {
                 to: {
                     ch: 0,
