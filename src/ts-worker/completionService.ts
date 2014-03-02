@@ -39,15 +39,25 @@ class CompletionService implements completion.CompletionService {
                 completionInfo = languageService.getCompletionsAtPosition(fileName, index, true),
                 typeScriptEntries = completionInfo && completionInfo.entries;
             
+            
             if(!typeScriptEntries) {
                 return { entries: [], match: '' };
             }
             
-             var currentToken = languageService.getSyntaxTree(fileName).sourceUnit().findToken(index),
+             var sourceUnit = languageService.getSyntaxTree(fileName).sourceUnit(),
+                 currentToken = sourceUnit.findTokenOnLeft(index),
                  match: string;
                  
             if (currentToken && this.isValidTokenKind(currentToken.token().tokenKind)) {
                 match= currentToken.token().fullText();
+                if (currentToken.element().leadingTrivia()) {
+                    match = match.substr(currentToken.element().leadingTriviaWidth());
+                }
+                
+                if (currentToken.element().trailingTrivia()) {
+                    match = match.substr(0, match.length - currentToken.element().trailingTriviaWidth());
+                }
+                //match = match.substr(currentToken.element().leadingTriviaWidth(), match.length - currentToken.element().trailingTriviaWidth() -1);
                 typeScriptEntries = typeScriptEntries.filter(entry => {
                     return entry.name && entry.name.toLowerCase().indexOf(match.toLowerCase()) === 0;
                 });

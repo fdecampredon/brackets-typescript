@@ -85,8 +85,6 @@ export class LogingClass {
     warning = warning;
     error = error;
     fatal = fatal;
-    //typescript service log everything in 0.9.5
-    log = function () {
-    };//log;
+    log = log;
 }
 

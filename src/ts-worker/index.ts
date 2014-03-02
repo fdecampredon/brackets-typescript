@@ -1,6 +1,6 @@
 declare var require: any;
 global.TypeScript = require('typescriptServices');
-
+global.window = self;
 
 
 
