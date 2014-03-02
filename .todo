@@ -1,0 +1,6 @@
+{
+    "search": {
+        "scope": "project",
+        "excludeFolders": [ "built", "bin", "node_modules", ".grunt", "third_party", "coverage", "trash" ]
+    }
+}

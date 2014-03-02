@@ -15,39 +15,60 @@
 //
 
 
-/*global module, require*/
+/*jshint node: true*/
+
+//var coverageTemplate = require('./grunt-utils/grunt-contrib-jasmine-coverify');
 
 module.exports = function (grunt) {
     
     'use strict';
-    var excludeGruntDeps = ['grunt-template-jasmine-requirejs'];
-    require('matchdep').filterDev('grunt-*').forEach(function (dep) {
-        if (excludeGruntDeps.indexOf(dep) === -1) {
-            grunt.loadNpmTasks(dep);
+    var excludeGruntDeps = ['grunt-template-jasmine-istanbul'];
+    require('matchdep').filterDev('grunt-*').forEach(function (task) { 
+        if (excludeGruntDeps.indexOf(task) === -1) {
+            grunt.loadNpmTasks(task);
         }
     });
     
+    var istanbulify = require('istanbulify');
+    
     grunt.initConfig({
-        source: ['src/declarations/*.d.ts', 'src/main/**/*.ts'],
-        testSource: ['src/declarations/*.d.ts', 'src/test-declarations/*.d.ts', 'src/test/**/*.ts'],
-        localBinFolder : 'built/local/',
-        testBinFolder: 'built/test/',
+        source: ['src/declarations/*.d.ts', 'src/commons/**/*.ts', 'src/main/**/*.ts'],
+        workerSource: ['src/declarations/*.d.ts', 'src/commons/**/*.ts', 'src/ts-worker/**/*.ts'],
+        testSource: ['src/declarations/*.d.ts', 'src/test-declarations/*.d.ts',  'src/test/**/*.ts'],
+        tmpFolder: 'tmp',
+        localBinFolder : 'built/',
         releaseBinFolder : 'bin/',
         
         clean : {
             local : '<%= localBinFolder %>',
-            test : '<%= testBinFolder %>',
+            tmp : '<%= tmpFolder %>',
             release : '<%= releaseBinFolder %>'
         },
         
         typescript: {
             main: {
                 src: '<%= source %>',
-                dest: '<%= localBinFolder %>',
+                dest: '<%= tmpFolder %>',
                 base_path : 'src/main/',
                 options: {
                     base_path : 'src',
-                    module : 'amd',
+                    module : 'commonjs',
+                    target: 'es5',
+                    sourcemap: false,
+                    comments : true,
+                    noImplicitAny: true,
+                    ignoreTypeCheck: false
+                }
+            },
+            
+            
+            worker: {
+                src: '<%= workerSource %>',
+                dest: '<%= tmpFolder %>',
+                base_path : 'src/ts-worker/',
+                options: {
+                    base_path : 'src',
+                    module : 'commonjs',
                     target: 'es5',
                     sourcemap: false,
                     comments : true,
@@ -58,84 +79,150 @@ module.exports = function (grunt) {
             
             test: {
                 src: '<%= testSource %>',
-                dest: '<%= testBinFolder %>',
+                dest: '<%= tmpFolder %>',
                 
                 options: {
                     base_path : 'src',
-                    module: 'amd',
+                    module: 'commonjs',
                     target: 'es5',
                     sourcemap: false,
+                    comments : true,
                     noImplicitAny: true,
                     ignoreTypeCheck: false
                 }
             }
 		},
         
-        jasmine: {
-            test: {
-                src: 'undefined.js',
+        browserify: {
+            pkg: grunt.file.readJSON('package.json'),
+            main: {
+                files: {
+                    'built/main.js': ['tmp/main/index.js']
+                },
+                options : {
+                    shim: {
+                        typescriptServices: {
+                            path: 'third_party/typescript/typescriptServices.js',
+                            exports: 'TypeScript'
+                        }
+                    },
+                    noParse: ['third_party/typescript/typescriptServices.js'],
+                    standalone: 'bracketsTypescript'
+                }
+            },
+            worker: {
+                files: {
+                    'built/worker.js': ['tmp/ts-worker/index.js']
+                },
                 options: {
-                    specs: 'built/test/**/*Test.js',
-                    vendor : [
-                        'third_party/jquery.js',
-                        'third_party/path-utils.js',
-                        'third_party/typescriptServices.js'
-                    ],
-                    helpers : 'src/test-helpers/*Helper.js',
-                    template: require('grunt-template-jasmine-requirejs'),
-                    keepRunner: true,
-                    outfile: 'SpecRunner.html'
+                    shim: {
+                        typescriptServices: {
+                            path: 'third_party/typescript/typescriptServices.js',
+                            exports: 'TypeScript'
+                        }
+                    },
+                    noParse: ['third_party/typescript/typescriptServices.js'] 
+                }
+            },
+            
+            test: {
+                files: {
+                    'built/test.js': ['./tmp/test/index.js']
+                },
+                options: {
+                    debug: true,
+                    transform : [istanbulify]
                 }
             }
         },
         
-        copy: {
-            release: {
-                expand: true,
-                cwd: '<%= localBinFolder %>',
-                src: '**/*.js',
-                dest: '<%= releaseBinFolder %>'
-            }
-        },
-        // later when the editor support tslint himself
-        tslint: {
-            options: {
-                configuration: grunt.file.readJSON("tslint.json")
-            },
-            main: {
-                src: ['src/main/**/*.ts']
-            },
-            test: {
-                src: ['src/test/**/*.ts']
-            }
-        },
         
-        compress: {
-            main: {
+        jasmine: {
+            test: {
+                src: 'undefined.js',
                 options: {
-                    archive: 'brackets-typescript.zip',
-                    mode: 'zip'
-                },
-                files: [
-                    {
-                        expand: true,
-                        cwd: 'release-templates',
-                        src: '*',
-                        dest: '/',
-                        filter: 'isFile'
-                    }, {
-                        expand : true,
-                        src: ['main.js', 'bin/**/*', 'third_party/**/*'],
-                        dest : '/'
+                    specs: 'built/test.js',
+                    vendor : [
+                        'third_party/jquery.js',
+                        'third_party/mustache.js',
+                        'third_party/typescript/typescriptServices.js'
+                    ],
+                    keepRunner: true,
+                    template: require('grunt-template-jasmine-istanbul'),
+                    outfile: 'SpecRunner.html',
+                    templateOptions: {
+                        coverage: 'coverage/coverage.json',
+                        report: 'coverage',
+                        files: ['!**/test/**/*'],
+                        /*thresholds: {
+                            lines: 70,
+                            statements: 70,
+                            branches: 70,
+                            functions: 70
+                        }*/
                     }
-                ]
+                }
             }
         }
     });
-     
-    grunt.registerTask('test', ['clean:test', 'typescript:test', 'jasmine']);
-    grunt.registerTask('build', ['clean:local', 'typescript:main']);
-    grunt.registerTask('release', ['test', 'build', 'clean:release', 'copy:release']);
     
+    
+    grunt.registerTask('build-main',['clean:tmp', 'typescript:main', 'browserify:main','clean:tmp']);
+    grunt.registerTask('build-worker',['clean:tmp', 'typescript:worker', 'browserify:worker', 'clean:tmp']);
+    grunt.registerTask('test', ['clean:tmp', 'typescript:test', 'browserify:test', 'jasmine', 'clean:tmp']);
+    grunt.registerTask('build',['clean:local', 'build-main', 'build-worker']);
     grunt.registerTask('default', ['test', 'build']);
+    
+    
+    //grunt.registerTask('release', ['test', 'build', 'clean:release', 'copy:release']);
+    
+    
+//    var commented = {
+//    
+//        
+//        copy: {
+//            release: {
+//                expand: true,
+//                cwd: '<%= localBinFolder %>',
+//                src: '**/*.js',
+//                dest: '<%= releaseBinFolder %>'
+//            }
+//        },
+//        // later when the editor support tslint himself
+//        tslint: {
+//            options: {
+//                configuration: grunt.file.readJSON("tslint.json")
+//            },
+//            main: {
+//                src: ['src/main/**/*.ts']
+//            },
+//            test: {
+//                src: ['src/test/**/*.ts']
+//            }
+//        },
+//        
+//        compress: {
+//            main: {
+//                options: {
+//                    archive: 'brackets-typescript.zip',
+//                    mode: 'zip'
+//                },
+//                files: [
+//                    {
+//                        expand: true,
+//                        cwd: 'release-templates',
+//                        src: '*',
+//                        dest: '/',
+//                        filter: 'isFile'
+//                    }, {
+//                        expand : true,
+//                        src: ['main.js', 'bin/**/*', 'third_party/**/*'],
+//                        dest : '/'
+//                    }
+//                ]
+//            }
+//        }
+//};    
 };
+
+
