@@ -25,7 +25,7 @@ export interface WorkingSet {
     /**
      * a signal that provide fine grained change over edited document
      */
-    documentEdited: Rx.Observable<DocumentChangeDescriptor[]>;
+    documentEdited: Rx.Observable<DocumentChangeRecord>;
 
     /**
      * dispose the working set 
@@ -76,10 +76,6 @@ export enum WorkingSetChangeKind {
  * describe a change in a document
  */
 export interface DocumentChangeDescriptor {
-    /**
-     * path of the files that has changed
-     */
-    path: string;
     
     /**
      * start position of the change
@@ -101,6 +97,22 @@ export interface DocumentChangeDescriptor {
      */
     removed?: string;
     
-    documentText?: string
+}
+/**
+ * describe a list of change in a document
+ */
+export interface DocumentChangeRecord {
+    /**
+     * path of the files that has changed
+     */
+    path: string;
+    /**
+     * list of changes
+     */
+    changeList: DocumentChangeDescriptor[];
     
+    /**
+     * documentText
+     */
+    documentText: string
 }

@@ -70,6 +70,14 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
         this.compilationSettings = utils.clone(settings);
     }
     
+    getScriptContent(fileName: string): string {
+        var script = this.fileNameToScript.get(fileName);
+        if (script) {
+            return script.content;
+        }
+        return null;
+    }
+    
     
    
 

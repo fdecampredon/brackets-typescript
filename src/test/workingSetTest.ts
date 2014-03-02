@@ -69,7 +69,7 @@ describe('WorkingSet', function (): void {
         currentEditor = <brackets.Editor>{
             document : {
                 file: {fullPath : '/path/file1.ts'},
-                getText() { return "hello world"}
+                getText() { return 'hello world'}
             }
         };
         workingSet = new WorkingSet(<any>documentManagerMock, <any>editorManagerMock );
@@ -182,9 +182,9 @@ describe('WorkingSet', function (): void {
                 }
             }]);
             expect(spy.callCount).toBe(1);
-            expect(spy).toHaveBeenCalledWith([
-                {
-                    path: '/path/file1.ts',
+            expect(spy).toHaveBeenCalledWith({
+                path: '/path/file1.ts',
+                changeList: [{
                     from: {
                         ch: 0,
                         line: 0
@@ -196,7 +196,6 @@ describe('WorkingSet', function (): void {
                     text: '\'use strict\'\nconsole.log(\'Hello World\')',
                     removed: ''
                 },{
-                    path: '/path/file1.ts',
                     from : {
                         ch: 8,
                         line: 1
@@ -207,136 +206,9 @@ describe('WorkingSet', function (): void {
                     },
                     text: 'warn',
                     removed: 'log'
-                }
-            ]);
+                }],
+                documentText: 'hello world'
+           });
         });
-        
-        it('should notify when a multiple document have been edited', function () {
-           
-            var doc = currentEditor.document;
-            $(doc).triggerHandler('change', [doc, {
-                from : {
-                    ch: 0,
-                    line: 0
-                },
-                to: {
-                    ch: 0,
-                    line: 0,
-                },
-                text : ['hello'],
-                removed: null
-            }]);
-            
-           
-            doc = <brackets.Document> {
-                file: { fullPath : '/path/file3.ts' },
-                getText() { return ""}
-            };
-            editorManagerMock.setActiveEditor(<brackets.Editor> { document: doc });
-            
-            $(doc).triggerHandler('change', [doc, {
-                from : {
-                    ch: 0,
-                    line: 0
-                },
-                to: {
-                    ch: 0,
-                    line: 0,
-                },
-                text : ['world'],
-                removed: null
-            }]);
-            
-            expect(spy.callCount).toBe(2);
-            expect(spy).toHaveBeenCalledWith([
-                {
-                    path: '/path/file1.ts',
-                    from : {
-                        ch: 0,
-                        line: 0
-                    },
-                    to: {
-                        ch: 0,
-                        line: 0,
-                    },
-                    text: 'hello',
-                    removed: ''
-                }
-            ]);
-        
-            expect(spy).toHaveBeenCalledWith([
-                {
-                    path: '/path/file3.ts',
-                    from : {
-                        ch: 0,
-                        line: 0
-                    },
-                    to: {
-                        ch: 0,
-                        line: 0,
-                    },
-                    text: 'world',
-                    removed: ''
-                }
-            ]);
-        });
-        
-        it('should include \'documentText\' property if change does not contain \'to\' or \'from\' properties', function () {
-           
-            var doc = currentEditor.document;
-            $(doc).triggerHandler('change', [doc, {
-                text : ['hello'],
-                from : {
-                    ch: 0,
-                    line: 0
-                },
-                removed: null
-            }]);
-            
-           
-            doc = <brackets.Document> {
-                file: { fullPath : '/path/file3.ts' },
-                getText() { return "hello world"}
-            };
-            editorManagerMock.setActiveEditor(<brackets.Editor> { document: doc });
-            $(doc).triggerHandler('change', [doc, {
-                to: {
-                    ch: 0,
-                    line: 0,
-                },
-                text : ['world'],
-                removed: null
-            }]);
-            
-            expect(spy.callCount).toBe(2);
-            expect(spy).toHaveBeenCalledWith([
-                {
-                    path: '/path/file1.ts',
-                    from : {
-                        ch: 0,
-                        line: 0
-                    },
-                    to: undefined,
-                    text: 'hello',
-                    removed: '',
-                    documentText: "hello world"
-                }
-            ]);
-        
-            expect(spy).toHaveBeenCalledWith([
-                {
-                    path: '/path/file3.ts',
-                    from : undefined,
-                    to: {
-                        ch: 0,
-                        line: 0,
-                    },
-                    text: 'world',
-                    removed: '',
-                    documentText: "hello world"
-                }
-            ]);
-        });
-        
     });
 });

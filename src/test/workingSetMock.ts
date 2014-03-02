@@ -22,7 +22,7 @@ import Promise = es6Promise.Promise;;
 class WorkingSetMock implements ws.WorkingSet {
     files: string [] = [];
     workingSetChanged = new Rx.Subject<ws.WorkingSetChangeRecord>();
-    documentEdited = new Rx.Subject<ws.DocumentChangeDescriptor[]>();
+    documentEdited = new Rx.Subject<ws.DocumentChangeRecord>();
     
     getFiles() {
         return new Promise(resolve => resolve(this.files));

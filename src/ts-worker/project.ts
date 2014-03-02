@@ -400,24 +400,37 @@ class TypeScriptProject {
     /**
      * handle document edition
      */
-    private documentEditedHandler = (records: ws.DocumentChangeDescriptor[]) => {
+    private documentEditedHandler = (record: ws.DocumentChangeRecord) => {
         this.initializing.then(() => {
-            records.forEach(record => {
-                if (this.projectFilesSet.has(record.path)) {
-                    var oldPaths = new collections.StringSet(this.getReferencedOrImportedFiles(record.path));
-
-                    if (!record.from || !record.to) {
-                        this.languageServiceHost.updateScript(record.path, record.documentText);
+            if (this.projectFilesSet.has(record.path)) {
+                var mustUpdate: boolean = false,
+                    oldPaths = new collections.StringSet(this.getReferencedOrImportedFiles(record.path)),
+                    lastChange: ws.DocumentChangeDescriptor;
+                record.changeList.some(change => {
+                    lastChange = change;
+                    if (!change.from || !change.to) {
+                        mustUpdate = true;
                     } else {
-                        var minChar = this.languageServiceHost.getIndexFromPos(record.path, record.from),
-                            limChar = this.languageServiceHost.getIndexFromPos(record.path, record.to);
+                        var minChar = this.languageServiceHost.getIndexFromPos(record.path, change.from),
+                            limChar = this.languageServiceHost.getIndexFromPos(record.path, change.to);
 
-                        this.languageServiceHost.editScript(record.path, minChar, limChar, record.text);
+                        this.languageServiceHost.editScript(record.path, minChar, limChar, change.text);
                     }
-
-                    this.updateReferences(record.path, oldPaths);
+                    return mustUpdate;
+                });
+                if (mustUpdate || this.languageServiceHost.getScriptContent(record.path) !== record.documentText) {
+                    if (logger.warning()) {
+                        if (mustUpdate) {
+                            logger.log('TypeScriptProject: inconsistent change descriptor: ' + JSON.stringify(lastChange))
+                        } else {
+                            logger.log('TypeScriptProject: text different before and after change');
+                        }
+                    }
+                    this.languageServiceHost.updateScript(record.path, record.documentText);
                 }
-            });
+
+                this.updateReferences(record.path, oldPaths);
+            }
         });
     }
 }

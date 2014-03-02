@@ -59,7 +59,7 @@ class WorkingSet  {
     /**
      * internal signal for documentEdited
      */
-    private _documentEdited = new Rx.Subject<ws.DocumentChangeDescriptor[]>();
+    private _documentEdited = new Rx.Subject<ws.DocumentChangeRecord>();
     
         
     /**
@@ -200,23 +200,22 @@ class WorkingSet  {
      * handle 'change' on document
      */
     private documentChangesHandler = (event: any, document: brackets.Document, change: CodeMirror.EditorChangeLinkedList) => {
-        var changesDescriptor: ws.DocumentChangeDescriptor[] = [];
+        var changeList: ws.DocumentChangeDescriptor[] = [];
         while (change) {
-            var changeDescriptor: ws.DocumentChangeDescriptor ={
-                path: document.file.fullPath,
+            changeList.push({
                 from: change.from,
                 to: change.to,
                 text: change.text && change.text.join('\n'),
                 removed: change.removed ? change.removed.join("\n") : ""
-            }
-            if (!changeDescriptor.from || !changeDescriptor.to) {
-                changeDescriptor.documentText = document.getText()
-            }
-            changesDescriptor.push(changeDescriptor);
+            });
             change = change.next; 
         }
-        if (changesDescriptor.length > 0) {
-            this.documentEdited.onNext(changesDescriptor);
+        if (changeList.length > 0) {
+            this.documentEdited.onNext({
+                path: document.file.fullPath,
+                changeList: changeList,
+                documentText: document.getText()
+            });
         }   
     }
     

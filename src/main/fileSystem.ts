@@ -39,8 +39,6 @@ class FileSystem implements fs.FileSystem {
     ) {
         nativeFileSystem.on('change', this.changesHandler);
         nativeFileSystem.on('rename', this.renameHandler);
-
-
         this.init();
     }
     

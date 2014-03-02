@@ -24,7 +24,7 @@ export function validateTypeScriptProjectConfig(config : TypeScriptProjectConfig
     }
     if (config.buildAutomaticly && !(config.outDir && typeof config.outDir === 'string') && 
             !(config.outFile && typeof config.outFile === 'string')) {
-        return false
+        return false;
     }
     return true;
 }

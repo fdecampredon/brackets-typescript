@@ -44,7 +44,7 @@ export class FileSystem {
         if (listeners && listeners.indexOf(handler) !== -1) {
             return
         }
-        if (! listeners) {
+        if (!listeners) {
             listeners = this.listeners[event]= []
         }
         listeners.push(handler);

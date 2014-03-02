@@ -542,38 +542,41 @@ describe('TypeScriptProject', function () {
         
       
         it('should edit a script when a document corresponding to a project file\'s is edited', function () {
-            workingSetMock.documentEdited.onNext([{
+            workingSetMock.documentEdited.onNext({
                 path: '/src/file1.ts',
-                from: {
-                    ch: 0,
-                    line: 0
-                },
-                to: {
-                    ch: 0,
-                    line: 0,
-                },
-                text: 'console.log(\'hello world\')',
-                removed: '',
-                documentText : 'console.log(\'hello world\')'
-            }]);
-            waits(10);
-            runs(function () {
-                expect(getProjectFileContent('/src/file1.ts')).toBe('console.log(\'hello world\')');
-                workingSetMock.documentEdited.onNext([{
-                    path: '/src/file1.ts',
+                changeList: [{
                     from: {
-                        ch: 8,
+                        ch: 0,
                         line: 0
                     },
                     to: {
-                        ch: 11,
+                        ch: 0,
                         line: 0,
                     },
-                    text: 'warn',
-                    removed: '',
+                    text: 'console.log(\'hello world\')',
+                    removed: ''
+                }],
+                documentText : 'console.log(\'hello world\')'
+            });
+            waits(10);
+            runs(function () {
+                expect(getProjectFileContent('/src/file1.ts')).toBe('console.log(\'hello world\')');
+                workingSetMock.documentEdited.onNext({
+                    path: '/src/file1.ts',
+                    changeList: [{
+                        from: {
+                            ch: 8,
+                            line: 0
+                        },
+                        to: {
+                            ch: 11,
+                            line: 0,
+                        },
+                        text: 'warn',
+                        removed: '',
+                     }],
                     documentText : 'console.warn(\'hello world\')'
-
-                }]);
+                });
             });
             
             
@@ -584,25 +587,31 @@ describe('TypeScriptProject', function () {
         });
         
         it('should set script with given document content if change dispatched does not have \'to\' or \'from\' property ', function () {
-            workingSetMock.documentEdited.onNext([{
+            workingSetMock.documentEdited.onNext({
                 path: '/src/file1.ts',
-                from: {
-                    ch: 0,
-                    line: 0
-                },
+                changeList: [{
+                    from: {
+                        ch: 0,
+                        line: 0
+                    }
+                }],
                 documentText : 'console.log(\'hello world\')'
-            }]);
+            });
+                
+                
             waits(10);
             runs(function () {
                 expect(getProjectFileContent('/src/file1.ts')).toBe('console.log(\'hello world\')');
-                workingSetMock.documentEdited.onNext([{
+                workingSetMock.documentEdited.onNext({
                     path: '/src/file1.ts',
-                    to: {
-                        ch: 11,
-                        line: 0,
-                    },
+                    changeList: [{
+                        to: {
+                            ch: 11,
+                            line: 0,
+                        }
+                    }],
                     documentText : 'console.warn(\'hello world\')'
-                }]);
+                });
             })
             
             
@@ -612,22 +621,49 @@ describe('TypeScriptProject', function () {
             });
         });
         
+        it('should set script with given document content if change dispatched are not coherent', function () {
+            workingSetMock.documentEdited.onNext({
+                path: '/src/file1.ts',
+                changeList: [{
+                    from: {
+                        ch: 0,
+                        line: 0
+                    },
+                    to: {
+                        ch: 0,
+                        line: 0,
+                    },
+                    text: 'console.log(\'hello world\')',
+                    removed: ''
+                }],
+                documentText : 'console.warn(\'hello world\')'
+            });
+                
+                
+            waits(10);
+            runs(function () {
+                expect(getProjectFileContent('/src/file1.ts')).toBe('console.warn(\'hello world\')');
+            });
+        });
+        
         
         it('should revert a file when a document have been closed without saving', function () {
-           workingSetMock.documentEdited.onNext([{
+           workingSetMock.documentEdited.onNext({
                 path: '/src/file1.ts',
-                from: {
-                    ch: 0,
-                    line: 0
-                },
-                to: {
-                    ch: 0,
-                    line: 0,
-                },
-                text: 'console.log(\'hello world\')',
-                removed: '',
-                documentText : 'console.warn(\'hello world\')'
-            }]);
+                changeList: [{
+                    from: {
+                        ch: 0,
+                        line: 0
+                    },
+                    to: {
+                        ch: 0,
+                        line: 0,
+                    },
+                    text: 'console.log(\'hello world\')',
+                    removed: ''
+                }],
+                documentText : 'console.log(\'hello world\')'
+            });
             workingSetMock.removeFiles(['/src/file1.ts']);
             waits(10);
             runs(function () {
