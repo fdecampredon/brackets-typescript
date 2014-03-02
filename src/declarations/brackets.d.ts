@@ -909,7 +909,7 @@ declare module brackets {
     }
     
     interface JumpDoDefProvider {
-        (hostEditor: Editor, pos: CodeMirror.Position): JQueryPromise<InlineWidget>
+        (): JQueryPromise<boolean>
     }
     
     

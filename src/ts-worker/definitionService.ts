@@ -17,16 +17,17 @@
 
 import TypeScriptProjectManager = require('./projectManager');
 import es6Promise = require('es6-promise');
+import definition = require('../commons/definition')
 import Promise = es6Promise.Promise;;
 
 
-class DefinitionService {
+class DefinitionService implements definition.DefinitionService {
     
     constructor(
         private projectManager: TypeScriptProjectManager
     ) {}
     
-    getDefinitionForFile(fileName: string, position: CodeMirror.Position) {
+    getDefinitionForFile(fileName: string, position: CodeMirror.Position): Promise<definition.DefinitionInfo[]> {
         return this.projectManager.getProjectForFile(fileName).then(project => {
             var languageService = project.getLanguageService(),
                 languageServiceHost = project.getLanguageServiceHost(),
@@ -41,7 +42,10 @@ class DefinitionService {
                     path: definition.fileName,
                     name: (definition.containerName ? (definition.containerName + '.') : '') + definition.name,
                     lineStart : startPos.line,
-                    lineEnd : endPos.line
+                    charStart : startPos.ch,
+                    lineEnd : endPos.line,
+                    charEnd : endPos.ch,
+                    fileName: definition.fileName
                 }
             });
         }).catch(() => [])

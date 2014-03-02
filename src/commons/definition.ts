@@ -5,7 +5,10 @@ export interface DefinitionInfo {
     path: string;
     name: string;
     lineStart : number;
+    charStart: number;
     lineEnd : number;
+    charEnd: number;
+    fileName: string;
 }
 
 export interface DefinitionService {

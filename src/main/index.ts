@@ -21,7 +21,8 @@ import FileSystem = require('./fileSystem');
 import WorkingSet = require('./workingSet');
 import WorkerBridge = require('../commons/workerBridge');
 import TypeScriptErrorReporter = require('./errorReporter');
-import TypeScriptQuickEditProvider = require('./quickEdit')
+import TypeScriptQuickEditProvider = require('./quickEdit');
+import TypeScriptQuickJumpProvider = require('./quickJump')
 import CodeHintProvider = require('./codeHintProvider');
 import typeScriptModeFactory = require('./mode')
 
@@ -44,7 +45,8 @@ var LanguageManager = brackets.getModule('language/LanguageManager'),
 
 var tsErrorReporter : TypeScriptErrorReporter,
     quickEditProvider: TypeScriptQuickEditProvider,
-    codeHintProvider : CodeHintProvider;
+    codeHintProvider : CodeHintProvider,
+    quickJumpProvider: TypeScriptQuickJumpProvider;
     
     
  
@@ -73,7 +75,11 @@ function init(config: { logLevel: string; typeScriptLocation: string; workerLoca
     
     // Register quickEdit
     quickEditProvider = new TypeScriptQuickEditProvider();
-    EditorManager.registerInlineEditProvider(quickEditProvider.typeScriptInlineEditorProvider);    
+    EditorManager.registerInlineEditProvider(quickEditProvider.typeScriptInlineEditorProvider);   
+    
+    //Register quickJump
+    quickJumpProvider = new TypeScriptQuickJumpProvider();
+    EditorManager.registerJumpToDefProvider(quickJumpProvider.handleJumpToDefinition)
     
       
     //Register error provider
@@ -118,6 +124,7 @@ function initServices(workerLocation: string, typeScriptLocation: string, logLev
         tsErrorReporter.setErrorService(proxy.errorService);
         codeHintProvider.setCompletionService(proxy.completionService);
         quickEditProvider.setDefinitionService(proxy.definitionService);
+        quickJumpProvider.setDefinitionService(proxy.definitionService);
     });
 }
 

@@ -44,13 +44,13 @@ class TypeScriptQuickEditProvider {
             var fileName = hostEditor.document.file.fullPath;
             service.getDefinitionForFile(fileName, pos).then(definitions => {
                 if (!definitions || definitions.length === 0) {
-                    return null;
+                    deferred.reject();
                 }
 
 
                 definitions.filter(definition => definition.path !== fileName || definition.lineStart !== pos.line)
                 if (definitions.length === 0) {
-                    return null;
+                    deferred.reject();
                 }
 
                 var promises: JQueryPromise<any>[] = [],
@@ -62,7 +62,8 @@ class TypeScriptQuickEditProvider {
                             document : doc,
                             name: definition.name,
                             lineStart: definition.lineStart,  
-                            lineEnd: definition.lineEnd
+                            lineEnd: definition.lineEnd,
+                            fileName: definition.fileName
                         })    
                     }));
                 })
