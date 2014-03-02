@@ -34,13 +34,16 @@ class DefinitionService {
             if (index < 0) {
                 return [];
             }
-            return languageService.getDefinitionAtPosition(fileName, index)
-                .map(definition => ({
+            return languageService.getDefinitionAtPosition(fileName, index).map(definition => {
+                var startPos = languageServiceHost.indexToPosition(definition.fileName, definition.minChar),
+                    endPos = languageServiceHost.indexToPosition(definition.fileName, definition.limChar);
+                return {
                     path: definition.fileName,
                     name: (definition.containerName ? (definition.containerName + '.') : '') + definition.name,
-                    lineStart : languageServiceHost.indexToPosition(fileName, definition.minChar).line,
-                    lineEnd : languageServiceHost.indexToPosition(fileName, definition.limChar).line
-                }))
+                    lineStart : startPos.line,
+                    lineEnd : endPos.line
+                }
+            });
         }).catch(() => [])
     }
 }

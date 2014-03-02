@@ -24,7 +24,7 @@ class TypeScriptQuickEditProvider {
     
 
     setDefinitionService(service: definition.DefinitionService) {
-        this.definitionService.resolve(definition);
+        this.definitionService.resolve(service);
     }
     
     
@@ -39,21 +39,21 @@ class TypeScriptQuickEditProvider {
         if (sel.start.line !== sel.end.line) {
             return null;
         }
-        return this.definitionService.then(service => {
+        var deferred = $.Deferred()
+        this.definitionService.then(service => {
             var fileName = hostEditor.document.file.fullPath;
-            return service.getDefinitionForFile(fileName, pos).then(definitions => {
+            service.getDefinitionForFile(fileName, pos).then(definitions => {
                 if (!definitions || definitions.length === 0) {
                     return null;
                 }
 
-              
+
                 definitions.filter(definition => definition.path !== fileName || definition.lineStart !== pos.line)
                 if (definitions.length === 0) {
                     return null;
                 }
 
-                var deferred = $.Deferred<brackets.InlineWidget>(),
-                    promises: JQueryPromise<any>[] = [],
+                var promises: JQueryPromise<any>[] = [],
                     ranges: brackets.MultiRangeInlineEditorRange[] = [];
 
                 definitions.forEach(definition => {
@@ -70,10 +70,13 @@ class TypeScriptQuickEditProvider {
                 return $.when.apply($,promises).then(()=> {
                     var inlineEditor = new MultiRangeInlineEditor(ranges);
                     inlineEditor.load(hostEditor);
-                    return inlineEditor
+                    deferred.resolve(inlineEditor);
                 });
+            }).catch(e => {
+                deferred.reject()
             })
-        })
+        })    
+        return deferred.promise();
     }
 }
 
