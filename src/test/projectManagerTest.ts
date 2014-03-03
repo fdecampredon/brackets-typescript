@@ -270,7 +270,7 @@ describe('TypeScriptProjectManager', function () {
                 }));
             })
             
-            waits(10)
+            waits(15);
             runs(function() {
                 expect(projectSpy.dispose.callCount).toBe(1);
                 expect(projectFactorySpy.callCount).toBe(2);
@@ -301,7 +301,7 @@ describe('TypeScriptProjectManager', function () {
                 }));
             })
             
-            waits(15);
+            waitsFor(() => projectFactorySpy.callCount === 1, 'factory should have been called');
             runs(function () {
                 expect(projectFactorySpy.callCount).toBe(1);
             })
@@ -323,7 +323,7 @@ describe('TypeScriptProjectManager', function () {
 
             typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
             typeScriptProjectManager.dispose();
-            waits(15);
+            waitsFor(() => projectSpy.dispose.callCount === 1, 'dispose should have been called');
             runs(function() {
                 expect(projectSpy.dispose.callCount).toBe(1);
             })
@@ -342,7 +342,8 @@ describe('TypeScriptProjectManager', function () {
             });
             typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
             fileSystemMock.reset();
-            waits(15);
+            waitsFor(() => projectSpy.dispose.callCount === 1 && projectFactorySpy.callCount === 2, 
+                    'dispose should have been called, project should have been recreated');
             runs(function() {
                 expect(projectSpy.dispose.callCount).toBe(1);
                 expect(projectFactorySpy.callCount).toBe(2);
