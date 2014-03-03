@@ -15,14 +15,14 @@
 
 /*istanbulify ignore file*/
 import ws = require('../commons/workingSet');
-import Rx = require('rx');
+import signal = require('../commons/signal');
 import es6Promise = require('es6-promise');
 import Promise = es6Promise.Promise;;
 
 class WorkingSetMock implements ws.WorkingSet {
     files: string [] = [];
-    workingSetChanged = new Rx.Subject<ws.WorkingSetChangeRecord>();
-    documentEdited = new Rx.Subject<ws.DocumentChangeRecord>();
+    workingSetChanged = new signal.Signal<ws.WorkingSetChangeRecord>();
+    documentEdited = new signal.Signal<ws.DocumentChangeRecord>();
     
     getFiles() {
         return new Promise(resolve => resolve(this.files));
@@ -35,7 +35,7 @@ class WorkingSetMock implements ws.WorkingSet {
     
     addFiles(paths: string[]) {
         this.files = this.files.concat(paths);
-        this.workingSetChanged.onNext({
+        this.workingSetChanged.dispatch({
             kind: ws.WorkingSetChangeKind.ADD,
             paths: paths
         });
@@ -44,7 +44,7 @@ class WorkingSetMock implements ws.WorkingSet {
     
     removeFiles(paths: string[]) {
         this.files = this.files.filter(path => paths.indexOf(path) === -1)
-        this.workingSetChanged.onNext({
+        this.workingSetChanged.dispatch({
             kind: ws.WorkingSetChangeKind.REMOVE,
             paths: paths
         });

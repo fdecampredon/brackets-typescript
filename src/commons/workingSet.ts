@@ -1,6 +1,7 @@
 
 import es6Promise = require('es6-promise');
 import Promise = es6Promise.Promise;
+import signal = require('./signal');
 
 
 
@@ -20,12 +21,12 @@ export interface WorkingSet {
     /**
      * a signal dispatching events when change occured in the working set
      */
-    workingSetChanged: Rx.Observable<WorkingSetChangeRecord>;
+    workingSetChanged: signal.Signal<WorkingSetChangeRecord>;
     
     /**
      * a signal that provide fine grained change over edited document
      */
-    documentEdited: Rx.Observable<DocumentChangeRecord>;
+    documentEdited: signal.Signal<DocumentChangeRecord>;
 
     /**
      * dispose the working set 

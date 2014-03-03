@@ -30,7 +30,11 @@ bridge.init({
         proxy.getLogLevel().then((logLevel: string) => {  
             self.console = proxy.console;
             logger.setLogLevel(logLevel);
-            projectManager.init(location, proxy.fileSystem, proxy.workingSet, TypeScriptProject.newProject); 
+            projectManager.init(location, proxy.fileSystem, proxy.workingSet, TypeScriptProject.newProject).then(( )=>{
+                if (logger.information()) {
+                    logger.log('TSWorker : initilialization complete')
+                }
+            })
         });
     })
 });

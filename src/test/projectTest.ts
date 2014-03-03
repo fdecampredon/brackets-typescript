@@ -542,7 +542,7 @@ describe('TypeScriptProject', function () {
         
       
         it('should edit a script when a document corresponding to a project file\'s is edited', function () {
-            workingSetMock.documentEdited.onNext({
+            workingSetMock.documentEdited.dispatch({
                 path: '/src/file1.ts',
                 changeList: [{
                     from: {
@@ -561,7 +561,7 @@ describe('TypeScriptProject', function () {
             waits(10);
             runs(function () {
                 expect(getProjectFileContent('/src/file1.ts')).toBe('console.log(\'hello world\')');
-                workingSetMock.documentEdited.onNext({
+                workingSetMock.documentEdited.dispatch({
                     path: '/src/file1.ts',
                     changeList: [{
                         from: {
@@ -587,7 +587,7 @@ describe('TypeScriptProject', function () {
         });
         
         it('should set script with given document content if change dispatched does not have \'to\' or \'from\' property ', function () {
-            workingSetMock.documentEdited.onNext({
+            workingSetMock.documentEdited.dispatch({
                 path: '/src/file1.ts',
                 changeList: [{
                     from: {
@@ -602,7 +602,7 @@ describe('TypeScriptProject', function () {
             waits(10);
             runs(function () {
                 expect(getProjectFileContent('/src/file1.ts')).toBe('console.log(\'hello world\')');
-                workingSetMock.documentEdited.onNext({
+                workingSetMock.documentEdited.dispatch({
                     path: '/src/file1.ts',
                     changeList: [{
                         to: {
@@ -622,7 +622,7 @@ describe('TypeScriptProject', function () {
         });
         
         it('should set script with given document content if change dispatched are not coherent', function () {
-            workingSetMock.documentEdited.onNext({
+            workingSetMock.documentEdited.dispatch({
                 path: '/src/file1.ts',
                 changeList: [{
                     from: {
@@ -648,7 +648,7 @@ describe('TypeScriptProject', function () {
         
         
         it('should revert a file when a document have been closed without saving', function () {
-           workingSetMock.documentEdited.onNext({
+           workingSetMock.documentEdited.dispatch({
                 path: '/src/file1.ts',
                 changeList: [{
                     from: {

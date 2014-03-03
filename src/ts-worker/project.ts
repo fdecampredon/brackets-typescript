@@ -1,6 +1,5 @@
 'use strict';
 
-import Rx = require('rx');
 import path = require('path');
 import minimatch = require('minimatch');
 import es6Promise = require('es6-promise');
@@ -8,6 +7,7 @@ import Promise = es6Promise.Promise;;
 
 import Services = TypeScript.Services;
 
+import signal = require('../commons/signal');
 import collections = require('../commons/collections');
 import fs = require('../commons/fileSystem');
 import ws = require('../commons/workingSet');
@@ -69,7 +69,6 @@ class TypeScriptProject {
      */
     private references: collections.StringMap<collections.StringSet>;
     
-    private disposables: Rx.IDisposable[] = [];
     
     private initializing: Promise<any>
     
@@ -82,11 +81,11 @@ class TypeScriptProject {
         this.languageServiceHost = new LanguageServiceHost();
         this.languageServiceHost.setCompilationSettings(this.createCompilationSettings());
         this.languageService = this.servicesFactory.createPullLanguageService(this.languageServiceHost);
-        this.disposables.push(
-            this.workingSet.workingSetChanged.subscribe(this.workingSetChangedHandler),
-            this.workingSet.documentEdited.subscribe(this.documentEditedHandler),
-            this.fileSystem.projectFilesChanged.subscribe(this.filesChangeHandler)
-        );
+        
+        this.workingSet.workingSetChanged.add(this.workingSetChangedHandler);
+        this.workingSet.documentEdited.add(this.documentEditedHandler);
+        this.fileSystem.projectFilesChanged.add(this.filesChangeHandler);
+        
         return this.initializing = this.collectFiles().then(() => {
             this.workingSet.getFiles().then((files) => files.forEach(fileName => {
                 if (this.projectFilesSet.has(fileName)) {
@@ -107,7 +106,9 @@ class TypeScriptProject {
     }
     
     public dispose() {
-        this.disposables.forEach(disposable => disposable.dispose());
+        this.workingSet.workingSetChanged.remove(this.workingSetChangedHandler);
+        this.workingSet.documentEdited.remove(this.documentEditedHandler);
+        this.fileSystem.projectFilesChanged.remove(this.filesChangeHandler);
     }
     
     
@@ -252,6 +253,7 @@ class TypeScriptProject {
                 this.removeReference(fileName, referencedPath);
             });
             this.projectFilesSet.remove(fileName);
+            this.languageServiceHost.removeScript(fileName);
         }
     }
     

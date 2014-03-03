@@ -15,10 +15,10 @@
 'use strict'
 
 
-import Rx = require('rx');
 import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;;
+import Promise = es6Promise.Promise;
 import path = require('path');
+import signal = require('../commons/signal');
 import fs = require('../commons/fileSystem');
 import ws = require('../commons/workingSet');
 import TypeScriptProjectConfig = require('../commons/config');
@@ -69,8 +69,6 @@ class TypeScriptProjectManager {
      */
     private tempProject: TypeScriptProject;
     
-    private disposable: Rx.IDisposable;
-    
     
     private initializationResolver: (promise: Promise<any>) => any;
     private busy: Promise<any>;
@@ -94,7 +92,7 @@ class TypeScriptProjectManager {
         this.workingSet = workingSet;
         this.projectFactory = projectFactory;
         
-        this.disposable = this.fileSystem.projectFilesChanged.subscribe(this.filesChangeHandler);
+        this.fileSystem.projectFilesChanged.add(this.filesChangeHandler);
         
         this.createProjects().then(result => this.initializationResolver(result));
         
@@ -106,9 +104,7 @@ class TypeScriptProjectManager {
      * dispose the project manager
      */
     dispose(): void {
-        if (this.disposable) {
-            this.disposable.dispose(); 
-        }
+        this.fileSystem.projectFilesChanged.remove(this.filesChangeHandler);
         this.busy.then(() => {
             this.disposeProjects();    
         });

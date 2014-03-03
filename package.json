@@ -23,7 +23,6 @@
     "grunt-tslint": "~0.4.0",
     "grunt-contrib-compress": "~0.5.3",
     "grunt-browserify": "~1.3.0",
-    "rx": "~2.2.13",
     "istanbulify": "~0.1.0",
     "es6-promise": "~0.1.1"
   }

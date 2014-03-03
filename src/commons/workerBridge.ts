@@ -23,7 +23,7 @@
 
 import utils = require('./utils');
 import collections = require('./collections');
-import Rx = require('rx');
+import signal = require('./signal');
 import es6Promise = require('es6-promise');
 import Promise = es6Promise.Promise;
 
@@ -35,9 +35,7 @@ enum Operation {
     RESPONSE,
     ERROR,
     EXPOSE,
-    OBSERVABLE_NEXT,
-    OBSERVABLE_ERROR,
-    OBSERVABLE_COMPLETED
+    SIGNAL,
 }
 
 /**
@@ -45,7 +43,7 @@ enum Operation {
  */
 enum Type {
     FUNCTION,
-    OBSERVABLE
+    SIGNAL
 }
 
 interface Resolver {
@@ -60,7 +58,7 @@ interface Resolver {
  * @param observables
  * @param baseKeys
  */
-function createProxyDescriptor(services: any, observables: { [index: string]: Rx.Observable<any> }, baseKeys: string[] = []) {
+function createProxyDescriptor(services: any, signals: { [index: string]: signal.Signal<any> }, baseKeys: string[] = []) {
     if (baseKeys.length> 5) {
         return {};
     } 
@@ -71,11 +69,11 @@ function createProxyDescriptor(services: any, observables: { [index: string]: Rx
             if (typeof value === 'function') {
                 descriptor[key] = Type.FUNCTION;
             } else if (typeof value === 'object') {
-                if (value instanceof (<any>Rx.Observable)) {
-                    descriptor[key] = Type.OBSERVABLE;
-                    observables[keys.join('.')] = value;
+                if (value instanceof signal.Signal) {
+                    descriptor[key] = Type.SIGNAL;
+                    signals[keys.join('.')] = value;
                 } else if (!Array.isArray(value)) {
-                    descriptor[key] = createProxyDescriptor(value, observables, keys)
+                    descriptor[key] = createProxyDescriptor(value, signals, keys)
                 }
             }
             return descriptor;
@@ -116,8 +114,8 @@ function createProxy(descriptor: any, sendMessage: (args: any) => void,
                 keys = baseKeys.concat(key);
             if (value === Type.FUNCTION) {
                 proxy[key] = newQuery(keys, sendMessage, resolverMap);
-            } else if (value === Type.OBSERVABLE) {
-                proxy[key] = new Rx.Subject();
+            } else if (value === Type.SIGNAL) {
+                proxy[key] = new signal.Signal();
             } else if (typeof value === 'object') {
                 proxy[key] = createProxy(descriptor[key], sendMessage, resolverMap, keys)
             }
@@ -129,12 +127,9 @@ function createProxy(descriptor: any, sendMessage: (args: any) => void,
  * a simple bridge that will expose services from the 2 sides of a web worker
  */
 class WorkerBridge {
-
-    /**
-     * disposabmles
-     */
-    private disposables: Rx.Disposable[];
     
+    private signals: { signal: signal.Signal<any>; handler: (value: any) => void }[]; 
+
     /**
      * stack of deferred bound to a requres
      */
@@ -173,30 +168,28 @@ class WorkerBridge {
             var target = this.target;
             target.onmessage = this.messageHandler
 
-            var observables: { [index: string]: Rx.Observable<any> } = {};
+            var signals: { [index: string]: signal.Signal<any> } = {};
             target.postMessage({
                 operation : Operation.EXPOSE,
-                descriptor: createProxyDescriptor(services, observables)
+                descriptor: createProxyDescriptor(services, signals)
             });
+            
+            
 
-            this.disposables =  Object.keys(observables).map(key => {
-                var observable = observables[key];
-                return observable.subscribe(
-                    value => target.postMessage({ 
-                        operation: Operation.OBSERVABLE_NEXT, 
+            this.signals =  Object.keys(signals).map(key => {
+                var signal = signals[key];
+                var handler = (value: any) => {
+                    target.postMessage({ 
+                        operation: Operation.SIGNAL, 
                         chain: key.split('.') , 
                         value: value
-                    }),
-                    error => target.postMessage({ 
-                        operation: Operation.OBSERVABLE_ERROR, 
-                        chain: key.split('.'), 
-                        error: error
-                    }),
-                    () => target.postMessage({ 
-                        operation: Operation.OBSERVABLE_COMPLETED, 
-                        chain: key.split('.'), 
                     })
-                )
+                }
+                signal.add(handler);
+                return { 
+                    signal: signal, 
+                    handler: handler
+                };    
             });    
             
             this.initResolver = {resolve: resolve, reject: reject};
@@ -208,7 +201,7 @@ class WorkerBridge {
      * dispose the bridge
      */
     dispose() {
-        this.disposables.forEach(disposable => disposable.dispose());
+        this.signals.forEach(signalDesc => signalDesc.signal.remove(signalDesc.handler));
         this.target.onmessage = null;
     }
     
@@ -270,21 +263,11 @@ class WorkerBridge {
                 
             default:
                 var chain: string[] = data.chain.slice(),
-                    subject: Rx.Subject<any> = this.proxy;
+                    signal: signal.Signal<any> = this.proxy;
                 while (chain.length) {
-                    subject = (<any>subject)[chain.shift()];
+                    signal = (<any>signal)[chain.shift()];
                 }
-                switch(data.operation) {
-                    case Operation.OBSERVABLE_NEXT:
-                        subject.onNext(data.value)
-                        break;
-                    case Operation.OBSERVABLE_ERROR:
-                        subject.onError(data.error)
-                        break;
-                    case Operation.OBSERVABLE_COMPLETED:
-                        subject.onCompleted()
-                        break;
-                }
+                signal.dispatch(data.value);
         }
     }
 }

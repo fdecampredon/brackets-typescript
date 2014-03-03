@@ -18,6 +18,7 @@
 
 import WorkingSet = require('../main/workingSet');
 import ws = require('../commons/workingSet');
+import signal = require('../commons/signal');
 
 describe('WorkingSet', function (): void {
     var workingSetFiles: string[],
@@ -86,15 +87,14 @@ describe('WorkingSet', function (): void {
     });
     
     describe('workingSetChanged', function () {
-        var spy = jasmine.createSpy('workingSetChangedHandler'),
-            disposable: Rx.IDisposable;
+        var spy = jasmine.createSpy('workingSetChangedHandler')
         
         beforeEach(function () {
-            disposable = workingSet.workingSetChanged.subscribe(spy);
+           workingSet.workingSetChanged.add(spy);
         });
         
         afterEach(function () {
-            disposable.dispose();
+            workingSet.workingSetChanged.remove(spy);
             spy.reset();
         });
         
@@ -141,15 +141,14 @@ describe('WorkingSet', function (): void {
     });
 
     describe('documentEdited', function () {
-        var spy = jasmine.createSpy('documentEdited'),
-            disposable: Rx.IDisposable;
+        var spy = jasmine.createSpy('documentEdited');
         
         beforeEach(function () {
-            disposable = workingSet.documentEdited.subscribe(spy);
+           workingSet.documentEdited.add(spy);
         });
         
         afterEach(function () {
-            disposable.dispose();
+            workingSet.documentEdited.remove(spy);
             spy.reset();
         });
         

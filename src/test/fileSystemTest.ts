@@ -178,7 +178,7 @@ describe('FileSystem', function() {
         var changeSpy  = jasmine.createSpy('changeSpy');
         
         beforeEach(() => {
-            fileSystem.projectFilesChanged.subscribe(changeSpy);
+            fileSystem.projectFilesChanged.add(changeSpy);
             //initilize the caching
             fileSystem.getProjectFiles();
         });

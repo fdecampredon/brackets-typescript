@@ -13,7 +13,7 @@
 //   limitations under the License.
 
 
-import Rx = require('rx');
+import signal = require('../commons/signal');
 import collections = require('../commons/collections');
 import ws = require('../commons/workingSet');
 
@@ -54,12 +54,12 @@ class WorkingSet  {
     /**
      * internal signal for workingSetChanged
      */
-    private _workingSetChanged = new Rx.Subject<ws.WorkingSetChangeRecord>();
+    private _workingSetChanged = new signal.Signal<ws.WorkingSetChangeRecord>();
     
     /**
      * internal signal for documentEdited
      */
-    private _documentEdited = new Rx.Subject<ws.DocumentChangeRecord>();
+    private _documentEdited = new signal.Signal<ws.DocumentChangeRecord>();
     
         
     /**
@@ -136,7 +136,7 @@ class WorkingSet  {
      */
     private workingSetAddHandler = (event: any, file: brackets.File) => {
         this.filesSet.add(file.fullPath);
-        this.workingSetChanged.onNext({
+        this.workingSetChanged.dispatch({
             kind: ws.WorkingSetChangeKind.ADD,
             paths: [file.fullPath]
         });
@@ -151,7 +151,7 @@ class WorkingSet  {
             return file.fullPath;
         });
         if (paths.length > 0) {
-            this.workingSetChanged.onNext({
+            this.workingSetChanged.dispatch({
                 kind: ws.WorkingSetChangeKind.ADD,
                 paths: paths
             });
@@ -163,7 +163,7 @@ class WorkingSet  {
      */      
     private workingSetRemoveHandler = (event: any, file: brackets.File) => {
         this.filesSet.remove(file.fullPath);
-        this.workingSetChanged.onNext({
+        this.workingSetChanged.dispatch({
             kind: ws.WorkingSetChangeKind.REMOVE,
             paths: [file.fullPath]
         });
@@ -178,7 +178,7 @@ class WorkingSet  {
             return file.fullPath
         });
         if (paths.length > 0) {
-            this.workingSetChanged.onNext({
+            this.workingSetChanged.dispatch({
                 kind: ws.WorkingSetChangeKind.REMOVE,
                 paths: paths
             });
@@ -211,7 +211,7 @@ class WorkingSet  {
             change = change.next; 
         }
         if (changeList.length > 0) {
-            this.documentEdited.onNext({
+            this.documentEdited.dispatch({
                 path: document.file.fullPath,
                 changeList: changeList,
                 documentText: document.getText()

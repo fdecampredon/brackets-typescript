@@ -17,6 +17,7 @@ declare var require: any;
 
 /*istanbulify ignore file*/
 require('./collectionsTest');
+require('./signalTest');
 require('./fileSystemTest');
 require('./workingSetTest');
 require('./languageServiceHostTest');

@@ -18,7 +18,7 @@
 
 
 import fs = require('../commons/fileSystem');
-import Rx = require('rx');
+import signal = require('../commons/signal');
 import es6Promise = require('es6-promise');
 import Promise = es6Promise.Promise;;
 
@@ -44,14 +44,14 @@ class FileSystem implements fs.FileSystem {
         })
     }
     
-    projectFilesChanged = new Rx.Subject<fs.FileChangeRecord[]>();
+    projectFilesChanged = new signal.Signal<fs.FileChangeRecord[]>();
     
     addFile(path: string, content: string) {
         if (this.files.hasOwnProperty(path)) {
             throw new Error('File already present');
         }
         this.files[path] = content;
-        this.projectFilesChanged.onNext([{
+        this.projectFilesChanged.dispatch([{
             kind : fs.FileChangeKind.ADD,
             path: path
         }]);
@@ -62,7 +62,7 @@ class FileSystem implements fs.FileSystem {
             throw new Error('File does not exist');
         }
         this.files[path] = content;
-        this.projectFilesChanged.onNext([{
+        this.projectFilesChanged.dispatch([{
             kind : fs.FileChangeKind.UPDATE,
             path: path
         }]);
@@ -73,7 +73,7 @@ class FileSystem implements fs.FileSystem {
             throw new Error('File does not exist');
         }
         delete this.files[path];
-        this.projectFilesChanged.onNext([{
+        this.projectFilesChanged.dispatch([{
             kind : fs.FileChangeKind.DELETE,
             path: path
         }]);
@@ -84,13 +84,14 @@ class FileSystem implements fs.FileSystem {
     }
     
     reset(): void {
-        this.projectFilesChanged.onNext([{
+        this.projectFilesChanged.dispatch([{
             kind : fs.FileChangeKind.RESET
         }]);
     }
     
     
     dispose(): void {
+        this.projectFilesChanged.clear();
     }
 }
 

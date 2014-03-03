@@ -17,7 +17,7 @@
 
 
 import collections = require('../commons/collections');
-import Rx = require('rx');
+import signal = require('../commons/signal');
 import es6Promise = require('es6-promise');
 import Promise = es6Promise.Promise;;
 import fs = require('../commons/fileSystem');
@@ -67,7 +67,7 @@ class FileSystem implements fs.FileSystem {
     private initializationStack: { (): void }[] = [];
     
  
-    private _projectFilesChanged = new Rx.Subject<fs.FileChangeRecord[]>();
+    private _projectFilesChanged = new signal.Signal<fs.FileChangeRecord[]>();
     
     //-------------------------------
     //  IFileSystem implementation
@@ -76,7 +76,7 @@ class FileSystem implements fs.FileSystem {
     /**
      * @see IFileSystem.projectFilesChanged
      */
-    get projectFilesChanged(): Rx.Observable<fs.FileChangeRecord[]> {
+    get projectFilesChanged(): signal.Signal<fs.FileChangeRecord[]> {
         return this._projectFilesChanged;
     }
     
@@ -125,7 +125,7 @@ class FileSystem implements fs.FileSystem {
         this.filesContent.clear();
         this.filesPath.length = 0;
         this.init();
-        this._projectFilesChanged.onNext([{
+        this._projectFilesChanged.dispatch([{
             kind: fs.FileChangeKind.RESET
         }]);
     }
@@ -137,7 +137,7 @@ class FileSystem implements fs.FileSystem {
     dispose(): void {
         this.nativeFileSystem.off('change', this.changesHandler);
         this.nativeFileSystem.off('rename', this.renameHandler);
-        this._projectFilesChanged.dispose();
+        this._projectFilesChanged.clear();
     }
     
     //-------------------------------
@@ -281,7 +281,7 @@ class FileSystem implements fs.FileSystem {
                     });
                 
                     if (changes.length > 0) {
-                        this._projectFilesChanged.onNext(changes);  
+                        this._projectFilesChanged.dispatch(changes);  
                     }
                     this.initialized = true;
                     this.resolveInitializationStack();
@@ -295,7 +295,7 @@ class FileSystem implements fs.FileSystem {
             //file have been updated simply dispatch an update event and update the cache if necessary
             
             var dispatchUpdate = () => {
-                this._projectFilesChanged.onNext([{
+                this._projectFilesChanged.dispatch([{
                    kind: fs.FileChangeKind.UPDATE,
                    path: file.fullPath
                 }]);
@@ -394,7 +394,7 @@ class FileSystem implements fs.FileSystem {
                
                 Promise.all(promises).then(() => {
                     if (changes.length > 0) {
-                        this._projectFilesChanged.onNext(changes);  
+                        this._projectFilesChanged.dispatch(changes);  
                     }  
                 }, () => {
                     //in case of error reset
@@ -420,7 +420,7 @@ class FileSystem implements fs.FileSystem {
             changes = this.fileRenamedHandler(oldPath, newPath);
         }
         if (changes.length > 0) {
-            this._projectFilesChanged.onNext(changes);
+            this._projectFilesChanged.dispatch(changes);
         }
     }
     

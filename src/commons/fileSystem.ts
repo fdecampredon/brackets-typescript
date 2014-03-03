@@ -1,5 +1,6 @@
 import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;;
+import Promise = es6Promise.Promise;
+import signal = require('./signal');
 
 
 //--------------------------------------------------------------------------
@@ -16,7 +17,7 @@ export interface FileSystem {
     /**
      * a signal dispatching fine grained change reflecting the change that happens in the working set
      */
-    projectFilesChanged: Rx.Observable<FileChangeRecord[]>
+    projectFilesChanged: signal.Signal<FileChangeRecord[]>
     
     /**
      * return a promise that resolve with a string containing the files in the project

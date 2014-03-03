@@ -5,7 +5,7 @@
 
 
 import WorkerBridge = require('../commons/workerBridge');
-import Rx = require('rx');
+import signal = require('../commons/signal');
 import es6Promise = require('es6-promise');
 import Promise = es6Promise.Promise;;
 
@@ -237,44 +237,32 @@ describe('bridge', function () {
     
     
      
-    it('if a service expose an observable, the proxied service should expose an obserbable that is synchronized with the original service', function () {
+    it('if a service expose a signal, the proxied service should expose a signal that is synchronized with the original service', function () {
         
-        var subject = new Rx.Subject(),
-            subject2 = new Rx.Subject()
+        var workerSignal = new signal.Signal()
         worker = new FakeWorker(function (postMessage) {
             createBridge(this, {
-                observable: subject,
-                observable2: subject2
+                signal: new signal.Signal()
             })
         });
         
-        var observable: Rx.Observable<string>,
-            observable2: Rx.Observable<string>,
-            onNextSpy = jasmine.createSpy('onNext'),
-            onErrorSpy = jasmine.createSpy('onError'),
-            onCompletedSpy = jasmine.createSpy('onComplete');
+        var exposedSignal: signal.Signal<string>,
+            spy = jasmine.createSpy('onNext')
         
         createBridge(worker, {}).then(services => {
-            observable = services.observable,
-            observable2 = services.observable2
+            exposedSignal = services.signal
         });
         
-        waitsFor(()=> !!observable && !!observable2, 'observale should have been set', 100);
+        waitsFor(()=> !!exposedSignal,  'workerSignal should have been set', 100);
         runs(function () {
-            observable.subscribe(onNextSpy, onErrorSpy);
-            observable2.subscribe(undefined, undefined, onCompletedSpy);
-            
-            subject.onNext("hello");
-            subject.onNext("world");
-            subject.onError("error");
-            subject2.onCompleted();
+            exposedSignal.add(spy);
+            exposedSignal.dispatch('hello')
+            exposedSignal.dispatch('world')
         });
         waits(100);
         runs(function () {
-            expect(onNextSpy).toHaveBeenCalledWith("hello");
-            expect(onNextSpy).toHaveBeenCalledWith("world");
-            expect(onErrorSpy).toHaveBeenCalledWith("error");
-            expect(onCompletedSpy).toHaveBeenCalled();
+            expect(spy).toHaveBeenCalledWith('hello');
+            expect(spy).toHaveBeenCalledWith('world');
         });
     });
     
