@@ -215,8 +215,8 @@ class TypeScriptProject {
      * @param path
      */
     private isProjectSourceFile(fileName: string): boolean {
-        fileName = path.relative(this.baseDirectory, fileName);
-        return this.config.sources.some(pattern => minimatch(fileName, pattern));
+        var relativeFileName = path.relative(this.baseDirectory, fileName);
+        return this.config.sources.some(pattern => minimatch(relativeFileName, pattern) || minimatch(fileName, pattern));
     }
     
    

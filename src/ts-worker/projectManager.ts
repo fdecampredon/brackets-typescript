@@ -118,7 +118,7 @@ class TypeScriptProjectManager {
      * @param fileName the path of the typesrcript file for which project are looked fo
      */
     getProjectForFile(fileName: string): Promise<TypeScriptProject> {
-        return this.busy.then(() => {
+        return this.busy.then((): any => {
             var projects = utils.mergeAll(this.projectMap.values).filter(project => !!project),
                 project : TypeScriptProject = null;
             //first we check for a project that have tha file as source 
@@ -163,6 +163,8 @@ class TypeScriptProjectManager {
                     new Services.TypeScriptServicesFactory(),
                     path.join(this.defaultTypeScriptLocation, 'lib.d.ts')
                 );
+                this.busy = this.tempProject.init();
+                return this.busy;
             }
             
             return project;
