@@ -498,13 +498,12 @@ declare module TypeScript {
         VeryAggressive = 3,
     }
     class Debug {
-        //private static currentAssertionLevel;
+        private static currentAssertionLevel;
         static shouldAssert(level: AssertionLevel): boolean;
         static assert(expression: any, message?: string, verboseDebugInfo?: () => string): void;
         static fail(message?: string): void;
     }
 }
-
 declare module TypeScript {
     var LocalizedDiagnosticMessages: IIndexable<any>;
     class Location {
@@ -558,13 +557,13 @@ declare module TypeScript {
 }
 declare module TypeScript {
     class Hash {
-        private static FNV_BASE:string;
-        private static FNV_PRIME:string;
+        private static FNV_BASE;
+        private static FNV_PRIME;
         private static computeFnv1aCharArrayHashCode(text, start, len);
         static computeSimple31BitCharArrayHashCode(key: number[], start: number, len: number): number;
         static computeSimple31BitStringHashCode(key: string): number;
         static computeMurmur2StringHashCode(key: string, seed: number): number;
-        private static primes:string;
+        private static primes;
         static getPrime(min: number): number;
         static expandPrime(oldSize: number): number;
         static combine(value: number, currentHash: number): number;
@@ -1364,7 +1363,7 @@ declare module TypeScript {
         public setAbsoluteIndex(index: number): void;
         public scan(diagnostics: Diagnostic[], allowRegularExpression: boolean): ISyntaxToken;
         private createToken(fullStart, leadingTriviaInfo, start, kind, end, fullEnd, trailingTriviaInfo, isVariableWidthKeyword);
-        private static triviaWindow: any;
+        private static triviaWindow;
         static scanTrivia(text: ISimpleText, start: number, length: number, isTrailing: boolean): ISyntaxTriviaList;
         private scanTrivia(underlyingText, underlyingTextStart, isTrailing);
         private scanTriviaInfo(diagnostics, isTrailing);
@@ -4951,6 +4950,7 @@ declare module TypeScript.ASTHelpers {
     function isNameOfMemberFunction(ast: AST): boolean;
     function isNameOfMemberAccessExpression(ast: AST): boolean;
     function isRightSideOfQualifiedName(ast: AST): boolean;
+    function parentIsModuleDeclaration(ast: AST): boolean;
     function parametersFromIdentifier(id: Identifier): IParameters;
     function parametersFromParameter(parameter: Parameter): IParameters;
     function parametersFromParameterList(list: ParameterList): IParameters;
@@ -4961,9 +4961,10 @@ declare module TypeScript.ASTHelpers {
     function getVariableDeclaratorModifiers(variableDeclarator: VariableDeclarator): PullElementFlags[];
     function isIntegerLiteralAST(expression: AST): boolean;
     function getEnclosingModuleDeclaration(ast: AST): ModuleDeclaration;
+    function getModuleDeclarationFromNameAST(ast: AST): ModuleDeclaration;
     function isLastNameOfModule(ast: ModuleDeclaration, astName: AST): boolean;
-    function isAnyNameOfModule(ast: ModuleDeclaration, astName: AST): boolean;
     function getNameOfIdenfierOrQualifiedName(name: AST): string;
+    function getModuleNames(name: AST, result?: Identifier[]): Identifier[];
 }
 declare module TypeScript {
     class AstWalkOptions {
@@ -5165,9 +5166,7 @@ declare module TypeScript {
         private emitMemberVariableDeclaration(varDecl);
         public emitVariableDeclarator(varDecl: VariableDeclarator): void;
         private symbolIsUsedInItsEnclosingContainer(symbol, dynamic?);
-        private getPotentialDeclPathInfoForEmit(pullSymbol);
-        private emitDottedNameFromDeclPath(declPath, startingIndex, lastIndex);
-        private emitSymbolContainerNameInEnclosingContext(pullSymbol);
+        private shouldQualifySymbolNameWithParentName(symbol);
         private getSymbolForEmit(ast);
         public emitName(name: Identifier, addThis: boolean): void;
         public recordSourceMappingNameStart(name: string): void;
@@ -5208,9 +5207,8 @@ declare module TypeScript {
         public emitDeleteExpression(expression: DeleteExpression): void;
         public emitVoidExpression(expression: VoidExpression): void;
         private canEmitDottedNameMemberAccessExpression(expression);
-        private emitDottedNameMemberAccessExpressionWorker(expression, potentialPath, startingIndex, lastIndex);
-        private emitDottedNameMemberAccessExpressionRecurse(expression, potentialPath, startingIndex, lastIndex);
         private emitDottedNameMemberAccessExpression(expression);
+        private emitDottedNameMemberAccessExpressionRecurse(expression);
         public emitMemberAccessExpression(expression: MemberAccessExpression): void;
         public emitQualifiedName(name: QualifiedName): void;
         public emitBinaryExpression(expression: BinaryExpression): void;
@@ -5439,7 +5437,7 @@ declare module TypeScript {
         private emitDeclarationsForClassDeclaration(classDecl);
         private emitHeritageClauses(clauses);
         private emitHeritageClause(clause);
-        private getEnclosingContainer(ast);
+        static getEnclosingContainer(ast: AST): AST;
         private emitTypeParameters(typeParams, funcSignature?);
         private emitDeclarationsForInterfaceDeclaration(interfaceDecl);
         private emitDeclarationsForImportDeclaration(importDeclAST);
@@ -5497,7 +5495,7 @@ declare module TypeScript {
         public createFileLog: boolean;
     }
     class ImmutableCompilationSettings {
-        private static _defaultSettings: any;
+        private static _defaultSettings;
         private _propagateEnumConstants;
         private _removeComments;
         private _watch;
@@ -5738,9 +5736,9 @@ declare module TypeScript {
         public isAlias(): boolean;
         public isContainer(): boolean;
         constructor(name: string, declKind: PullElementKind);
-        private findAliasedType(scopeSymbol, skipScopeSymbolAliasesLookIn?, lookIntoOnlyExportedAlias?, aliasSymbols?, visitedScopeDeclarations?);
+        private findAliasedTypeSymbols(scopeSymbol, skipScopeSymbolAliasesLookIn?, lookIntoOnlyExportedAlias?, aliasSymbols?, visitedScopeDeclarations?);
         public getExternalAliasedSymbols(scopeSymbol: PullSymbol): PullTypeAliasSymbol[];
-        private isExternalModuleReferenceAlias(aliasSymbol);
+        static _isExternalModuleReferenceAlias(aliasSymbol: PullTypeAliasSymbol): boolean;
         private getExportedInternalAliasSymbol(scopeSymbol);
         public getAliasSymbolName(scopeSymbol: PullSymbol, aliasNameGetter: (symbol: PullTypeAliasSymbol) => string, aliasPartsNameGetter: (symbol: PullTypeAliasSymbol) => string, skipInternalAlias?: boolean): string;
         public _getResolver(): PullTypeResolver;
@@ -5856,6 +5854,7 @@ declare module TypeScript {
         private _callSignatures;
         private _allCallSignatures;
         private _constructSignatures;
+        private _allConstructSignatures;
         private _indexSignatures;
         private _allIndexSignatures;
         private _allIndexSignaturesOfAugmentedType;
@@ -5940,6 +5939,7 @@ declare module TypeScript {
         public getKnownSpecializations(): PullTypeSymbol[];
         public getTypeArguments(): PullTypeSymbol[];
         public getTypeArgumentsOrTypeParameters(): PullTypeSymbol[];
+        private addCallOrConstructSignaturePrerequisiteBase(signature);
         private addCallSignaturePrerequisite(callSignature);
         public appendCallSignature(callSignature: PullSignatureSymbol): void;
         public insertCallSignatureAtIndex(callSignature: PullSignatureSymbol, index: number): void;
@@ -5951,12 +5951,14 @@ declare module TypeScript {
         public getOwnCallSignatures(): PullSignatureSymbol[];
         public getCallSignatures(): PullSignatureSymbol[];
         public hasOwnConstructSignatures(): boolean;
-        public getOwnConstructSignatures(): PullSignatureSymbol[];
+        public getOwnDeclaredConstructSignatures(): PullSignatureSymbol[];
         public getConstructSignatures(): PullSignatureSymbol[];
         public hasOwnIndexSignatures(): boolean;
         public getOwnIndexSignatures(): PullSignatureSymbol[];
         public getIndexSignatures(): PullSignatureSymbol[];
         public getIndexSignaturesOfAugmentedType(resolver: PullTypeResolver, globalFunctionInterface: PullTypeSymbol, globalObjectInterface: PullTypeSymbol): PullSignatureSymbol[];
+        private getBaseClassConstructSignatures(baseType);
+        private getDefaultClassConstructSignature();
         public addImplementedType(implementedType: PullTypeSymbol): void;
         public getImplementedTypes(): PullTypeSymbol[];
         public addExtendedType(extendedType: PullTypeSymbol): void;
@@ -6108,20 +6110,34 @@ declare module TypeScript {
     }
 }
 declare module TypeScript {
+    class EnclosingTypeWalkerState {
+        public _hasSetEnclosingType: boolean;
+        public _currentSymbols: PullSymbol[];
+        static getDefaultEnclosingTypeWalkerState(): EnclosingTypeWalkerState;
+        static getNonGenericEnclosingTypeWalkerState(): EnclosingTypeWalkerState;
+        static getGenericEnclosingTypeWalkerState(genericEnclosingType: PullTypeSymbol): EnclosingTypeWalkerState;
+    }
     class PullTypeEnclosingTypeWalker {
-        private currentSymbols;
+        private static _defaultEnclosingTypeWalkerState;
+        private static _nonGenericEnclosingTypeWalkerState;
+        private enclosingTypeWalkerState;
+        constructor();
+        private setDefaultTypeWalkerState();
+        private setNonGenericEnclosingTypeWalkerState();
+        private canSymbolOrDeclBeUsedAsEnclosingTypeHelper(name, kind);
+        private canDeclBeUsedAsEnclosingType(decl);
+        private canSymbolBeUsedAsEnclosingType(symbol);
         public getEnclosingType(): PullTypeSymbol;
         public _canWalkStructure(): boolean;
         public _getCurrentSymbol(): PullSymbol;
         public getGenerativeClassification(): GenerativeTypeClassification;
         private _pushSymbol(symbol);
         private _popSymbol();
+        private setSymbolAsEnclosingType(type);
         private _setEnclosingTypeOfParentDecl(decl, setSignature);
-        private _setEnclosingTypeWorker(symbol, setSignature);
-        public setCurrentSymbol(symbol: PullSymbol): void;
-        public startWalkingType(symbol: PullTypeSymbol): PullSymbol[];
-        public endWalkingType(currentSymbolsWhenStartedWalkingTypes: PullSymbol[]): void;
-        public setEnclosingType(symbol: PullSymbol): void;
+        public setEnclosingTypeForSymbol(symbol: PullSymbol): EnclosingTypeWalkerState;
+        public startWalkingType(symbol: PullTypeSymbol): EnclosingTypeWalkerState;
+        public endWalkingType(stateWhenStartedWalkingTypes: EnclosingTypeWalkerState): void;
         public walkMemberType(memberName: string, resolver: PullTypeResolver): void;
         public postWalkMemberType(): void;
         public walkSignature(kind: PullElementKind, index: number): void;
@@ -6137,6 +6153,8 @@ declare module TypeScript {
         public getBothKindOfIndexSignatures(resolver: PullTypeResolver, context: PullTypeResolutionContext, includeAugmentedType: boolean): IndexSignatureInfo;
         public walkIndexSignatureReturnType(indexSigInfo: IndexSignatureInfo, useStringIndexSignature: boolean, onlySignature?: boolean): void;
         public postWalkIndexSignatureReturnType(onlySignature?: boolean): void;
+        public resetEnclosingTypeWalkerState(): EnclosingTypeWalkerState;
+        public setEnclosingTypeWalkerState(enclosingTypeWalkerState: EnclosingTypeWalkerState): void;
     }
 }
 declare module TypeScript {
@@ -6198,8 +6216,8 @@ declare module TypeScript {
         public fileName: string;
         private contextStack;
         private typeCheckedNodes;
-        public enclosingTypeWalker1: PullTypeEnclosingTypeWalker;
-        public enclosingTypeWalker2: PullTypeEnclosingTypeWalker;
+        private enclosingTypeWalker1;
+        private enclosingTypeWalker2;
         constructor(resolver: PullTypeResolver, inTypeCheck?: boolean, fileName?: string);
         public setTypeChecked(ast: AST): void;
         public canTypeCheckAST(ast: AST): boolean;
@@ -6225,14 +6243,17 @@ declare module TypeScript {
         public setSymbolForAST(ast: AST, symbol: PullSymbol): void;
         public getSymbolForAST(ast: AST): PullSymbol;
         public startWalkingTypes(symbol1: PullTypeSymbol, symbol2: PullTypeSymbol): {
-            symbolsWhenStartedWalkingTypes1: PullSymbol[];
-            symbolsWhenStartedWalkingTypes2: PullSymbol[];
+            stateWhenStartedWalkingTypes1: EnclosingTypeWalkerState;
+            stateWhenStartedWalkingTypes2: EnclosingTypeWalkerState;
         };
-        public endWalkingTypes(symbolsWhenStartedWalkingTypes: {
-            symbolsWhenStartedWalkingTypes1: PullSymbol[];
-            symbolsWhenStartedWalkingTypes2: PullSymbol[];
+        public endWalkingTypes(statesWhenStartedWalkingTypes: {
+            stateWhenStartedWalkingTypes1: EnclosingTypeWalkerState;
+            stateWhenStartedWalkingTypes2: EnclosingTypeWalkerState;
         }): void;
-        public setEnclosingTypes(symbol1: PullSymbol, symbol2: PullSymbol): void;
+        public setEnclosingTypeForSymbols(symbol1: PullSymbol, symbol2: PullSymbol): {
+            enclosingTypeWalkerState1: EnclosingTypeWalkerState;
+            enclosingTypeWalkerState2: EnclosingTypeWalkerState;
+        };
         public walkMemberTypes(memberName: string): void;
         public postWalkMemberTypes(): void;
         public walkSignatures(kind: PullElementKind, index: number, index2?: number): void;
@@ -6256,13 +6277,13 @@ declare module TypeScript {
         public postWalkIndexSignatureReturnTypes(onlySignature?: boolean): void;
         public swapEnclosingTypeWalkers(): void;
         public oneOfClassificationsIsInfinitelyExpanding(): boolean;
-        public resetEnclosingTypeWalkers(): {
-            enclosingTypeWalker1: PullTypeEnclosingTypeWalker;
-            enclosingTypeWalker2: PullTypeEnclosingTypeWalker;
+        public resetEnclosingTypeWalkerStates(): {
+            enclosingTypeWalkerState1: EnclosingTypeWalkerState;
+            enclosingTypeWalkerState2: EnclosingTypeWalkerState;
         };
-        public setEnclosingTypeWalkers(enclosingTypeWalkers: {
-            enclosingTypeWalker1: PullTypeEnclosingTypeWalker;
-            enclosingTypeWalker2: PullTypeEnclosingTypeWalker;
+        public setEnclosingTypeWalkerStates(enclosingTypeWalkerStates: {
+            enclosingTypeWalkerState1: EnclosingTypeWalkerState;
+            enclosingTypeWalkerState2: EnclosingTypeWalkerState;
         }): void;
     }
 }
@@ -6529,7 +6550,7 @@ declare module TypeScript {
         private getSomeInnermostFunctionScopeDecl(declPath);
         private isFromFunctionScope(nameSymbol, functionScopeDecl);
         private findConstructorDeclOfEnclosingType(decl);
-        private checkNameAsPartOfInitializerExpressionForInstanceMemberVariable(nameAST);
+        private checkNameAsPartOfInitializerExpressionForInstanceMemberVariable(nameAST, nameSymbol, context);
         private computeNameExpression(nameAST, context);
         private getCurrentParameterIndexForFunction(parameter, funcDecl);
         private resolveMemberAccessExpression(dottedNameAST, context);
@@ -6641,7 +6662,7 @@ declare module TypeScript {
         private sourceIsRelatableToTargetInCache(source, target, comparisonCache, comparisonInfo);
         private sourceIsRelatableToTarget(source, target, assignableTo, comparisonCache, ast, context, comparisonInfo, isComparingInstantiatedSignatures);
         private isSourceTypeParameterConstrainedToTargetTypeParameter(source, target);
-        private sourceIsRelatableToTargetWorker(source, target, sourceSubstitution, assignableTo, comparisonCache, ast, context, comparisonInfo, isComparingInstantiatedSignatures);
+        private sourceIsRelatableToTargetWorker(source, target, assignableTo, comparisonCache, ast, context, comparisonInfo, isComparingInstantiatedSignatures);
         private sourceMembersAreRelatableToTargetMembers(source, target, assignableTo, comparisonCache, ast, context, comparisonInfo, isComparingInstantiatedSignatures);
         private infinitelyExpandingSourceTypeIsRelatableToTargetType(sourceType, targetType, assignableTo, comparisonCache, ast, context, comparisonInfo, isComparingInstantiatedSignatures);
         private infinitelyExpandingTypesAreIdentical(sourceType, targetType, context);
@@ -6826,7 +6847,6 @@ declare module TypeScript {
     }
 }
 declare module TypeScript {
-    function getModuleNames(name: AST, result?: Identifier[]): Identifier[];
     module DeclarationCreator {
         function create(document: Document, semanticInfoChain: SemanticInfoChain, compilationSettings: ImmutableCompilationSettings): PullDecl;
     }
@@ -6899,6 +6919,7 @@ declare module TypeScript {
         function getRootType(type: PullTypeSymbol): PullTypeSymbol;
         function isSymbolLocal(symbol: PullSymbol): boolean;
         function isExportedSymbolInClodule(symbol: PullSymbol): boolean;
+        function isSymbolDeclaredInScopeChain(symbol: PullSymbol, scopeSymbol: PullSymbol): boolean;
         interface PullTypeSymbolStructureWalker {
             memberSymbolWalk(memberSymbol: PullSymbol): boolean;
             callSignatureWalk(signatureSymbol: PullSignatureSymbol): boolean;
@@ -7048,7 +7069,7 @@ declare module TypeScript {
         private getSyntaxTree(fileName);
         private getSourceUnit(fileName);
         public getSemanticDiagnostics(fileName: string): Diagnostic[];
-        public getCompilerOptionsDiagnostics(): Diagnostic[];
+        public getCompilerOptionsDiagnostics(resolvePath: (path: string) => string): Diagnostic[];
         public resolveAllFiles(): void;
         public getSymbolOfDeclaration(decl: PullDecl): PullSymbol;
         private extractResolutionContextFromAST(resolver, ast, document, propagateContextualTypes);
@@ -7064,8 +7085,8 @@ declare module TypeScript {
         public getDeclForAST(ast: AST): PullDecl;
         public fileNames(): string[];
         public topLevelDecl(fileName: string): PullDecl;
-        private static getLocationText(location);
-        static getFullDiagnosticText(diagnostic: Diagnostic): string;
+        private static getLocationText(location, resolvePath);
+        static getFullDiagnosticText(diagnostic: Diagnostic, resolvePath: (path: string) => string): string;
     }
     function compareDataObjects(dst: any, src: any): boolean;
 }
@@ -8182,6 +8203,7 @@ declare module TypeScript.Services {
         public fileName: string;
         public minChar: number;
         public limChar: number;
+        public additionalSpans: SpanInfo[];
         public containerName: string;
         public containerKind: string;
     }
@@ -8892,7 +8914,7 @@ declare module TypeScript.Services {
         public getDocument(fileName: string): Document;
         public getSyntacticDiagnostics(fileName: string): Diagnostic[];
         public getSemanticDiagnostics(fileName: string): Diagnostic[];
-        public getCompilerOptionsDiagnostics(): Diagnostic[];
+        public getCompilerOptionsDiagnostics(resolvePath: (path: string) => string): Diagnostic[];
         public getSymbolInformationFromAST(ast: AST, document: Document): PullSymbolInfo;
         public getCallInformationFromAST(ast: AST, document: Document): PullCallSymbolInfo;
         public getVisibleMemberSymbolsFromAST(ast: AST, document: Document): PullVisibleSymbolsInfo;
@@ -8921,8 +8943,8 @@ declare module TypeScript.Services {
 }
 declare module TypeScript.Services {
     class KeywordCompletions {
-        private static keywords: any;
-        private static keywordCompletions: any;
+        private static keywords;
+        private static keywordCompletions;
         static getKeywordCompltions(): ResolvedCompletionEntry[];
     }
 }
@@ -9009,7 +9031,8 @@ declare module TypeScript.Services {
         private tryAddSignatures(symbolKind, symbolName, containerKind, containerName, declarations, result);
         private tryAddConstructor(symbolKind, symbolName, containerKind, containerName, declarations, result);
         public getNavigateToItems(searchValue: string): NavigateToItem[];
-        private findSearchValueInPullDecl(fileName, declarations, results, searchTerms, searchRegExpTerms, parentName?, parentkindName?);
+        private hasAnyUpperCaseCharacter(s);
+        private findSearchValueInPullDecl(fileName, declarations, results, searchTerms, parentName?, parentkindName?);
         private getScriptElementKindModifiersFromDecl(decl);
         private isContainerDeclaration(declaration);
         private shouldIncludeDeclarationInNavigationItems(declaration);
@@ -9200,7 +9223,7 @@ declare module TypeScript.Services {
 }
 declare module TypeScript.Services {
     class OutliningElementsCollector extends DepthLimitedWalker {
-        private static MaximumDepth: any;
+        private static MaximumDepth;
         private inObjectLiteralExpression;
         private elements;
         constructor();
@@ -9233,16 +9256,22 @@ declare module TypeScript.Services.Breakpoints {
 }
 declare module TypeScript.Services {
     class GetScriptLexicalStructureWalker extends PositionTrackingWalker {
-        private items;
         private fileName;
         private nameStack;
         private kindStack;
         private currentMemberVariableDeclaration;
         private currentVariableStatement;
         private currentInterfaceDeclaration;
-        constructor(items: NavigateToItem[], fileName: string);
+        private parentScopes;
+        private currentScope;
+        private createScope();
+        private pushNewContainerScope(containerName, kind);
+        private popScope();
+        constructor(fileName: string);
+        private collectItems(items, scope?);
         static getListsOfAllScriptLexicalStructure(items: NavigateToItem[], fileName: string, unit: SourceUnitSyntax): void;
         private createItem(node, modifiers, kind, name);
+        private addAdditionalSpan(node, key);
         private getKindModifiers(modifiers);
         public visitModuleDeclaration(node: ModuleDeclarationSyntax): void;
         private visitModuleDeclarationWorker(node, names, nameIndex);
