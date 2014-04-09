@@ -29,7 +29,7 @@ import logger = require('../commons/logger');
 import TypeScriptProject = require('./project');
 import Services = TypeScript.Services;
 
-
+/*istanbulify ignore file*/
 //--------------------------------------------------------------------------
 //
 //  TypeScriptProjectManager
@@ -164,7 +164,7 @@ class TypeScriptProjectManager {
                     path.join(this.defaultTypeScriptLocation, 'lib.d.ts')
                 );
                 this.busy = this.tempProject.init();
-                return this.busy;
+                return this.busy.then(() => this.tempProject);
             }
             
             return project;
