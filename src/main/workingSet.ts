@@ -199,17 +199,15 @@ class WorkingSet  {
     /**
      * handle 'change' on document
      */
-    private documentChangesHandler = (event: any, document: brackets.Document, change: CodeMirror.EditorChangeLinkedList) => {
-        var changeList: ws.DocumentChangeDescriptor[] = [];
-        while (change) {
-            changeList.push({
+    private documentChangesHandler = (event: any, document: brackets.Document, changes: CodeMirror.EditorChange[]) => {
+        var changeList: ws.DocumentChangeDescriptor[] = 
+            changes.map(change => ({
                 from: change.from,
                 to: change.to,
                 text: change.text && change.text.join('\n'),
                 removed: change.removed ? change.removed.join("\n") : ""
-            });
-            change = change.next; 
-        }
+            }));
+            
         if (changeList.length > 0) {
             this.documentEdited.dispatch({
                 path: document.file.fullPath,

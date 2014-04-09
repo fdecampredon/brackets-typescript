@@ -156,7 +156,7 @@ describe('WorkingSet', function (): void {
        it('should notify when a document has been edited', function () {
             var doc = currentEditor.document
                
-            $(doc).triggerHandler('change', [doc, {
+            $(doc).triggerHandler('change', [doc, [{
                 from : {
                     ch: 0,
                     line: 0
@@ -166,20 +166,19 @@ describe('WorkingSet', function (): void {
                     line: 0,
                 },
                 text : ['\'use strict\'','console.log(\'Hello World\')'],
-                removed : [''],
-                next:  {
-                    from : {
-                        ch: 8,
-                        line: 1
-                    },
-                    to: {
-                        ch: 11,
-                        line: 1
-                    },
-                    text : ['warn'],
-                    removed : ['log']
-                }
-            }]);
+                removed : ['']
+            }, {
+                from : {
+                    ch: 8,
+                    line: 1
+                },
+                to: {
+                    ch: 11,
+                    line: 1
+                },
+                text : ['warn'],
+                removed : ['log']
+            }]]);
             expect(spy.callCount).toBe(1);
             expect(spy).toHaveBeenCalledWith({
                 path: '/path/file1.ts',

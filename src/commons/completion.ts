@@ -29,7 +29,7 @@ export interface CompletionEntry {
 
 export interface CompletionResult {
     match: string;
-    entries: CompletionEntry[]
+    entries: CompletionEntry[];
 }
 
 export interface CompletionService {
