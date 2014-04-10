@@ -22,11 +22,19 @@ var EditorManager = brackets.getModule('editor/EditorManager'),
     QuickOpen    = brackets.getModule('search/QuickOpen');
 
 
+class Session {
+    constructor(
+        public items: LexicalStructureService.LexicalStructureItem[]
+    ){}
+} 
+
+
 class TypeScriptQuickFindDefitionProvider implements brackets.QuickOpenPluginDef<TypeScriptQuickFindDefitionProvider.LexicalStructureItem> {
     
     private lexicalStructureService: JQueryDeferred<LexicalStructureService> = $.Deferred();
     
-
+    private session: Session;
+    
     setLexicalStructureService(service: LexicalStructureService) {
         this.lexicalStructureService.resolve(service);
     }
@@ -42,17 +50,13 @@ class TypeScriptQuickFindDefitionProvider implements brackets.QuickOpenPluginDef
     
     search = (request: string) =>  {
         request = request.substr(1);
-        
-        var deferred = $.Deferred(),
-            currentFile = EditorManager.getActiveEditor().document.file.fullPath;
-        
-        this.lexicalStructureService.then(lexicalStructureService => {
-            lexicalStructureService.getLexicalStructureForFile(currentFile).then(items => {
-                deferred.resolve(items.filter(item => item.name.indexOf(request) !== -1));    
-            });
+        return this.getSession().then(session => {
+            return session.items.filter(item => item.name.indexOf(request) !== -1);
         });
-        
-        return deferred.promise();
+    }
+    
+    done = () => {
+        this.session = null;
     }
     
     itemSelect(item: TypeScriptQuickFindDefitionProvider.LexicalStructureItem) {
@@ -61,13 +65,32 @@ class TypeScriptQuickFindDefitionProvider implements brackets.QuickOpenPluginDef
     
     resultsFormatter(item: TypeScriptQuickFindDefitionProvider.LexicalStructureItem) {
         var displayName = QuickOpen.highlightMatch(item.name);
+        displayName = item.containerName ? item.containerName + '.' + displayName : displayName;
         return "<li>" + displayName + "</li>";
+    }
+    
+    
+    private getSession(): JQueryPromise<Session> {
+        return $.Deferred(deferred => {
+            if (this.session) {
+                deferred.resolve(this.session)
+            } else {
+                this.lexicalStructureService.then(lexicalStructureService => {
+                    var currentFile = EditorManager.getActiveEditor().document.file.fullPath;
+                    lexicalStructureService.getLexicalStructureForFile(currentFile).then(items => {
+                        this.session = new Session(items);
+                        deferred.resolve(this.session);    
+                    });
+                });
+            }
+        }).promise();
     }
 }
 
 module TypeScriptQuickFindDefitionProvider {
     export interface LexicalStructureItem {
         name: string; 
+        containerName:string;
         position: CodeMirror.Position;
     }
 }
@@ -80,45 +103,11 @@ export = TypeScriptQuickFindDefitionProvider;
     
     
     
-//    /**
-//         * plug-in name, **must be unique**
-//         */
-//        name: string; 
-//        /**
-//         * language Ids array. Example: ["javascript", "css", "html"]. To allow any language, pass []. Required.
-//         */
-//        languageIds: string[];
-//        /**
-//         * called when quick open is complete. Plug-in should clear its internal state. Optional.
-//         */
-//        done?: () => void;
-//        /**
-//         * takes a query string and a StringMatcher (the use of which is optional but can speed up your searches) 
-//         * and returns an array of strings that match the query. Required.
-//         */
-//        search: (request: string) => JQueryPromise<S[]>;//function(string, !StringMatch.StringMatcher):Array.<SearchResult|string>,
-//        /**
-//         * takes a query string and returns true if this plug-in wants to provide
-//         */
-//        match: (query: string) => boolean;
 //        /**
 //         * performs an action when a result has been highlighted (via arrow keys, mouseover, etc.).
 //         */
 //        itemFocus?: (result: S) => void;
 //        /**
-//         * performs an action when a result is chosen.
-//         */
-//        itemSelect:  (result: S) => void;
-//        /**
-//         * takes a query string and an item string and returns 
-//         * a <LI> item to insert into the displayed search results. Optional.
-//         */
-//        resultsFormatter?: (result: S) => string;
-//        /**
 //         * options to pass along to the StringMatcher (see StringMatch.StringMatcher for available options). 
 //         */
 //        matcherOptions? : StringMatcherOptions;
-//        /**
-//         * if provided, the label to show before the query field. Optional.
-//         */
-//        label?: string;

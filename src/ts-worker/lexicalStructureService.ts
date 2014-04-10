@@ -19,19 +19,23 @@ import TypeScriptProjectManager = require('./projectManager');
 import es6Promise = require('es6-promise');
 import Promise = es6Promise.Promise;
 
-
 class LexicalStructureService {
     
     constructor(
         private projectManager: TypeScriptProjectManager
     ) {}
     
-    getLexicalStructureForFile(fileName: string): Promise<{ name: string; position: CodeMirror.Position; }[]> {
+    getLexicalStructureForFile(fileName: string): Promise<{ 
+        containerName:string; 
+        name: string; 
+        position:  CodeMirror.Position; 
+    }[]> {
         return this.projectManager.getProjectForFile(fileName).then(project => {
             var languageServiceHost = project.getLanguageServiceHost();
             var items = project.getLanguageService().getScriptLexicalStructure(fileName) || [] ;
             return items.map(item => ({
                 name: item.name,
+                containerName : item.containerName,
                 position: languageServiceHost.indexToPosition(fileName, item.minChar)
             }));
         });
