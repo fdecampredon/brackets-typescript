@@ -59,8 +59,12 @@ class TypeScriptQuickFindDefitionProvider implements brackets.QuickOpenPluginDef
         this.session = null;
     }
     
-    itemSelect(item: TypeScriptQuickFindDefitionProvider.LexicalStructureItem) {
-         EditorManager.getActiveEditor().setCursorPos(item.position.line, item.position.ch, true, true)
+    itemSelect = (item: TypeScriptQuickFindDefitionProvider.LexicalStructureItem) => {
+        this.itemFocus(item);
+    }
+    
+    itemFocus = (item: TypeScriptQuickFindDefitionProvider.LexicalStructureItem) => {
+        this.setCurrentPosition(item.position);
     }
     
     resultsFormatter(item: TypeScriptQuickFindDefitionProvider.LexicalStructureItem) {
@@ -76,7 +80,8 @@ class TypeScriptQuickFindDefitionProvider implements brackets.QuickOpenPluginDef
                 deferred.resolve(this.session)
             } else {
                 this.lexicalStructureService.then(lexicalStructureService => {
-                    var currentFile = EditorManager.getActiveEditor().document.file.fullPath;
+                    var editor = EditorManager.getActiveEditor(),
+                        currentFile = editor.document.file.fullPath;
                     lexicalStructureService.getLexicalStructureForFile(currentFile).then(items => {
                         this.session = new Session(items);
                         deferred.resolve(this.session);    
@@ -84,6 +89,10 @@ class TypeScriptQuickFindDefitionProvider implements brackets.QuickOpenPluginDef
                 });
             }
         }).promise();
+    }
+    
+    private setCurrentPosition(pos: CodeMirror.Position) {
+        EditorManager.getActiveEditor().setCursorPos(pos.line, pos.ch, true, true)
     }
 }
 
@@ -97,17 +106,3 @@ module TypeScriptQuickFindDefitionProvider {
 
 
 export = TypeScriptQuickFindDefitionProvider;
-   /* itemFocus =  (result: LexicalStructureItem) => {
-       
-    }*/
-    
-    
-    
-//        /**
-//         * performs an action when a result has been highlighted (via arrow keys, mouseover, etc.).
-//         */
-//        itemFocus?: (result: S) => void;
-//        /**
-//         * options to pass along to the StringMatcher (see StringMatch.StringMatcher for available options). 
-//         */
-//        matcherOptions? : StringMatcherOptions;
