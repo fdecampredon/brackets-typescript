@@ -22,7 +22,8 @@ import WorkingSet = require('./workingSet');
 import WorkerBridge = require('../commons/workerBridge');
 import TypeScriptErrorReporter = require('./errorReporter');
 import TypeScriptQuickEditProvider = require('./quickEdit');
-import TypeScriptQuickJumpProvider = require('./quickJump')
+import TypeScriptQuickJumpProvider = require('./quickJump');
+import TypeScriptQuickFindDefitionProvider = require('./quickFindDefinition')
 import CodeHintProvider = require('./codeHintProvider');
 import typeScriptModeFactory = require('./mode')
 
@@ -41,12 +42,14 @@ var LanguageManager = brackets.getModule('language/LanguageManager'),
     ProjectManager = brackets.getModule('project/ProjectManager'),
     CodeHintManager = brackets.getModule('editor/CodeHintManager'),
     CodeInspection = brackets.getModule('language/CodeInspection'),
-    EditorManager = brackets.getModule('editor/EditorManager');
+    EditorManager = brackets.getModule('editor/EditorManager'),
+    QuickOpen    = brackets.getModule('search/QuickOpen');
 
 var tsErrorReporter : TypeScriptErrorReporter,
     quickEditProvider: TypeScriptQuickEditProvider,
     codeHintProvider : CodeHintProvider,
-    quickJumpProvider: TypeScriptQuickJumpProvider;
+    quickJumpProvider: TypeScriptQuickJumpProvider,
+    quickFindDefinitionProvider: TypeScriptQuickFindDefitionProvider;
     
     
  
@@ -85,6 +88,10 @@ function init(config: { logLevel: string; typeScriptLocation: string; workerLoca
     //Register error provider
     tsErrorReporter = new TypeScriptErrorReporter();
     CodeInspection.register('typescript', tsErrorReporter); 
+    
+    //Register quickFindDefinitionProvider
+    quickFindDefinitionProvider = new TypeScriptQuickFindDefitionProvider();
+    QuickOpen.addQuickOpenPlugin(quickFindDefinitionProvider);
 
     
     initServices(config.workerLocation, config.typeScriptLocation, config.logLevel);
@@ -125,6 +132,7 @@ function initServices(workerLocation: string, typeScriptLocation: string, logLev
         codeHintProvider.setCompletionService(proxy.completionService);
         quickEditProvider.setDefinitionService(proxy.definitionService);
         quickJumpProvider.setDefinitionService(proxy.definitionService);
+        quickFindDefinitionProvider.setLexicalStructureService(proxy.lexicalStructureService);
     });
 }
 

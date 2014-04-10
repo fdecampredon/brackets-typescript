@@ -29,7 +29,6 @@ import logger = require('../commons/logger');
 import TypeScriptProject = require('./project');
 import Services = TypeScript.Services;
 
-/*istanbulify ignore file*/
 //--------------------------------------------------------------------------
 //
 //  TypeScriptProjectManager

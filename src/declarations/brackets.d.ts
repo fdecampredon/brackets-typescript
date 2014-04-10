@@ -897,6 +897,72 @@ declare module brackets {
     }
     
     
+        
+    //--------------------------------------------------------------------------
+    //
+    //  QuickOpen
+    //
+    //--------------------------------------------------------------------------
+    
+    interface QuickOpen {
+        /**
+         * Creates and registers a new QuickOpenPlugin
+         */
+        addQuickOpenPlugin<S>(def: QuickOpenPluginDef<S>): void;
+        highlightMatch(item: string): string;
+    }
+    
+    
+    interface QuickOpenPluginDef<S> { 
+        /**
+         * plug-in name, **must be unique**
+         */
+        name: string; 
+        /**
+         * language Ids array. Example: ["javascript", "css", "html"]. To allow any language, pass []. Required.
+         */
+        languageIds: string[];
+        /**
+         * called when quick open is complete. Plug-in should clear its internal state. Optional.
+         */
+        done?: () => void;
+        /**
+         * takes a query string and a StringMatcher (the use of which is optional but can speed up your searches) 
+         * and returns an array of strings that match the query. Required.
+         */
+        search: (request: string) => JQueryPromise<S[]>;//function(string, !StringMatch.StringMatcher):Array.<SearchResult|string>,
+        /**
+         * takes a query string and returns true if this plug-in wants to provide
+         */
+        match: (query: string) => boolean;
+        /**
+         * performs an action when a result has been highlighted (via arrow keys, mouseover, etc.).
+         */
+        itemFocus?: (result: S) => void;
+        /**
+         * performs an action when a result is chosen.
+         */
+        itemSelect:  (result: S) => void;
+        /**
+         * takes a query string and an item string and returns 
+         * a <LI> item to insert into the displayed search results. Optional.
+         */
+        resultsFormatter?: (result: S) => string;
+        /**
+         * options to pass along to the StringMatcher (see StringMatch.StringMatcher for available options). 
+         */
+        matcherOptions? : StringMatcherOptions;
+        /**
+         * if provided, the label to show before the query field. Optional.
+         */
+        label?: string;
+    }
+    
+    interface StringMatcherOptions {
+        preferPrefixMatches?: boolean;
+        segmentedSearch?: boolean;
+    }
+    
      
     //--------------------------------------------------------------------------
     //
@@ -943,6 +1009,7 @@ declare module brackets {
     function getModule(module: 'language/CodeInspection'): CodeInspection;
     function getModule(module: 'view/PanelManager'): PanelManager;
     function getModule(module: 'command/CommandManager'): CommandManager;
+    function getModule(module: 'search/QuickOpen'): QuickOpen;
     function getModule(module: string): any;
     
 }

@@ -17,7 +17,7 @@
 
 import TypeScriptProjectManager = require('./projectManager');
 import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;;
+import Promise = es6Promise.Promise;
 
  var Type = {
     /** Unambiguous error, such as a syntax error */
