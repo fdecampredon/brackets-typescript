@@ -48,10 +48,12 @@ class TypeScriptQuickFindDefitionProvider implements brackets.QuickOpenPluginDef
         return query.indexOf("@") === 0;
     }
     
-    search = (request: string) =>  {
-        request = request.substr(1);
+    search = (request: string, stringMatcher: brackets.StringMatcher) =>  {
+        request = request.slice(request.indexOf("@") + 1, request.length);
         return this.getSession().then(session => {
-            return session.items.filter(item => item.name.indexOf(request) !== -1);
+            return session.items.filter(item => {
+                return !!stringMatcher.match(item.name, request);
+            });
         });
     }
     

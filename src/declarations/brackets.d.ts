@@ -930,7 +930,7 @@ declare module brackets {
          * takes a query string and a StringMatcher (the use of which is optional but can speed up your searches) 
          * and returns an array of strings that match the query. Required.
          */
-        search: (request: string) => JQueryPromise<S[]>;//function(string, !StringMatch.StringMatcher):Array.<SearchResult|string>,
+        search: (request: string, stringMatcher: StringMatcher) => JQueryPromise<S[]>;
         /**
          * takes a query string and returns true if this plug-in wants to provide
          */
@@ -961,6 +961,14 @@ declare module brackets {
     interface StringMatcherOptions {
         preferPrefixMatches?: boolean;
         segmentedSearch?: boolean;
+    }
+    
+    interface StringMatcher {
+        match(target:string, query: string):{
+            ranges:{ text: string; matched: boolean; includesLastSegment: boolean}[];
+            matchGoodness: number; 
+            scoreDebug: any;
+        }
     }
     
      
