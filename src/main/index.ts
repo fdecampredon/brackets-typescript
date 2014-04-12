@@ -23,9 +23,9 @@ import WorkerBridge = require('../commons/workerBridge');
 import TypeScriptErrorReporter = require('./errorReporter');
 import TypeScriptQuickEditProvider = require('./quickEdit');
 import TypeScriptQuickJumpProvider = require('./quickJump');
-import TypeScriptQuickFindDefitionProvider = require('./quickFindDefinition')
+import TypeScriptQuickFindDefitionProvider = require('./quickFindDefinition');
 import CodeHintProvider = require('./codeHintProvider');
-import typeScriptModeFactory = require('./mode')
+import typeScriptModeFactory = require('./mode');
 
 
 
@@ -43,7 +43,7 @@ var LanguageManager = brackets.getModule('language/LanguageManager'),
     CodeHintManager = brackets.getModule('editor/CodeHintManager'),
     CodeInspection = brackets.getModule('language/CodeInspection'),
     EditorManager = brackets.getModule('editor/EditorManager'),
-    QuickOpen    = brackets.getModule('search/QuickOpen');
+    QuickOpen = brackets.getModule('search/QuickOpen');
 
 var tsErrorReporter : TypeScriptErrorReporter,
     quickEditProvider: TypeScriptQuickEditProvider,

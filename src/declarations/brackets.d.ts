@@ -782,6 +782,144 @@ declare module brackets {
         getCurrentFullEditor(): Editor;
     }
     
+    //--------------------------------------------------------------------------
+    //
+    //  Editor
+    //
+    //--------------------------------------------------------------------------
+    
+    /**
+     * PreferencesManager
+     *
+     */
+    interface PreferencesManager extends Preferences {
+        /**
+         * Creates an extension-specific preferences manager using the prefix given.
+         * A `.` character will be appended to the prefix. So, a preference named `foo`
+         * with a prefix of `myExtension` will be stored as `myExtension.foo` in the
+         * preferences files.
+         * 
+         * @param prefix Prefix to be applied
+         */
+        getExtensionPrefs(prefix: string): Preferences;
+        
+        
+        /**
+         * Get the full path to the user-level preferences file.
+         * 
+         * @return Path to the preferences file
+         */
+        getUserPrefFile(): string;
+        
+        /**
+         * Context to look up preferences for the currently edited file.
+         * This is undefined because this is the default behavior of PreferencesSystem.get.
+         */ 
+        CURRENT_FILE: any;
+        /**
+         * Context to look up preferences in the current project.
+         */
+        CURRENT_PROJECT: any;
+    }
+    
+    interface Preferences {
+        /**
+         * Defines a new (prefixed) preference.
+         * 
+         * @param id unprefixed identifier of the preference. Generally a dotted name.
+         * @param type Data type for the preference (generally, string, boolean, number)
+         * @param initial Default value for the preference
+         * @param options Additional options for the pref. Can include name and description
+         *                          that will ultimately be used in UI.
+         * @return {Object} The preference object.
+         */
+        definePreference(id: string, type: string, value: any, options?: { name?: string; description: string; }): any;
+        
+        
+        /**
+         * Get the prefixed preference object
+         * 
+         * @param {string} id ID of the pref to retrieve.
+         */
+        getPreference(id: string): any;
+        
+        /**
+         * Gets the prefixed preference
+         * 
+         * @param id Name of the preference for which the value should be retrieved
+         * @param context Optional context object to change the preference lookup
+         */
+        get(id: string, context?: any): any;
+        
+        /**
+         * Gets the location in which the value of a prefixed preference has been set.
+         * 
+         * @param id Name of the preference for which the value should be retrieved
+         * @param context Optional context object to change the preference lookup
+         * @return Object describing where the preferences came from
+         */
+        getPreferenceLocation(id: string, context?: any): {scope: string; layer?: string; layerID?: any};
+        
+        /**
+         * Sets the prefixed preference
+         * 
+         * @param id Identifier of the preference to set
+         * @param value New value for the preference
+         * @param options Specific location in which to set the value or the context to use when setting the value
+         * @return true if a value was set
+         */
+        set(id:string, value: any, options?: {location: any; context?: any; }): boolean;
+        
+        
+        /**
+         * Sets up a listener for events for this PrefixedPreferencesSystem. Only prefixed events
+         * will notify. Optionally, you can set up a listener for a
+         * specific preference.
+         * 
+         * @param event Name of the event to listen for
+         * @param preferenceID Name of a specific preference
+         * @param handler Handler for the event
+         */
+        on(event: string, preferenceId: string, handler: (...rest: any[]) => void): void;
+        /**
+         * Sets up a listener for events for this PrefixedPreferencesSystem. Only prefixed events
+         * will notify. Optionally, you can set up a listener for a
+         * specific preference.
+         * 
+         * @param event Name of the event to listen for
+         * @param handler Handler for the event
+         */
+        on(event: string, handler: (...rest: any[]) => void): void;
+        
+        
+        /**
+         * Turns off the event handlers for a given event, optionally for a specific preference
+         * or a specific handler function.
+         * 
+         * @param event Name of the event for which to turn off listening
+         * @param preferenceID Name of a specific preference
+         * @param handler Specific handler which should stop being notified
+         */
+        off(event: string, preferenceId: string, handler: (...rest: any[]) => void): void;
+        /**
+         * Turns off the event handlers for a given event, optionally for a specific preference
+         * or a specific handler function.
+         * 
+         * @param event Name of the event to listen for
+         * @param handler Specific handler which should stop being notified
+         */
+        off(event: string, handler: (...rest: any[]) => void): void;
+        
+        
+        /**
+         * Saves the preferences. If a save is already in progress, a Promise is returned for
+         * that save operation.
+         * 
+         * @return  a promise resolved when the preferences are done saving.
+         */
+        save(): JQueryPromise<void>;
+    }
+    
     
     
     //--------------------------------------------------------------------------

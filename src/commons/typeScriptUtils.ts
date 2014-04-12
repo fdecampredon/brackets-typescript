@@ -22,10 +22,7 @@ export function validateTypeScriptProjectConfig(config : TypeScriptProjectConfig
     if (!config.sources || !Array.isArray(config.sources) || !config.sources.every(pattern => typeof pattern === 'string')) {
         return false;
     }
-    if (config.buildAutomaticly && !(config.outDir && typeof config.outDir === 'string') && 
-            !(config.outFile && typeof config.outFile === 'string')) {
-        return false;
-    }
+   
     return true;
 }
 
@@ -34,8 +31,6 @@ export function validateTypeScriptProjectConfig(config : TypeScriptProjectConfig
  * Default configuration for typescript project
  */
 export var typeScriptProjectConfigDefault: TypeScriptProjectConfig = {
-    buildAutomaticly: false,
-    
     propagateEnumConstants: false,
     removeComments: false,
     allowAutomaticSemicolonInsertion : true,
