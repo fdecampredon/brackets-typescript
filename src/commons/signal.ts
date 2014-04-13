@@ -18,7 +18,7 @@
 export interface ISignal<T> {
     add(listener: (parameter: T) => any, priority?: number): void;
     remove(listener: (parameter: T) => any): void;
-    dispatch(parameter: T): boolean;
+    dispatch(parameter?: T): boolean;
     clear(): void;
     hasListeners(): boolean;
 }
@@ -52,7 +52,7 @@ export class Signal<T> implements ISignal<T> {
         }
     }
     
-    dispatch(parameter: T): boolean {
+    dispatch(parameter?: T): boolean {
         var indexesToRemove: number[];
         var hasBeenCanceled = this.listeners.every((listener: (parameter: T) => any) =>  {
             var result = listener(parameter);
