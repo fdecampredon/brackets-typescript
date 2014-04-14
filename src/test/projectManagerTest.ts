@@ -34,7 +34,7 @@ describe('TypeScriptProjectManager', function () {
         projectConfigs: { [projectId: string]: TypeScriptProjectConfig; },
         preferenceManagerMock = {
             getProjectsConfig() {
-                return projectConfigs;
+                return Promise.cast(projectConfigs);
             },
             configChanged: new  signal.Signal<void>()
         },

@@ -25,7 +25,7 @@ class TypescriptPreferenceManager {
     constructor(
         private prefManager: brackets.PreferencesManager
     ) {
-        this.prefManager.on('change', 'typescript', this.preferenceChangedHandler);
+        this.prefManager.on('change', this.preferenceChangedHandler);
     }
     
     private projectConfigs: collections.StringMap<TypeScriptProjectConfig>;
@@ -62,7 +62,7 @@ class TypescriptPreferenceManager {
             configs = Object.keys(projects).reduce((configs: any, id: any) => {
                 var project = projects[id];
                 if (typeof project === 'object') {
-                    configs[id] = utils.assign({}, data, project)
+                    configs[id] = utils.assign({}, data, project);
                 }
                 return configs;
             }, {});
@@ -86,9 +86,11 @@ class TypescriptPreferenceManager {
         return result;
     }
     
-    private preferenceChangedHandler = () => {
-        this.projectConfigs = null;
-        this.configChanged.dispatch();
+    private preferenceChangedHandler = (e: any, data: any) => {
+        if (data && Array.isArray(data.ids) && data.ids.indexOf('typescript') !== -1) {
+            this.projectConfigs = null;
+            this.configChanged.dispatch();
+        }
     }
 }
 

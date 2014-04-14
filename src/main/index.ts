@@ -19,6 +19,7 @@
 import logger = require('../commons/logger');
 import FileSystem = require('./fileSystem');
 import WorkingSet = require('./workingSet');
+import TypeScriptPreferencesManager = require('./preferencesManager');
 import WorkerBridge = require('../commons/workerBridge');
 import TypeScriptErrorReporter = require('./errorReporter');
 import TypeScriptQuickEditProvider = require('./quickEdit');
@@ -43,7 +44,8 @@ var LanguageManager = brackets.getModule('language/LanguageManager'),
     CodeHintManager = brackets.getModule('editor/CodeHintManager'),
     CodeInspection = brackets.getModule('language/CodeInspection'),
     EditorManager = brackets.getModule('editor/EditorManager'),
-    QuickOpen = brackets.getModule('search/QuickOpen');
+    QuickOpen = brackets.getModule('search/QuickOpen'),
+    PreferencesManager = brackets.getModule('preferences/PreferencesManager');
 
 var tsErrorReporter : TypeScriptErrorReporter,
     quickEditProvider: TypeScriptQuickEditProvider,
@@ -56,6 +58,7 @@ var tsErrorReporter : TypeScriptErrorReporter,
 var fileSystem: FileSystem,
     workingSet: WorkingSet,
     worker: Worker,
+    preferencesManager: TypeScriptPreferencesManager,
     bridge: WorkerBridge;
 
 function init(config: { logLevel: string; typeScriptLocation: string; workerLocation: string;}) {
@@ -106,6 +109,7 @@ function disposeServices() {
     worker.terminate();
     fileSystem.dispose();
     workingSet.dispose();
+    preferencesManager.dispose();
     
     tsErrorReporter.reset();
 }
@@ -116,11 +120,13 @@ function initServices(workerLocation: string, typeScriptLocation: string, logLev
     workingSet = new WorkingSet(DocumentManager, EditorManager);
     worker = new Worker(workerLocation);
     bridge = new WorkerBridge(worker);
+    preferencesManager = new TypeScriptPreferencesManager(PreferencesManager);
     
     bridge.init({
         console: console,
         workingSet: workingSet,
         fileSystem: fileSystem,
+        preferencesManager: preferencesManager,
         getTypeScriptLocation: function () {
             return typeScriptLocation;
         },

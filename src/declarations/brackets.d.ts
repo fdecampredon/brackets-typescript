@@ -1156,6 +1156,7 @@ declare module brackets {
     function getModule(module: 'view/PanelManager'): PanelManager;
     function getModule(module: 'command/CommandManager'): CommandManager;
     function getModule(module: 'search/QuickOpen'): QuickOpen;
+    function getModule(module: 'preferences/PreferencesManager'): PreferencesManager;
     function getModule(module: string): any;
     
 }

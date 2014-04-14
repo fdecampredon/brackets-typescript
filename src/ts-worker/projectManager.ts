@@ -181,16 +181,15 @@ class TypeScriptProjectManager {
      * find bracketsTypescript config files and create a project for each file founds
      */
     private createProjects(): Promise<any> {
-        var configs = new collections.StringMap(this.preferenceManager.getProjectsConfig());
-        return  this.fileSystem.getProjectRoot().then(projectRootDir => {
-            return Promise.all(configs.entries.map(entry => {
-                var projectId = entry.key,
-                    projectConfig = entry.value;
-
-                return this.createProjectFromConfig(projectRootDir, projectConfig).then(project => {
-                    this.projectMap.set(projectId, project);
-                });    
-            }));
+        return  this.preferenceManager.getProjectsConfig().then(configs => {
+            return this.fileSystem.getProjectRoot().then(projectRootDir => {
+                return Promise.all(Object.keys(configs).map(projectId => {
+                    var projectConfig = configs[projectId];
+                    return this.createProjectFromConfig(projectRootDir, projectConfig).then(project => {
+                        this.projectMap.set(projectId, project);
+                    });    
+                }));
+            })
         });
     }
     

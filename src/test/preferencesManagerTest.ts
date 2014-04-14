@@ -25,11 +25,11 @@ describe('TypescriptPreferenceManager', function () {
             get() {
                 return preferences    
             },
-            on(type: string, id: string, callback: () => void) {
+            on(type: string, callback: () => void) {
                 this.callback = callback
             },
             notifyChange() {
-                this.callback();
+                this.callback(null, { ids: ['typescript']});
             }
         };
     
