@@ -102,11 +102,16 @@ class TypeScriptProject {
     }
     
     update(config: TypeScriptProjectConfig): Promise<void> {
-        var pojectSources = this.projectFilesSet.values.filter(fileName => this.isProjectSourceFile(fileName));
+        
+        if (this.config.typescriptPath !== config.typescriptPath) {
+            return this.init();
+        }
+        
         if (!this.config.noLib && config.noLib) {
             this.removeFile(this.libLocation);
         }
         
+        var pojectSources = this.projectFilesSet.values.filter(fileName => this.isProjectSourceFile(fileName));
         this.config = config;
         return this.initializing.then(() => {
             this.languageServiceHost.setCompilationSettings(this.createCompilationSettings());

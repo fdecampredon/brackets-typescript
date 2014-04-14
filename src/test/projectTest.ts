@@ -594,6 +594,22 @@ describe('TypeScriptProject', function () {
             runs(function () {
                 testWorkingSetOpenCorrespondance();
             });
+        });
+        
+        
+        it('should reinitialize the project if typeScriptPath has changed', function () {
+            var spy = spyOn(typeScriptProject,'init').andCallThrough();
+            expect(typeScriptProject.getProjectFilesSet().has('/src/file2.ts')).toBeFalsy();
+           
+            updateProject({
+                target: 'es3',
+                typescriptPath: 'typescript',
+                sources : [
+                     'src/file2.ts'
+                ]
+            });
+          
+            expect(spy).toHaveBeenCalled();
         }); 
     });
    
