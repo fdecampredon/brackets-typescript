@@ -93,52 +93,6 @@ describe('TypeScriptProjectManager', function () {
 
        
         
-        it('should  create a new typescript factory instance if a typescript path is specified',  function () {
-            fileSystemMock.setFiles({
-                '/typeScript/typescriptServices.js' : 
-                    'var TypeScript = {\
-                        Services: {\
-                            TypeScriptServicesFactory: function () { return {id: "hello"}}\
-                        }\
-                    };'
-            });
-            
-            projectConfigs =  {
-                default: {
-                    typescriptPath: '/typeScript',
-                }
-            }
-
-            initiProjectManager();
-            waits(15);
-            runs(function () {
-                expect(projectFactorySpy.callCount).toBe(1);
-                expect(projectFactorySpy.argsForCall[0][4]).toEqual({id: "hello"})
-            })
-        });
-        
-        
-        it('should  not create a new project if the given typescript path is invalid',  function () {
-            fileSystemMock.setFiles({
-                '/typeScript/typescriptServices.js' : '',
-                '/dir/.brackets-typescript': JSON.stringify({
-                    module: 'amd',
-                    typescriptPath: '/typeScript',
-                    sources: [
-                        './file1.ts',
-                        './file2.ts'
-                    ],
-                    outDir: 'bin'
-                })
-            });
-
-            initiProjectManager();
-            waits(15);
-            runs(function () {
-                expect(projectFactorySpy.callCount).toBe(0);
-            })
-        });
-        
         
         it('should dispose all registred project when disposed', function () {
 
@@ -218,6 +172,8 @@ describe('TypeScriptProjectManager', function () {
                 expect(projectSpy.update.callCount).toBe(2);
             })    
         });
+        
+        
     })
     
     

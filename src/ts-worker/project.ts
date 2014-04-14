@@ -16,7 +16,6 @@ import TypeScriptProjectConfig = require('../commons/config');
 
 import LanguageServiceHost = require('./languageServiceHost');
 
-
 //--------------------------------------------------------------------------
 //
 //  TypeScriptProject
@@ -45,7 +44,6 @@ class TypeScriptProject {
         private config: TypeScriptProjectConfig, 
         private fileSystem: fs.FileSystem,
         private workingSet: ws.WorkingSet,
-        private servicesFactory: Services.TypeScriptServicesFactory,
         private defaultLibLocation: string
     ) {}
     
@@ -72,45 +70,35 @@ class TypeScriptProject {
     
     private initializing: Promise<any>
     
+    
+    
     //-------------------------------
     //  public methods
     //-------------------------------
     
     init(): Promise<void> {
-        this.coreService = this.servicesFactory.createCoreServices({ logger: new logger.LogingClass()});
-        this.languageServiceHost = new LanguageServiceHost();
-        this.languageServiceHost.setCompilationSettings(this.createCompilationSettings());
-        this.languageService = this.servicesFactory.createPullLanguageService(this.languageServiceHost);
-        
+        this.projectFilesSet = new collections.StringSet();
+        this.references = new collections.StringMap<collections.StringSet>();
         this.workingSet.workingSetChanged.add(this.workingSetChangedHandler);
         this.workingSet.documentEdited.add(this.documentEditedHandler);
         this.fileSystem.projectFilesChanged.add(this.filesChangeHandler);
         
         
-        this.projectFilesSet = new collections.StringSet();
-        this.references = new collections.StringMap<collections.StringSet>();
-        
-        return this.initializing = this.collectFiles().then(() => {
-            this.workingSet.getFiles().then((files) => files.forEach(fileName => {
-                if (this.projectFilesSet.has(fileName)) {
-                    this.languageServiceHost.setScriptIsOpen(fileName, true);
-                }
-            }));
-            
-            
-            if (!this.config.noLib) {
-                return this.addDefaultLibrary();
-            }
-        }).catch(() => { 
-            //todo error recovery
-            if (logger.fatal()) {
-                logger.log('could not retrieve project files');
-            }
-        })
+        this.initializing = this.getTypeScriptInfosForPath(this.config.typescriptPath).then(typeScriptInfo => {
+            this.coreService = typeScriptInfo.factory.createCoreServices({ logger: new logger.LogingClass()});
+            this.languageServiceHost = new LanguageServiceHost();
+            this.languageServiceHost.setCompilationSettings(this.createCompilationSettings());
+            this.languageService = typeScriptInfo.factory.createPullLanguageService(this.languageServiceHost);
+
+            return this.collectFiles().then(() => {
+                this.updateWorkingSet();
+            })
+        });
+        return this.initializing;
     }
     
-    update(config: TypeScriptProjectConfig): Promise<any> {
-        var pojectSources =  this.projectFilesSet.values.filter(fileName => this.isProjectSourceFile(fileName));
+    update(config: TypeScriptProjectConfig): Promise<void> {
+        var pojectSources = this.projectFilesSet.values.filter(fileName => this.isProjectSourceFile(fileName));
         this.config = config;
         return this.initializing.then(() => {
             this.languageServiceHost.setCompilationSettings(this.createCompilationSettings());
@@ -121,7 +109,9 @@ class TypeScriptProject {
                 }    
             });
             
-            return Promise.all(promises).then(() => this.collectFiles());
+            return Promise.all(promises)
+                .then(() => this.collectFiles())
+                .then(() => this.updateWorkingSet())
         })
     }
     
@@ -165,11 +155,52 @@ class TypeScriptProject {
         return new collections.StringSet(this.projectFilesSet.values);
     }
     
+    /**
+     * for a given path, give the relation between the project an the associated file
+     * @param path
+     */
+    getProjectFileKind(fileName: string): TypeScriptProject.ProjectFileKind {
+        if (this.projectFilesSet.has(fileName)) {
+            return this.isProjectSourceFile(fileName) ? TypeScriptProject.ProjectFileKind.SOURCE :  TypeScriptProject.ProjectFileKind.REFERENCE;
+        } else {
+            return TypeScriptProject.ProjectFileKind.NONE
+        }
+    }
+    
+    
     //-------------------------------
     //  private methods
     //-------------------------------
     
-     private createCompilationSettings() : TypeScript.CompilationSettings {
+    /**
+     * Retrieve a ServiceFactory from a given typeScriptService file path
+     * @param typescriptPath
+     */
+    private getTypeScriptInfosForPath(typescriptPath: string): Promise<TypeScriptInfo> {
+        return new Promise<TypeScriptInfo>((resolve, reject) => {
+            if (!typescriptPath) {
+                resolve({
+                    factory: new Services.TypeScriptServicesFactory(),
+                    libLocation: this.defaultLibLocation
+                })
+            } else {
+                var typescriptServicesFile = path.join(typescriptPath, 'typescriptServices.js');
+                this.fileSystem.readFile(typescriptServicesFile).then(code => {
+                    var factory: TypeScript.Services.TypeScriptServicesFactory,
+                        func = new Function('var TypeScript;' + code + ';return TypeScript;'),
+                        typeScript: typeof TypeScript = func();
+                    
+                    factory = new typeScript.Services.TypeScriptServicesFactory();
+                    resolve({
+                        factory: factory,
+                        libLocation: path.join(typescriptPath, 'lib.d.ts')
+                    })
+                }).catch((e) => reject(e));
+            }
+        });
+    }
+    
+    private createCompilationSettings() : TypeScript.CompilationSettings {
         var compilationSettings = new TypeScript.CompilationSettings(),
             moduleType = this.config.module.toLowerCase();
         compilationSettings.propagateEnumConstants = this.config.propagateEnumConstants;
@@ -197,17 +228,14 @@ class TypeScriptProject {
         return compilationSettings
     }
     
-    /**
-     * for a given path, give the relation between the project an the associated file
-     * @param path
-     */
-    getProjectFileKind(fileName: string): TypeScriptProject.ProjectFileKind {
-        if (this.projectFilesSet.has(fileName)) {
-            return this.isProjectSourceFile(fileName) ? TypeScriptProject.ProjectFileKind.SOURCE :  TypeScriptProject.ProjectFileKind.REFERENCE;
-        } else {
-            return TypeScriptProject.ProjectFileKind.NONE
-        }
+    private updateWorkingSet() {
+        this.workingSet.getFiles().then((files) => files.forEach(fileName => {
+            if (this.projectFilesSet.has(fileName)) {
+                this.languageServiceHost.setScriptIsOpen(fileName, true);
+            }
+        }));
     }
+    
     
     //-------------------------------
     //  Project Files Management
@@ -224,6 +252,11 @@ class TypeScriptProject {
                     promises.push(this.addFile(fileName, false));
                 }
             });
+            
+            if (!this.config.noLib && !this.projectFilesSet.has(this.defaultLibLocation)) {
+                promises.push(this.addFile(this.defaultLibLocation));
+            }
+            
             return Promise.all(promises);
         });
     }
@@ -288,12 +321,7 @@ class TypeScriptProject {
     }
     
     
-    /**
-     * add the default library
-     */
-    private addDefaultLibrary() {
-        return this.addFile(this.defaultLibLocation)
-    }
+ 
     
     
     //-------------------------------
@@ -455,6 +483,12 @@ class TypeScriptProject {
     }
 }
 
+
+interface TypeScriptInfo {
+    factory: Services.TypeScriptServicesFactory;
+    libLocation: string;
+}
+
 module TypeScriptProject {
     /**
      * enum describing the type of file ib a project
@@ -481,10 +515,9 @@ module TypeScriptProject {
         config: TypeScriptProjectConfig, 
         fileSystem: fs.FileSystem,
         workingSet: ws.WorkingSet,
-        servicesFactory: Services.TypeScriptServicesFactory,
         defaultLibLocation: string
     ) {
-        return new TypeScriptProject(baseDirectory, config, fileSystem, workingSet, servicesFactory, defaultLibLocation);
+        return new TypeScriptProject(baseDirectory, config, fileSystem, workingSet, defaultLibLocation);
     }
 }
 

@@ -64,15 +64,12 @@ class TypeScriptProjectManager {
      */
     private projectMap = new collections.StringMap<TypeScriptProject>();
     
-    
-    /**
-     * 
-     */
     private tempProject: TypeScriptProject;
     
     private projectRootDir: string;
     
     private initializationResolver: (promise: Promise<any>) => any;
+    
     private busy: Promise<any>;
     
     
@@ -161,10 +158,9 @@ class TypeScriptProjectManager {
                 this.tempProject = project = this.projectFactory(
                     '', 
                     config,  
-                    null,//this.fileSystem, 
+                    this.fileSystem, 
                     this.workingSet,
-                    new Services.TypeScriptServicesFactory(),
-                    path.join(this.defaultTypeScriptLocation, 'lib.d.ts')
+                    this.defaultTypeScriptLocation
                 );
                 this.busy = this.tempProject.init();
                 return this.busy.then(() => this.tempProject);
@@ -219,59 +215,24 @@ class TypeScriptProjectManager {
      * @param config the config created from the file
      */
     private createProjectFromConfig(projectRootDir: string, config : TypeScriptProjectConfig): Promise<TypeScriptProject> {
-        return this.getTypeScriptInfosForPath(config.typescriptPath).then(infos => {
-            var project = this.projectFactory(
-                projectRootDir, 
-                config,  
-                this.fileSystem, 
-                this.workingSet,
-                infos.factory,
-                infos.libLocation
-            );
-            return project.init().then(() => {
-                return project;
-            })
+        var project = this.projectFactory(
+            projectRootDir, 
+            config,  
+            this.fileSystem, 
+            this.workingSet,
+            path.join(this.defaultTypeScriptLocation, 'lib.d.ts') 
+        );
+        return project.init().then(() => {
+            return project;
         }, (): TypeScriptProject => {
             if (logger.warning()) {
-                logger.log('could not retrieve typescript service at path :' + config.typescriptPath)
+                logger.log('could not create project:' + config.mapSource)
             }
             return null;
         })
     }
 
-
     
-    
-    /**
-     * Retrieve a ServiceFactory from a given typeScriptService file path
-     * @param typescriptPath
-     */
-    private getTypeScriptInfosForPath(typescriptPath: string): Promise<TypeScriptInfo> {
-        
-        return new Promise<TypeScriptInfo>((resolve, reject) => {
-            if (!typescriptPath) {
-                resolve({
-                    factory: new Services.TypeScriptServicesFactory(),
-                    libLocation: path.join(this.defaultTypeScriptLocation, 'lib.d.ts')
-                })
-            } else {
-                var typescriptServicesFile = path.join(typescriptPath, 'typescriptServices.js');
-                this.fileSystem.readFile(typescriptServicesFile).then(code => {
-                    var factory: TypeScript.Services.TypeScriptServicesFactory,
-                        func = new Function("var TypeScript;" + code + ";return TypeScript;"),
-                        typeScript: typeof TypeScript = func();
-                    
-                    factory = new typeScript.Services.TypeScriptServicesFactory();
-                    resolve({
-                        factory: factory,
-                        libLocation: path.join(typescriptPath, 'lib.d.ts')
-                    })
-                }).catch((e) => reject(e));
-            }
-        });
-    }
-
-
     //-------------------------------
     //  Events Handler
     //------------------------------- 
@@ -286,12 +247,13 @@ class TypeScriptProjectManager {
                 var promises: Promise<any>[] = [];
                 this.projectMap.entries.forEach(entry => {
                     var projectId = entry.key,
-                        project = entry.value;
-                    if (!configs[projectId]) {
+                        project = entry.value,
+                        config = configs[projectId];
+                    if (!config) {
                         project.dispose();
                         this.projectMap.delete(projectId);
                     } else {
-                        promises.push(project.update(configs[projectId]));
+                        promises.push(project.update(config));
                     } 
                 })
                 
@@ -312,15 +274,10 @@ module TypeScriptProjectManager {
             config: TypeScriptProjectConfig, 
             fileSystem: fs.FileSystem,
             workingSet: ws.WorkingSet,
-            servicesFactory: Services.TypeScriptServicesFactory,
-            defaultLibLocation: string
+            typeScriptLocation: string
         ): TypeScriptProject
     }
 }
 
-interface TypeScriptInfo {
-    factory: Services.TypeScriptServicesFactory;
-    libLocation: string;
-}
 
 export = TypeScriptProjectManager;

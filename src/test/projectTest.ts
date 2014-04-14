@@ -41,7 +41,6 @@ describe('TypeScriptProject', function () {
             $.extend({}, utils.typeScriptProjectConfigDefault, config),
             fileSystemMock,
             workingSetMock,
-            new TypeScript.Services.TypeScriptServicesFactory(),
             defaultLibLocation
         );
         if (init) {
@@ -75,7 +74,7 @@ describe('TypeScriptProject', function () {
         var snapshot = typeScriptProject.getLanguageServiceHost().getScriptSnapshot(fileName)
         return snapshot.getText(0, snapshot.getLength())
     }
-    describe('script collections', function () {
+    describe('initialization', function () {
      
         
         it('should collect every files in the file system corresponding to the \'sources\' section of the given config', function () {
@@ -414,17 +413,49 @@ describe('TypeScriptProject', function () {
             runs(function () {
                 expect(typeScriptProject.getProjectFilesSet().has(defaultLibLocation)).toBeFalsy();
             })
+         });
+        
+        
+         it('should create a new typescript factory instance if a typescript path is specified',  function () {
+            fileSystemMock.setFiles({
+                '/typescript/typescriptServices.js' : 
+                    'var TypeScript = {\
+                        Services: {\
+                            TypeScriptServicesFactory: function () { \
+                                return { \
+                                    createCoreServices: function () { return {} }, \
+                                    createPullLanguageService: function () {  return { id:\'hello\'} }\
+                                }\
+                            }\
+                        }\
+                    };',
+                '/lib.d.ts': ''
+            });
+            
+            createProject('/', {
+                sources : [
+                    'src/**/*ts'
+                ],
+                typescriptPath: '/typescript'
+            });
+
+            waits(15);
+            runs(function () {
+                expect(typeScriptProject.getLanguageService()).toEqual({id: "hello"})
+            })
         });
+        
     });
     
     
-    describe('project update', function () {
+    describe('update', function () {
         beforeEach(function () {
             fileSystemMock.setFiles({
                 '/src/file1.ts': 'import file3 = require(\'./file3\');',
                 '/src/file2.ts': '///<reference path="./file4.ts" />',
                 '/src/file3.ts': '',
-                '/src/file4.ts': ''
+                '/src/file4.ts': '',
+                '/lib.d.ts': ''
             });
             
             createProject('/', {
@@ -524,6 +555,31 @@ describe('TypeScriptProject', function () {
             runs(function () {
                 expect(typeScriptProject.getProjectFilesSet().has('/src/file4.ts')).toBe(true);
             });
+        });
+        
+        
+        
+        it('should mark as `open` files that have been added and that are in the working set', function () {
+            expect(typeScriptProject.getProjectFilesSet().has('/src/file2.ts')).toBeFalsy();
+            workingSetMock.files = [
+                '/src/file1.ts',
+                '/src/file2.ts'
+            ]
+            updateProject({
+                target: 'es3',
+                module: 'commonjs',
+                sources : [
+                     'src/file2.ts'
+                ]
+            });
+            
+            waits(15);
+            
+            
+            
+            runs(function () {
+                testWorkingSetOpenCorrespondance();
+            });
         }); 
     });
    
@@ -606,6 +662,7 @@ describe('TypeScriptProject', function () {
                     'src/**/*ts'
                 ]
             });
+            waits(15)
         });
         
         
