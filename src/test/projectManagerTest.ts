@@ -40,6 +40,7 @@ describe('TypeScriptProjectManager', function () {
         },
         projectSpy: {
             init: jasmine.Spy;
+            update: jasmine.Spy;
             dispose: jasmine.Spy;
         },
         projectFactorySpy: jasmine.Spy
@@ -52,6 +53,11 @@ describe('TypeScriptProjectManager', function () {
         fileSystemMock = new FileSystemMock();
         projectSpy = {
             init: jasmine.createSpy('init').andCallFake(function () {
+                return new Promise(resolve => {
+                    setTimeout(() => resolve(true), 10)
+                })
+            }),
+            update: jasmine.createSpy('update').andCallFake(function () {
                 return new Promise(resolve => {
                     setTimeout(() => resolve(true), 10)
                 })
@@ -150,10 +156,56 @@ describe('TypeScriptProjectManager', function () {
     })
     
     describe('change handling', function () {
-        it('should dispose all projects and recreate when config changes', function () {
+        it('should dispose projects that have no more config when config changes', function () {
             projectConfigs = {
-                project1: { },
-                project2: { }
+                project1: {},
+                project2: {}
+            } 
+
+         
+            initiProjectManager();
+            
+             projectConfigs = {
+                project1: {}
+            } 
+            
+            preferenceManagerMock.configChanged.dispatch();
+           
+            waits(50);
+            runs(function () {
+                expect(projectSpy.dispose.callCount).toBe(1);
+            })    
+        });
+        
+        
+        it('should create projects that have been added in the config', function () {
+            projectConfigs = {
+                project1: {},
+                project2: {}
+            } 
+
+         
+            initiProjectManager();
+            
+             projectConfigs = {
+                project1: {},
+                project2: {},
+                project3: {}
+            } 
+            
+            preferenceManagerMock.configChanged.dispatch();
+           
+            waits(50);
+            runs(function () {
+                expect(projectFactorySpy.callCount).toBe(3);
+            }) 
+        });
+        
+        
+        it('should update other projects', function () {
+            projectConfigs = {
+                project1: {},
+                project2: {}
             } 
 
          
@@ -163,7 +215,7 @@ describe('TypeScriptProjectManager', function () {
            
             waits(50);
             runs(function () {
-                expect(projectFactorySpy.callCount).toBe(4);
+                expect(projectSpy.update.callCount).toBe(2);
             })    
         });
     })

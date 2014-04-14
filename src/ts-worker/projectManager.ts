@@ -70,6 +70,7 @@ class TypeScriptProjectManager {
      */
     private tempProject: TypeScriptProject;
     
+    private projectRootDir: string;
     
     private initializationResolver: (promise: Promise<any>) => any;
     private busy: Promise<any>;
@@ -181,8 +182,9 @@ class TypeScriptProjectManager {
      * find bracketsTypescript config files and create a project for each file founds
      */
     private createProjects(): Promise<any> {
-        return  this.preferenceManager.getProjectsConfig().then(configs => {
+        return this.preferenceManager.getProjectsConfig().then(configs => {
             return this.fileSystem.getProjectRoot().then(projectRootDir => {
+                this.projectRootDir = projectRootDir;
                 return Promise.all(Object.keys(configs).map(projectId => {
                     var projectConfig = configs[projectId];
                     return this.createProjectFromConfig(projectRootDir, projectConfig).then(project => {
@@ -279,8 +281,27 @@ class TypeScriptProjectManager {
      * handle changes in the file system, update / delete / create project accordingly
      */
     private configChangeHandler = () => {
-        this.disposeProjects();
-        this.busy = this.createProjects();
+        this.busy = this.busy.then(() => {
+            this.preferenceManager.getProjectsConfig().then(configs => {
+                var promises: Promise<any>[] = [];
+                this.projectMap.entries.forEach(entry => {
+                    var projectId = entry.key,
+                        project = entry.value;
+                    if (!configs[projectId]) {
+                        project.dispose();
+                        this.projectMap.delete(projectId);
+                    } else {
+                        promises.push(project.update(configs[projectId]));
+                    } 
+                })
+                
+                Object.keys(configs).forEach(projectId => {
+                    if (!this.projectMap.has(projectId)) {
+                        promises.push(this.createProjectFromConfig(this.projectRootDir, configs[projectId]))
+                    }
+                })
+            });
+        });
     }
 }
 
