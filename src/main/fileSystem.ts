@@ -72,6 +72,13 @@ class FileSystem implements fs.FileSystem {
     //-------------------------------
     //  IFileSystem implementation
     //-------------------------------
+
+    /**
+     * @see IFileSystem.getProjectRoot
+     */
+    getProjectRoot(): Promise<string> {
+        return Promise.cast(this.projectManager.getProjectRoot().fullPath);
+    }
     
     /**
      * @see IFileSystem.projectFilesChanged

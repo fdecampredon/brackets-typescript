@@ -14,6 +14,9 @@ import signal = require('./signal');
  * typed watcher
  */
 export interface FileSystem {
+    
+    getProjectRoot(): Promise<string>
+    
     /**
      * a signal dispatching fine grained change reflecting the change that happens in the working set
      */

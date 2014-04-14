@@ -18,9 +18,11 @@
 
 import TypeScriptProjectManager = require('../ts-worker/projectManager');
 import TypeScriptProject = require('../ts-worker/project');
+import TypeScriptProjectConfig = require('../commons/config');
 import fs = require('../commons/fileSystem');
 import utils = require('../commons/utils');
 import collections = require('../commons/collections');
+import signal = require('../commons/signal');
 import FileSystemMock = require('./fileSystemMock');
 import es6Promise = require('es6-promise');
 import Promise = es6Promise.Promise;;
@@ -29,11 +31,22 @@ import Promise = es6Promise.Promise;;
 describe('TypeScriptProjectManager', function () {
     var typeScriptProjectManager: TypeScriptProjectManager,
         fileSystemMock: FileSystemMock,
+        projectConfigs: { [projectId: string]: TypeScriptProjectConfig; },
+        preferenceManagerMock = {
+            getProjectsConfig() {
+                return projectConfigs;
+            },
+            configChanged: new  signal.Signal<void>()
+        },
         projectSpy: {
             init: jasmine.Spy;
             dispose: jasmine.Spy;
         },
         projectFactorySpy: jasmine.Spy
+    
+    function initiProjectManager() {
+         typeScriptProjectManager.init('', preferenceManagerMock, fileSystemMock, null, projectFactorySpy);
+    }
             
     beforeEach(function () {
         fileSystemMock = new FileSystemMock();
@@ -56,35 +69,15 @@ describe('TypeScriptProjectManager', function () {
     });
     
     describe('initialization', function () {
-        it('should create a new Project for each brackets-typescript config file found', function () {
-            var dirConfig = {
-                module: 'amd',
-                sources: [
-                    './file1.ts',
-                    './file2.ts'
-                ],
-                outDir: 'bin'
-            }, dir1Config = {
-                module: 'commonjs',
-                sources: [
-                    './file3.ts',
-                    './file4.ts'
-                ],
-                outFile: 'index.js'
-            };
+        it('should create a new Project for each project config pushed by the preferenceManager', function () {
+            projectConfigs = {
+                project1: { },
+                project2: { }
+            } 
 
-            fileSystemMock.setFiles({
-                'dir1/file1': '', 
-                'dir2/.brackets-typescript': JSON.stringify(dirConfig), 
-                'dir2/file1': '', 
-                'dir2/file2': '', 
-                'dir3/dir4/.brackets-typescript': JSON.stringify(dir1Config),
-                'dir3/dir4/file1': '',
-                'dir3/dir4/file2': ''
-            });
-
-
-            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
+         
+            initiProjectManager();
+           
             waits(15);
             runs(function () {
                 expect(projectFactorySpy.callCount).toBe(2);
@@ -92,63 +85,7 @@ describe('TypeScriptProjectManager', function () {
             
         });
 
-        it('should support multiple configuration in a config file', function () {
-            var dirConfig = {
-                module: 'amd',
-                sources: [
-                    './file1.ts',
-                    './file2.ts'
-                ],
-                outDir: 'bin'
-            }, dir1Config = {
-                module: 'commonjs',
-                sources: [
-                    './file3.ts',
-                    './file4.ts'
-                ],
-                outFile: 'index.js'
-            };
-
-            fileSystemMock.setFiles({
-                '/.brackets-typescript': JSON.stringify([
-                    dirConfig,
-                    dir1Config
-                ])
-            });
-
-
-            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
-            waits(15);
-            runs(function () {
-                expect(projectFactorySpy.callCount).toBe(2);
-            });
-        });
-
-
-
-        it('should not create a project if the config file is invalid JSON',  function () {
-            fileSystemMock.setFiles({
-                'dir1/.brackets-typescript': '{',
-            });
-            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
-            waits(15);
-            runs(function () {
-                expect(projectFactorySpy.callCount).toBe(0)
-            });
-        });
-
-        it('should not create a project if the config file is not valid',  function () {
-            fileSystemMock.setFiles({
-                'dir1/.brackets-typescript': JSON.stringify({
-                    module: 'commonjs'
-                })
-            });
-            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
-            waits(15);
-            runs(function () {
-                expect(projectFactorySpy.callCount).toBe(0);
-            })
-        });
+       
         
         it('should  create a new typescript factory instance if a typescript path is specified',  function () {
             fileSystemMock.setFiles({
@@ -157,19 +94,16 @@ describe('TypeScriptProjectManager', function () {
                         Services: {\
                             TypeScriptServicesFactory: function () { return {id: "hello"}}\
                         }\
-                    };',
-                '/dir/.brackets-typescript': JSON.stringify({
-                    module: 'amd',
-                    typescriptPath: '/typeScript',
-                    sources: [
-                        './file1.ts',
-                        './file2.ts'
-                    ],
-                    outDir: 'bin'
-                })
+                    };'
             });
+            
+            projectConfigs =  {
+                default: {
+                    typescriptPath: '/typeScript',
+                }
+            }
 
-            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
+            initiProjectManager();
             waits(15);
             runs(function () {
                 expect(projectFactorySpy.callCount).toBe(1);
@@ -192,165 +126,48 @@ describe('TypeScriptProjectManager', function () {
                 })
             });
 
-            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
+            initiProjectManager();
             waits(15);
             runs(function () {
                 expect(projectFactorySpy.callCount).toBe(0);
             })
         });
-    })
-    
-    
-    describe('change handling', function () {
-    
-        it('should dispose project if the config file as been deleted', function () {
-            fileSystemMock.setFiles({
-                'dir1/.brackets-typescript': JSON.stringify({
-                    module: 'commonjs',
-                    sources: [
-                        './file3.ts',
-                        './file4.ts'
-                    ],
-                    outFile: 'index.js'
-                })
-            });
-            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
-            waits(15);
-            runs(function () {
-                fileSystemMock.removeFile('dir1/.brackets-typescript');
-            })
-            waits(15);
-            runs(function() {
-                expect(projectSpy.dispose.callCount).toBe(1);
-            })
-        });
-
-
-        it('should create a new Project when a config file is added', function () {
-
-            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
-
-            fileSystemMock.addFile('dir/.brackets-typescript', JSON.stringify({
-                module: 'amd',
-                sources: [
-                    './file1.ts',
-                    './file2.ts'
-                ],
-                outDir: 'bin'
-            }))
-            waits(15);
-            runs(function () {
-                expect(projectFactorySpy.callCount).toBe(1);
-            })
-        });
-
-        it('should replace a Project when a config file is added', function () {
-
-            fileSystemMock.setFiles({
-                'dir/.brackets-typescript': JSON.stringify({
-                    module: 'amd',
-                    sources: [
-                        './file1.ts',
-                        './file2.ts'
-                    ],
-                    outDir: 'bin'
-                })
-            });
-
-            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
-            waits(15);
-            runs(function () {
-                fileSystemMock.updateFile('dir/.brackets-typescript', JSON.stringify({
-                    module: 'amd',
-                    sources: [
-                        './file3.ts',
-                        './file4.ts'
-                    ],
-                    outDir: 'bin'
-                }));
-            })
-            
-            waits(15);
-            runs(function() {
-                expect(projectSpy.dispose.callCount).toBe(1);
-                expect(projectFactorySpy.callCount).toBe(2);
-            })
-
-           
-        });
-
-
-        it('should create a new Project when a config file is updated, and when the previous version was an incorrect config file', function () {
-
-            fileSystemMock.setFiles({
-                'dir/.brackets-typescript': '{}'
-            });
-
-            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
-            waits(15);
-            runs(function () {
-                expect(projectFactorySpy.callCount).toBe(0)
-
-                fileSystemMock.updateFile( 'dir/.brackets-typescript', JSON.stringify({
-                    module: 'amd',
-                    sources: [
-                        './file1.ts',
-                        './file2.ts'
-                    ],
-                    outDir: 'bin'
-                }));
-            })
-            
-            waitsFor(() => projectFactorySpy.callCount === 1, 'factory should have been called');
-            runs(function () {
-                expect(projectFactorySpy.callCount).toBe(1);
-            })
-        });
-
-
+        
+        
         it('should dispose all registred project when disposed', function () {
 
-            fileSystemMock.setFiles({
-                'dir/.brackets-typescript': JSON.stringify({
-                    module: 'amd',
-                    sources: [
-                        './file1.ts',
-                        './file2.ts'
-                    ],
-                    outDir: 'bin'
-                })
-            });
+            projectConfigs = {
+                default: {}
+            }
 
-            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
+            initiProjectManager();
             typeScriptProjectManager.dispose();
             waitsFor(() => projectSpy.dispose.callCount === 1, 'dispose should have been called');
             runs(function() {
                 expect(projectSpy.dispose.callCount).toBe(1);
             })
         });
+    })
+    
+    describe('change handling', function () {
+        it('should dispose all projects and recreate when config changes', function () {
+            projectConfigs = {
+                project1: { },
+                project2: { }
+            } 
 
-        it('should dispose all project and reinitialize when file system is refreshed', function () {
-            fileSystemMock.setFiles({
-                'dir/.brackets-typescript': JSON.stringify({
-                    module: 'amd',
-                    sources: [
-                        './file1.ts',
-                        './file2.ts'
-                    ],
-                    outDir: 'bin'
-                })
-            });
-            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
-            fileSystemMock.reset();
-            waitsFor(() => projectSpy.dispose.callCount === 1 && projectFactorySpy.callCount === 2, 
-                    'dispose should have been called, project should have been recreated');
-            runs(function() {
-                expect(projectSpy.dispose.callCount).toBe(1);
-                expect(projectFactorySpy.callCount).toBe(2);
-            })
+         
+            initiProjectManager();
             
-        }); 
-    });
+            preferenceManagerMock.configChanged.dispatch();
+           
+            waits(50);
+            runs(function () {
+                expect(projectFactorySpy.callCount).toBe(4);
+            })    
+        });
+    })
+    
     
     
     describe('getProjectForFiles', function () { 
@@ -420,7 +237,7 @@ describe('TypeScriptProjectManager', function () {
                 '/file3.ts': '',
                 '/file4.ts': ''
             });
-            typeScriptProjectManager.init('', fileSystemMock, null, projectFactorySpy);
+            initiProjectManager();
         })
         
         it('should return a project that have the file as source if this project exist ', function () {

@@ -19,8 +19,9 @@ import es6Promise = require('es6-promise');
 import Promise = es6Promise.Promise;
 import path = require('path');
 import signal = require('../commons/signal');
-import fs = require('../commons/fileSystem');
 import ws = require('../commons/workingSet');
+import fs = require('../commons/fileSystem');
+import TypeScriptPreferenceManager = require('../commons/preferencesManager');
 import TypeScriptProjectConfig = require('../commons/config');
 import collections = require('../commons/collections');
 import tsUtils = require('../commons/typeScriptUtils');
@@ -52,7 +53,8 @@ class TypeScriptProjectManager {
     //  variables
     //-------------------------------
     
-    private fileSystem: fs.FileSystem; 
+    private preferenceManager: TypeScriptPreferenceManager; 
+    private fileSystem: fs.FileSystem;
     private workingSet: ws.WorkingSet;
     private projectFactory: TypeScriptProjectManager.ProjectFactory;
     
@@ -60,7 +62,7 @@ class TypeScriptProjectManager {
     /**
      * a map containing the projects 
      */
-    private projectMap = new collections.StringMap<TypeScriptProject[]>();
+    private projectMap = new collections.StringMap<TypeScriptProject>();
     
     
     /**
@@ -83,15 +85,16 @@ class TypeScriptProjectManager {
     /**
      * initialize the project manager
      */
-    init(defaultTypeScriptLocation: string, fileSystem: fs.FileSystem, 
+    init(defaultTypeScriptLocation: string, preferenceManager: TypeScriptPreferenceManager, fileSystem: fs.FileSystem,
         workingSet: ws.WorkingSet, projectFactory: TypeScriptProjectManager.ProjectFactory): Promise<void> {
         
         this.defaultTypeScriptLocation = defaultTypeScriptLocation;
-        this.fileSystem = fileSystem;
+        this.preferenceManager = preferenceManager;
         this.workingSet = workingSet;
+        this.fileSystem = fileSystem;
         this.projectFactory = projectFactory;
         
-        this.fileSystem.projectFilesChanged.add(this.filesChangeHandler);
+        this.preferenceManager.configChanged.add(this.configChangeHandler);
         
         this.createProjects().then(result => this.initializationResolver(result));
         
@@ -103,7 +106,7 @@ class TypeScriptProjectManager {
      * dispose the project manager
      */
     dispose(): void {
-        this.fileSystem.projectFilesChanged.remove(this.filesChangeHandler);
+        this.preferenceManager.configChanged.remove(this.configChangeHandler);
         this.busy.then(() => {
             this.disposeProjects();    
         });
@@ -118,7 +121,7 @@ class TypeScriptProjectManager {
      */
     getProjectForFile(fileName: string): Promise<TypeScriptProject> {
         return this.busy.then((): any => {
-            var projects = utils.mergeAll(this.projectMap.values).filter(project => !!project),
+            var projects = this.projectMap.values,
                 project : TypeScriptProject = null;
             //first we check for a project that have tha file as source 
             projects.some(tsProject => {
@@ -157,7 +160,7 @@ class TypeScriptProjectManager {
                 this.tempProject = project = this.projectFactory(
                     '', 
                     config,  
-                    this.fileSystem, 
+                    null,//this.fileSystem, 
                     this.workingSet,
                     new Services.TypeScriptServicesFactory(),
                     path.join(this.defaultTypeScriptLocation, 'lib.d.ts')
@@ -178,11 +181,16 @@ class TypeScriptProjectManager {
      * find bracketsTypescript config files and create a project for each file founds
      */
     private createProjects(): Promise<any> {
-        return this.fileSystem.getProjectFiles().then(files => {
-            return Promise.all(files
-                .filter(tsUtils.isTypeScriptProjectConfigFile)
-                .map(configFile => this.createProjectsFromFile(configFile))
-            );
+        var configs = new collections.StringMap(this.preferenceManager.getProjectsConfig());
+        return  this.fileSystem.getProjectRoot().then(projectRootDir => {
+            return Promise.all(configs.entries.map(entry => {
+                var projectId = entry.key,
+                    projectConfig = entry.value;
+
+                return this.createProjectFromConfig(projectRootDir, projectConfig).then(project => {
+                    this.projectMap.set(projectId, project);
+                });    
+            }));
         });
     }
     
@@ -192,7 +200,7 @@ class TypeScriptProjectManager {
     private disposeProjects():void {
         var projectMap = this.projectMap;
         projectMap.keys.forEach(path =>  {
-            projectMap.get(path).forEach(project => project.dispose())
+            projectMap.get(path).dispose();
         });
         this.projectMap.clear();
         if (this.tempProject) {
@@ -201,36 +209,7 @@ class TypeScriptProjectManager {
         }
     }
     
-    /**
-     * for a given config file create a project
-     * 
-     * @param configFilePath the config file path
-     */
-    private createProjectsFromFile(configFilePath: string): Promise<any> {
-        return this.retrieveConfig(configFilePath).then(configs => {
-            if (configs.length === 0) {
-                this.projectMap.delete(configFilePath);
-                return;
-            }
-            
-            var projects: TypeScriptProject[];
-            if (this.projectMap.has(configFilePath)) {
-                projects = this.projectMap.get(configFilePath);
-                projects.forEach(project => project && project.dispose());
-            }
-            
-            projects = [];
-            this.projectMap.set(configFilePath, projects);
-
-            return Promise.all(
-                configs.map( (config: TypeScriptProjectConfig, index: number) => {
-                    return this.createProjectFromConfig(configFilePath, config).then(project => {
-                        projects[index] = project;
-                    });
-                })
-            );
-        });
-    }
+   
     
     /**
      * for given validated config and config file path create a project
@@ -238,10 +217,10 @@ class TypeScriptProjectManager {
      * @param configFilePath the config file path
      * @param config the config created from the file
      */
-    private createProjectFromConfig(configFile: string, config : TypeScriptProjectConfig): Promise<TypeScriptProject> {
+    private createProjectFromConfig(projectRootDir: string, config : TypeScriptProjectConfig): Promise<TypeScriptProject> {
         return this.getTypeScriptInfosForPath(config.typescriptPath).then(infos => {
             var project = this.projectFactory(
-                path.dirname(configFile), 
+                projectRootDir, 
                 config,  
                 this.fileSystem, 
                 this.workingSet,
@@ -260,50 +239,6 @@ class TypeScriptProjectManager {
     }
 
 
-    
-    /**
-     * try to create a config from a given config file path
-     * validate the config file, then add default values if needed
-     * 
-     * @param configFilePath
-     */
-    private retrieveConfig(configFilePath: string): Promise<TypeScriptProjectConfig[]> {
-        return this.fileSystem.readFile(configFilePath).then((content: string) => {
-            var data : any;
-            try {
-                data =  JSON.parse(content);
-            } catch(e) {
-                if (logger.warning()) {
-                    logger.log('invalid json for brackets-typescript config file: ' + configFilePath);
-                }
-            }
-            
-            if (!data) {
-                return [];
-            }
-            
-            var configs : TypeScriptProjectConfig[];
-            if (Array.isArray(data)) {
-                configs = data;
-            } else {
-                configs = [data]
-            }
-            
-            return configs.map((config : TypeScriptProjectConfig, index: number) => {
-                if(config) {
-                    config = utils.assign(utils.clone(tsUtils.typeScriptProjectConfigDefault), config);
-                    if(!tsUtils.validateTypeScriptProjectConfig(config)) {
-                        if (logger.warning()) {
-                            logger.log('invalid config file for brackets-typescript config file: ' +
-                                configFilePath + ' with index : ' + index);
-                        }
-                        config = null;
-                    }
-                }
-                return config; 
-            }).filter(config => !!config);
-        }).catch(() => []);
-    }
     
     
     /**
@@ -344,40 +279,9 @@ class TypeScriptProjectManager {
     /**
      * handle changes in the file system, update / delete / create project accordingly
      */
-    private filesChangeHandler = (changeRecords: fs.FileChangeRecord[]) => {
-        this.busy.then(() => {
-            changeRecords.forEach(record => {
-                if (record.kind === fs.FileChangeKind.RESET) {
-                    //reinitialize the projects if file system reset
-                    this.disposeProjects();
-                    this.createProjects();
-                    return false;
-                } else if (tsUtils.isTypeScriptProjectConfigFile(record.path)) {
-                    if (this.tempProject) {
-                        this.tempProject.dispose();
-                        this.tempProject = null;
-                    }
-                    switch (record.kind) { 
-                        // a config file has been deleted detele the project
-                        case fs.FileChangeKind.DELETE:
-                            if (this.projectMap.has(record.path)) {
-                                this.projectMap.get(record.path).forEach(project => {
-                                    project.dispose();
-                                })
-                                this.projectMap.delete(record.path);
-                            }
-                            break;
-
-                        // a config file has been created or updated update project
-                        default:
-                            this.busy = this.busy.then(() => this.createProjectsFromFile(record.path));
-                            break;
-                    }
-                }
-                return true;
-            });    
-        })
-         
+    private configChangeHandler = () => {
+        this.disposeProjects();
+        this.busy = this.createProjects();
     }
 }
 

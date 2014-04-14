@@ -28,6 +28,11 @@ class FileSystem implements fs.FileSystem {
         private files: { [path: string]: string } = {}
     ) {}
     
+    
+    getProjectRoot() {
+        return Promise.cast('/');
+    }
+    
     getProjectFiles(forceRefresh?: boolean): Promise<string[]> {
         return new Promise(resolve => {
             resolve(Object.keys(this.files))
