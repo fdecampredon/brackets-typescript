@@ -380,43 +380,153 @@ describe('TypeScriptProject', function () {
                 ]); 
             })
         });
+        
+        it('should add the default library if noLib is not specified or false', function () {
+            fileSystemMock.setFiles({
+                '/src/file1.ts': '',
+                '/lib.d.ts': ''
+            });
+
+            createProject('/', {
+                sources : [
+                    'src/**/*ts'
+                ]
+            });
+            waits(10)
+            runs(function () {
+                expect(typeScriptProject.getProjectFilesSet().has(defaultLibLocation)).toBe(true);
+            });
+        });
+
+        it('should not add the default library if noLib is not specified or false', function () {
+            fileSystemMock.setFiles({
+                '/src/file1.ts': '',
+                '/lib.d.ts': ''
+            });
+
+            createProject('/', {
+                sources : [
+                    'src/**/*ts'
+                ],
+                noLib: true
+            });
+            waits(10)
+            runs(function () {
+                expect(typeScriptProject.getProjectFilesSet().has(defaultLibLocation)).toBeFalsy();
+            })
+        });
     });
     
     
-    it('should add the default library if noLib is not specified or false', function () {
-        fileSystemMock.setFiles({
-            '/src/file1.ts': '',
-            '/lib.d.ts': ''
+    describe('project update', function () {
+        beforeEach(function () {
+            fileSystemMock.setFiles({
+                '/src/file1.ts': 'import file3 = require(\'./file3\');',
+                '/src/file2.ts': '///<reference path="./file4.ts" />',
+                '/src/file3.ts': '',
+                '/src/file4.ts': ''
+            });
+            
+            createProject('/', {
+                target: 'es5',
+                sources : [
+                    'src/file1.ts'
+                ]
+            });
+            waits(15);
         });
         
-        createProject('/', {
-            sources : [
-                'src/**/*ts'
-            ]
-        });
-        waits(10)
-        runs(function () {
-            expect(typeScriptProject.getProjectFilesSet().has(defaultLibLocation)).toBe(true);
-        });
-    });
-    
-    it('should not add the default library if noLib is not specified or false', function () {
-        fileSystemMock.setFiles({
-            '/src/file1.ts': '',
-            '/lib.d.ts': ''
-        });
+        function updateProject(config: TypeScriptProjectConfig) {
+             typeScriptProject.update($.extend({}, utils.typeScriptProjectConfigDefault, config));
+        }
         
-        createProject('/', {
-            sources : [
-                'src/**/*ts'
-            ],
-            noLib: true
-        });
-        waits(10)
-        runs(function () {
-            expect(typeScriptProject.getProjectFilesSet().has(defaultLibLocation)).toBeFalsy();
-        })
+        it('should update compilerOptions if compiler options does have changed', function () {
+           expect(typeScriptProject.getLanguageServiceHost().getCompilationSettings().codeGenTarget).toBe(TypeScript.LanguageVersion.EcmaScript5);
+           updateProject({
+                target: 'es3',
+                module: 'commonjs',
+                sources : [
+                    'src/file1.ts'
+                ]
+            });
+            
+            waits(15);
+            
+            runs(function () {
+               expect(typeScriptProject.getLanguageServiceHost().getCompilationSettings().codeGenTarget).toBe(TypeScript.LanguageVersion.EcmaScript3) ;
+            });
+        }); 
+        
+        it('should remove project files that are not included anymore in the source', function () {
+            expect(typeScriptProject.getProjectFilesSet().has('/src/file1.ts')).toBe(true);
+            updateProject({
+                target: 'es3',
+                module: 'commonjs',
+                sources : []
+            });
+            
+            waits(15);
+            
+            runs(function () {
+                expect(typeScriptProject.getProjectFilesSet().has('/src/file1.ts')).toBeFalsy();
+            });
+        }); 
+        
+        
+        it('should add project files that matches the new configuration', function () {
+            expect(typeScriptProject.getProjectFilesSet().has('/src/file2.ts')).toBeFalsy();
+            updateProject({
+                target: 'es3',
+                module: 'commonjs',
+                sources : [
+                     'src/file2.ts'
+                ]
+            });
+            
+            waits(15);
+            
+            runs(function () {
+                expect(typeScriptProject.getProjectFilesSet().has('/src/file2.ts')).toBe(true);
+            });
+        }); 
+        
+        
+        it('should remove project files that are not referenced anymore in the source', function () {
+            expect(typeScriptProject.getProjectFilesSet().has('/src/file3.ts')).toBe(true)
+            updateProject({
+                target: 'es3',
+                module: 'commonjs',
+                sources : [
+                     'src/file2.ts'
+                ]
+            });
+            
+            waits(15);
+            
+            runs(function () {
+                expect(typeScriptProject.getProjectFilesSet().has('/src/file3.ts')).toBeFalsy();
+            });
+        }); 
+        
+        
+        it('should add project files that are now referenced by a file in the sources', function () {
+            expect(typeScriptProject.getProjectFilesSet().has('/src/file4.ts')).toBeFalsy();
+            updateProject({
+                target: 'es3',
+                module: 'commonjs',
+                sources : [
+                     'src/file2.ts'
+                ]
+            });
+            
+            waits(15);
+            
+            runs(function () {
+                expect(typeScriptProject.getProjectFilesSet().has('/src/file4.ts')).toBe(true);
+            });
+        }); 
     });
+   
  
     describe('getProjectFileKind', function () {
         it('should return \'SOURCE\' if the file path match the \'sources\' section of the given config', function () {

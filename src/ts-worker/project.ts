@@ -86,6 +86,10 @@ class TypeScriptProject {
         this.workingSet.documentEdited.add(this.documentEditedHandler);
         this.fileSystem.projectFilesChanged.add(this.filesChangeHandler);
         
+        
+        this.projectFilesSet = new collections.StringSet();
+        this.references = new collections.StringMap<collections.StringSet>();
+        
         return this.initializing = this.collectFiles().then(() => {
             this.workingSet.getFiles().then((files) => files.forEach(fileName => {
                 if (this.projectFilesSet.has(fileName)) {
@@ -105,7 +109,23 @@ class TypeScriptProject {
         })
     }
     
-    public dispose() {
+    update(config: TypeScriptProjectConfig): Promise<any> {
+        var pojectSources =  this.projectFilesSet.values.filter(fileName => this.isProjectSourceFile(fileName));
+        this.config = config;
+        return this.initializing.then(() => {
+            this.languageServiceHost.setCompilationSettings(this.createCompilationSettings());
+            var promises: Promise<any>[] = [];
+            pojectSources.forEach(fileName => {
+                if (!this.isProjectSourceFile(fileName)) {
+                    this.removeFile(fileName);
+                }    
+            });
+            
+            return Promise.all(promises).then(() => this.collectFiles());
+        })
+    }
+    
+    dispose() {
         this.workingSet.workingSetChanged.remove(this.workingSetChangedHandler);
         this.workingSet.documentEdited.remove(this.documentEditedHandler);
         this.fileSystem.projectFilesChanged.remove(this.filesChangeHandler);
@@ -197,12 +217,10 @@ class TypeScriptProject {
      * retrive files content for path described in the config
      */
     private collectFiles(): Promise<any> { 
-        this.projectFilesSet = new collections.StringSet();
-        this.references = new collections.StringMap<collections.StringSet>();
         return this.fileSystem.getProjectFiles().then((paths: string[]) => {
             var promises: Promise<any>[] = [];
             paths.forEach(fileName => {
-                if (this.isProjectSourceFile(fileName)) {
+                if (this.isProjectSourceFile(fileName) && !this.projectFilesSet.has(fileName)) {
                     promises.push(this.addFile(fileName, false));
                 }
             });
