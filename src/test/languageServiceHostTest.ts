@@ -56,12 +56,6 @@ describe('LanguageServiceHost', function () {
             expect(languageServiceHost.getScriptVersion('file1.ts')).toBe(2);
         });
         
-        it('should not increase the version if the update does not change the content', function () {
-            languageServiceHost.addScript('file1.ts', 'hello world');
-            languageServiceHost.updateScript('file1.ts', 'hello world');
-            expect(languageServiceHost.getScriptVersion('file1.ts')).toBe(1);
-        });
-        
         it('should throws an error if the updated script does not exists', function () {
             expect(function () {
                 languageServiceHost.updateScript('file1.ts', 'hello world');

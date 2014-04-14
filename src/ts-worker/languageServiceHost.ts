@@ -207,11 +207,9 @@ class ScriptInfo {
     }
 
     updateContent(content: string): void {
-        if (content !== this.content) {
-            this.editRanges = [];
-            this.setContent(content);
-            this.version++;
-        }
+        this.editRanges = [];
+        this.setContent(content);
+        this.version++;
     }
 
     editContent(minChar: number, limChar: number, newText: string): void {
