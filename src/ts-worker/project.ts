@@ -71,6 +71,8 @@ class TypeScriptProject {
     private initializing: Promise<any>
     
     
+    private libLocation: string;
+    
     
     //-------------------------------
     //  public methods
@@ -85,6 +87,8 @@ class TypeScriptProject {
         
         
         this.initializing = this.getTypeScriptInfosForPath(this.config.typescriptPath).then(typeScriptInfo => {
+            
+            this.libLocation = typeScriptInfo.libLocation;
             this.coreService = typeScriptInfo.factory.createCoreServices({ logger: new logger.LogingClass()});
             this.languageServiceHost = new LanguageServiceHost();
             this.languageServiceHost.setCompilationSettings(this.createCompilationSettings());
@@ -99,6 +103,10 @@ class TypeScriptProject {
     
     update(config: TypeScriptProjectConfig): Promise<void> {
         var pojectSources = this.projectFilesSet.values.filter(fileName => this.isProjectSourceFile(fileName));
+        if (!this.config.noLib && config.noLib) {
+            this.removeFile(this.libLocation);
+        }
+        
         this.config = config;
         return this.initializing.then(() => {
             this.languageServiceHost.setCompilationSettings(this.createCompilationSettings());
@@ -253,8 +261,8 @@ class TypeScriptProject {
                 }
             });
             
-            if (!this.config.noLib && !this.projectFilesSet.has(this.defaultLibLocation)) {
-                promises.push(this.addFile(this.defaultLibLocation));
+            if (!this.config.noLib && !this.projectFilesSet.has(this.libLocation)) {
+                promises.push(this.addFile(this.libLocation));
             }
             
             return Promise.all(promises);

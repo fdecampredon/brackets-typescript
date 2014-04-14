@@ -557,7 +557,21 @@ describe('TypeScriptProject', function () {
             });
         });
         
-        
+        it('should remove default lib if the new config noLib properties is set to true', function () {
+            expect(typeScriptProject.getProjectFilesSet().has('/lib.d.ts')).toBe(true);
+            updateProject({
+                target: 'es3',
+                module: 'commonjs',
+                noLib: true,
+                sources : []
+            });
+            
+            waits(15);
+            
+            runs(function () {
+                expect(typeScriptProject.getProjectFilesSet().has('/lib.d.ts')).toBeFalsy();
+            });
+        });
         
         it('should mark as `open` files that have been added and that are in the working set', function () {
             expect(typeScriptProject.getProjectFilesSet().has('/src/file2.ts')).toBeFalsy();
