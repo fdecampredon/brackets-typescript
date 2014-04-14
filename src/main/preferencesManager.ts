@@ -46,7 +46,7 @@ class TypescriptPreferenceManager {
     private retriveProjectsConfig(): collections.StringMap<TypeScriptProjectConfig>  {
         var result = new collections.StringMap<TypeScriptProjectConfig>();
         
-        var data = this.prefManager.get('typescript');
+        var data = this.prefManager.get('typescript', this.prefManager.CURRENT_PROJECT);
         if (!data) {
             return result;
         }
