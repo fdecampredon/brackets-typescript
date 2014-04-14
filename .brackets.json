@@ -1,0 +1,28 @@
+{
+    "typescript": {
+        "target": "ES5",
+        "module": "AMD",
+        "noImplicitAny": true,
+        "projects": {
+            "main": {
+                "sources" : [
+                    "src/declarations/**/*.ts",
+                    "src/main/**/*.ts"
+                ]
+            },
+            "worker": {
+                "sources" : [
+                    "src/declarations/**/*.ts",
+                    "src/ts-worker/**/*.ts"
+                ]
+            },
+            "test": {
+                "sources": [
+                    "src/declarations/**/*.ts",
+                    "src/test-declarations/**/*.ts",
+                    "src/test/**/*.ts"
+                ]
+            }
+        }
+    }
+}
