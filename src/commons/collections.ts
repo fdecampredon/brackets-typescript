@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ export class StringSet {
     /**
      * internal map, null prototype object
      */
-    private map: { [path: string]: boolean };
+    private map: { [path: string]: boolean; };
     
     /**
      * constructor
@@ -100,7 +100,7 @@ export class StringMap<T> {
     
     /**
      * constructor
-     * @param iterable a array of MapEntry that will be added to the map
+     * @param obj an object that will represent the future map
      */
     constructor(obj?: {[index: string]: T}) {
         this.map = Object.create(null);
@@ -178,7 +178,7 @@ export class StringMap<T> {
     }
     
     /**
-     * return an array containing the entries of the map
+     * return an object representation
      */
     toObject(): {[key: string]: T} {
         return Object.keys(this.map).reduce(

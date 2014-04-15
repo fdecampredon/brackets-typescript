@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -61,7 +61,7 @@ class TypeScriptErrorReporter implements brackets.InspectionProvider {
                     );
                 })    
             })
-        }).promise()
+        }).promise();
     }
     
     
