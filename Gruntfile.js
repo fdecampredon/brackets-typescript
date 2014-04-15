@@ -169,7 +169,8 @@ module.exports = function (grunt) {
     
     grunt.registerTask('build-main',['clean:tmp', 'typescript:main', 'browserify:main','clean:tmp']);
     grunt.registerTask('build-worker',['clean:tmp', 'typescript:worker', 'browserify:worker', 'clean:tmp']);
-    grunt.registerTask('test', ['clean:tmp', 'typescript:test', 'browserify:test', 'jasmine', 'clean:tmp']);
+    grunt.registerTask('build-test', ['clean:tmp', 'typescript:test', 'browserify:test']);
+    grunt.registerTask('test', ['build-test', 'jasmine', 'clean:tmp']);
     grunt.registerTask('build',['clean:local', 'build-main', 'build-worker']);
     grunt.registerTask('default', ['test', 'build']);
     
