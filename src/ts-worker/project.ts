@@ -4,7 +4,7 @@ import path = require('path');
 import minimatch = require('minimatch');
 import es6Promise = require('es6-promise');
 import Promise = es6Promise.Promise;;
-
+import PromiseQueue = require('../commons/promiseQueue')
 import Services = TypeScript.Services;
 
 import signal = require('../commons/signal');
@@ -68,7 +68,7 @@ class TypeScriptProject {
     private references: collections.StringMap<collections.StringSet>;
     
     
-    private initializing: Promise<any>
+    private queue: PromiseQueue = new PromiseQueue();
     
     
     private libLocation: string;
@@ -86,7 +86,8 @@ class TypeScriptProject {
         this.fileSystem.projectFilesChanged.add(this.filesChangeHandler);
         
         
-        this.initializing = this.getTypeScriptInfosForPath(this.config.typescriptPath).then(typeScriptInfo => {
+        return this.queue.init(
+            this.getTypeScriptInfosForPath(this.config.typescriptPath).then(typeScriptInfo => {
             
             this.libLocation = typeScriptInfo.libLocation;
             this.coreService = typeScriptInfo.factory.createCoreServices({ logger: new logger.LogingClass()});
@@ -97,8 +98,8 @@ class TypeScriptProject {
             return this.collectFiles().then(() => {
                 this.updateWorkingSet();
             })
-        });
-        return this.initializing;
+            })
+        );
     }
     
     update(config: TypeScriptProjectConfig): Promise<void> {
@@ -113,7 +114,7 @@ class TypeScriptProject {
         
         var pojectSources = this.projectFilesSet.values.filter(fileName => this.isProjectSourceFile(fileName));
         this.config = config;
-        return this.initializing.then(() => {
+        return this.queue.then(() => {
             this.languageServiceHost.setCompilationSettings(this.createCompilationSettings());
             var promises: Promise<any>[] = [];
             pojectSources.forEach(fileName => {
@@ -410,7 +411,7 @@ class TypeScriptProject {
      * handle changes in the fileSystem
      */
     private filesChangeHandler = (changeRecords: fs.FileChangeRecord[]) => {
-        this.initializing.then(() => {
+        this.queue.then(() => {
             changeRecords.forEach(record => {
                 switch (record.kind) { 
                     case fs.FileChangeKind.ADD:
@@ -437,7 +438,7 @@ class TypeScriptProject {
      * handle changes in the workingSet
      */
     private workingSetChangedHandler = (changeRecord:  ws.WorkingSetChangeRecord) => {
-        this.initializing.then(() => {
+        this.queue.then(() => {
             switch (changeRecord.kind) { 
                 case ws.WorkingSetChangeKind.ADD:
                     changeRecord.paths.forEach(fileName  => {
@@ -462,7 +463,7 @@ class TypeScriptProject {
      * handle document edition
      */
     private documentEditedHandler = (record: ws.DocumentChangeRecord) => {
-        this.initializing.then(() => {
+        this.queue.then(() => {
             if (this.projectFilesSet.has(record.path)) {
                 var mustUpdate: boolean = false,
                     oldPaths = new collections.StringSet(this.getReferencedOrImportedFiles(record.path)),

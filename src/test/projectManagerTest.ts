@@ -226,20 +226,23 @@ describe('TypeScriptProjectManager', function () {
                 outFile: 'index.js'
             };
 
-            fileSystemMock.setFiles({
-                '/.brackets-typescript': JSON.stringify([{
+            projectConfigs = {
+                project1: {
                     module: 'amd',
                     sources: [
                         './file1.ts'
                     ],
                     outDir: 'bin'
-                },{
+                },
+                project2: {
                     module: 'commonjs',
                     sources: [
                         './file2.ts'
                     ],
                     outFile: 'index.js'
-                }]),
+                }
+            }
+            fileSystemMock.setFiles({
                 '/file1.ts': 'import file1 = require("file2")',
                 '/file2.ts': 'import file4 = require("file4")',
                 '/file3.ts': '',

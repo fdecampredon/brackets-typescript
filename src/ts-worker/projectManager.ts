@@ -18,6 +18,7 @@
 import es6Promise = require('es6-promise');
 import Promise = es6Promise.Promise;
 import path = require('path');
+import PromiseQueue = require('../commons/promiseQueue')
 import signal = require('../commons/signal');
 import ws = require('../commons/workingSet');
 import fs = require('../commons/fileSystem');
@@ -37,8 +38,6 @@ import Services = TypeScript.Services;
 //--------------------------------------------------------------------------
 
 
-
-
 /**
  * The main facade class of the extentions, responsible to create / destroy / update projects
  * by observing config files in the files of the opened brackets folder
@@ -46,7 +45,7 @@ import Services = TypeScript.Services;
 class TypeScriptProjectManager {
     
     constructor() {
-        this.busy = new Promise<any>(resolve => this.initializationResolver = resolve);
+        this.queue = new PromiseQueue();
     }
     
     //-------------------------------
@@ -68,10 +67,7 @@ class TypeScriptProjectManager {
     
     private projectRootDir: string;
     
-    private initializationResolver: (promise: Promise<any>) => any;
-    
-    private busy: Promise<any>;
-    
+    private queue: PromiseQueue;
     
     private defaultTypeScriptLocation: string;
     
@@ -94,9 +90,8 @@ class TypeScriptProjectManager {
         
         this.preferenceManager.configChanged.add(this.configChangeHandler);
         
-        this.createProjects().then(result => this.initializationResolver(result));
+        return this.queue.init(this.createProjects())
         
-        return this.busy;
     }
     
     
@@ -105,9 +100,7 @@ class TypeScriptProjectManager {
      */
     dispose(): void {
         this.preferenceManager.configChanged.remove(this.configChangeHandler);
-        this.busy.then(() => {
-            this.disposeProjects();    
-        });
+        this.queue.then(() => this.disposeProjects());
     }
     
     /**
@@ -118,7 +111,7 @@ class TypeScriptProjectManager {
      * @param fileName the path of the typesrcript file for which project are looked fo
      */
     getProjectForFile(fileName: string): Promise<TypeScriptProject> {
-        return this.busy.then((): any => {
+        return this.queue.then((): any => {
             var projects = this.projectMap.values,
                 project : TypeScriptProject = null;
             //first we check for a project that have tha file as source 
@@ -162,8 +155,7 @@ class TypeScriptProjectManager {
                     this.workingSet,
                     this.defaultTypeScriptLocation
                 );
-                this.busy = this.tempProject.init();
-                return this.busy.then(() => this.tempProject);
+                return this.tempProject.init().then(() => this.tempProject);
             }
             
             return project;
@@ -242,7 +234,7 @@ class TypeScriptProjectManager {
      * handle changes in the file system, update / delete / create project accordingly
      */
     private configChangeHandler = () => {
-        this.busy = this.busy.then(() => {
+        this.queue.then(() => {
             this.preferenceManager.getProjectsConfig().then(configs => {
                 var promises: Promise<any>[] = [];
                 this.projectMap.entries.forEach(entry => {
