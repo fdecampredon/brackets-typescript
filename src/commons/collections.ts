@@ -12,6 +12,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+'use strict';
+
 
 //--------------------------------------------------------------------------
 //
@@ -24,13 +26,13 @@
  */
 export class StringSet {
     /**
-     * internal map, null prototype object
+     * internal map, object with null prototype 
      */
     private map: { [path: string]: boolean; };
     
     /**
      * constructor
-     * @param array a array of string that will be added to the set
+     * @param array an array of string that will be added to the set
      */
     constructor(array?: string[]) {
         this.map = Object.create(null);
@@ -88,7 +90,7 @@ export interface MapEntry<T> { key: string; value: T };
  */
 export class StringMap<T> {
     /**
-     * internal map, null prototype object
+     * internal map, object with null prototype 
      */
     private map: { [path: string]: T };
     
@@ -100,7 +102,8 @@ export class StringMap<T> {
     
     /**
      * constructor
-     * @param obj an object that will represent the future map
+     * @param obj initial values to set in the map each properties
+     *  of the object will be treaded as a pair key/value
      */
     constructor(obj?: {[index: string]: T}) {
         this.map = Object.create(null);
@@ -121,7 +124,7 @@ export class StringMap<T> {
     
     /**
      * retrive a value associated to the given key
-     * @param key
+     * @param key the key to retrieve the value associated with
      */
     get(key: string): T {
         var value = this.map[key];
@@ -129,7 +132,7 @@ export class StringMap<T> {
     }
     
     /**
-     * delete the entry corresponding to the given key
+     * delete an entry corresponding to the given key
      * @param key
      */
     delete(key: string): boolean {

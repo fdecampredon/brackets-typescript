@@ -15,6 +15,9 @@ import signal = require('./signal');
  */
 export interface FileSystem {
     
+    /**
+     * return a promise resolving to a list of 
+     */
     getProjectRoot(): Promise<string>
     
     /**

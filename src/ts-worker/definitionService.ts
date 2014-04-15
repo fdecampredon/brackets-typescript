@@ -39,7 +39,6 @@ class DefinitionService implements definition.DefinitionService {
                 var startPos = languageServiceHost.indexToPosition(definition.fileName, definition.minChar),
                     endPos = languageServiceHost.indexToPosition(definition.fileName, definition.limChar);
                 return {
-                    path: definition.fileName,
                     name: (definition.containerName ? (definition.containerName + '.') : '') + definition.name,
                     lineStart : startPos.line,
                     charStart : startPos.ch,
