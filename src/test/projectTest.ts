@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,8 +14,10 @@
 
 /*istanbulify ignore file*/
 
+'use strict';
+
 import TypeScriptProject = require('../ts-worker/project');
-import TypeScriptProjectConfig = require('../commons/config');
+import TypeScriptProjectConfig = require('../commons/projectConfig');
 import FileSystemMock = require('./fileSystemMock');
 import WorkingSetMock = require('./workingSetMock');
 import utils = require('../commons/typeScriptUtils');

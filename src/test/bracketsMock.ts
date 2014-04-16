@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
 //   limitations under the License.
 
 /*istanbulify ignore file*/
+
+'use strict';
 
 export var FILE_NOT_FOUND = 'not found';
 

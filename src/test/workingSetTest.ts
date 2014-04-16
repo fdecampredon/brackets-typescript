@@ -12,7 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-/*istanbulify ignore file */
+/*istanbulify ignore file*/
 
 'use strict';
 
@@ -80,9 +80,19 @@ describe('WorkingSet', function (): void {
         workingSet.dispose();
     });
     
+    function expectWorkingSetFilesMatch() {
+        var files: string[];
+        workingSet.getFiles().then(result => files = result)
+        waitsFor(() => !!files, 'files should have been set')
+
+        runs(function () {
+            expect(files).toEqual(workingSetFiles);
+        })
+    }
+    
     describe('files', function () {
         it('should return the list of file in the working set', function () {
-            expect(workingSet.getFiles()).toEqual(workingSetFiles);
+            expectWorkingSetFilesMatch();
         });
     });
     
@@ -106,7 +116,7 @@ describe('WorkingSet', function (): void {
                 kind: ws.WorkingSetChangeKind.ADD,
                 paths : ['/path/file5.ts']
             });
-            expect(workingSet.getFiles()).toEqual(workingSetFiles);
+            expectWorkingSetFilesMatch();
         });
         
         it('should notify when a list of file has been added to the working set', function () {
@@ -116,7 +126,7 @@ describe('WorkingSet', function (): void {
                 kind: ws.WorkingSetChangeKind.ADD,
                 paths : ['/path/file5.ts', '/path/file6.ts']
             });
-            expect(workingSet.getFiles()).toEqual(workingSetFiles);
+            expectWorkingSetFilesMatch();
         });
         
         it('should notify when a file has been removed from the working set', function () {
@@ -126,7 +136,7 @@ describe('WorkingSet', function (): void {
                 kind: ws.WorkingSetChangeKind.REMOVE,
                 paths : ['/path/file3.ts']
             });
-            expect(workingSet.getFiles()).toEqual(workingSetFiles);
+            expectWorkingSetFilesMatch();
         });
         
         it('should notify when a list of file has been removed from the working set', function () {
@@ -136,7 +146,7 @@ describe('WorkingSet', function (): void {
                 kind: ws.WorkingSetChangeKind.REMOVE,
                 paths : ['/path/file1.ts', '/path/file3.ts']
             });
-            expect(workingSet.getFiles()).toEqual(workingSetFiles);
+            expectWorkingSetFilesMatch();
         });
     });
 

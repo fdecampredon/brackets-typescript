@@ -12,7 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-'use strict'
+'use strict';
 
 //TODO that part of the application is not well tested and just 'work' it needs to be refactored
 

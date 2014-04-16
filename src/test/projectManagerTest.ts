@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -12,13 +12,13 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-/*istanbulify ignore file */
+/*istanbulify ignore file*/
 
-'use strict'
+'use strict';
 
 import TypeScriptProjectManager = require('../ts-worker/projectManager');
 import TypeScriptProject = require('../ts-worker/project');
-import TypeScriptProjectConfig = require('../commons/config');
+import TypeScriptProjectConfig = require('../commons/projectConfig');
 import fs = require('../commons/fileSystem');
 import utils = require('../commons/utils');
 import collections = require('../commons/collections');

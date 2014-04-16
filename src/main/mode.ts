@@ -12,7 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-'use strict'
+'use strict';
 
 // TODO If we could not depends of TypeScript here, or at least extract just the part we are interested in
 // We could avoid bundling the entire TypeScript Service with use

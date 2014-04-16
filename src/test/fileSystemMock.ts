@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -12,17 +12,16 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-
-
 /*istanbulify ignore file*/
 
+'use strict';
 
 import fs = require('../commons/fileSystem');
 import signal = require('../commons/signal');
 import es6Promise = require('es6-promise');
 import Promise = es6Promise.Promise;;
 
-class FileSystem implements fs.FileSystem {
+class FileSystem implements fs.IFileSystem {
     
     constructor( 
         private files: { [path: string]: string } = {}
