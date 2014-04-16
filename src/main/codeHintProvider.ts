@@ -14,9 +14,9 @@ var HINT_TEMPLATE = [
 
 class CodeHintProvider implements brackets.CodeHintProvider {
     
-    private completionService: JQueryDeferred<completion.CompletionService> = $.Deferred()
+    private completionService: JQueryDeferred<completion.ICompletionService> = $.Deferred()
     
-    setCompletionService(service: completion.CompletionService) {
+    setCompletionService(service: completion.ICompletionService) {
         this.completionService.resolve(service);
     }
     

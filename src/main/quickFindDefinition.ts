@@ -15,7 +15,7 @@
 'use strict';
 
 
-import LexicalStructureService = require('../commons/lexicalStructureService');
+import ls = require('../commons/lexicalStructure');
 import WorkingSet = require('./workingSet')
 
 var EditorManager = brackets.getModule('editor/EditorManager'),
@@ -24,18 +24,18 @@ var EditorManager = brackets.getModule('editor/EditorManager'),
 
 class Session {
     constructor(
-        public items: LexicalStructureService.LexicalStructureItem[]
+        public items: ls.LexicalStructureItem[]
     ){}
 } 
 
 
 class TypeScriptQuickFindDefitionProvider implements brackets.QuickOpenPluginDef<TypeScriptQuickFindDefitionProvider.LexicalStructureItem> {
     
-    private lexicalStructureService: JQueryDeferred<LexicalStructureService> = $.Deferred();
+    private lexicalStructureService: JQueryDeferred<ls.ILexicalStructureService> = $.Deferred();
     
     private session: Session;
     
-    setLexicalStructureService(service: LexicalStructureService) {
+    setLexicalStructureService(service: ls.ILexicalStructureService) {
         this.lexicalStructureService.resolve(service);
     }
     

@@ -23,7 +23,7 @@ import signal = require('../commons/signal');
 import ws = require('../commons/workingSet');
 import fs = require('../commons/fileSystem');
 import TypeScriptPreferenceManager = require('../commons/preferencesManager');
-import TypeScriptProjectConfig = require('../commons/config');
+import TypeScriptProjectConfig = require('../commons/projectConfig');
 import collections = require('../commons/collections');
 import tsUtils = require('../commons/typeScriptUtils');
 import utils = require('../commons/utils');
@@ -53,8 +53,8 @@ class TypeScriptProjectManager {
     //-------------------------------
     
     private preferenceManager: TypeScriptPreferenceManager; 
-    private fileSystem: fs.FileSystem;
-    private workingSet: ws.WorkingSet;
+    private fileSystem: fs.IFileSystem;
+    private workingSet: ws.IWorkingSet;
     private projectFactory: TypeScriptProjectManager.ProjectFactory;
     
     
@@ -79,8 +79,8 @@ class TypeScriptProjectManager {
     /**
      * initialize the project manager
      */
-    init(defaultTypeScriptLocation: string, preferenceManager: TypeScriptPreferenceManager, fileSystem: fs.FileSystem,
-        workingSet: ws.WorkingSet, projectFactory: TypeScriptProjectManager.ProjectFactory): Promise<void> {
+    init(defaultTypeScriptLocation: string, preferenceManager: TypeScriptPreferenceManager, fileSystem: fs.IFileSystem,
+        workingSet: ws.IWorkingSet, projectFactory: TypeScriptProjectManager.ProjectFactory): Promise<void> {
         
         this.defaultTypeScriptLocation = defaultTypeScriptLocation;
         this.preferenceManager = preferenceManager;
@@ -218,7 +218,7 @@ class TypeScriptProjectManager {
             return project;
         }, (): TypeScriptProject => {
             if (logger.warning()) {
-                logger.log('could not create project:' + config.mapSource)
+                logger.log('could not create project:' /**add projectId*/)
             }
             return null;
         })
@@ -264,8 +264,8 @@ module TypeScriptProjectManager {
         (
             baseDirectory: string,
             config: TypeScriptProjectConfig, 
-            fileSystem: fs.FileSystem,
-            workingSet: ws.WorkingSet,
+            fileSystem: fs.IFileSystem,
+            workingSet: ws.IWorkingSet,
             typeScriptLocation: string
         ): TypeScriptProject
     }

@@ -28,7 +28,7 @@ import signal = require('./signal');
  * A simple wrapper over brackets filesystem that provide simple function and 
  * typed watcher
  */
-export interface FileSystem {
+export interface IFileSystem {
     
     /**
      * return a promise resolving to the project root folder path

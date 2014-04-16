@@ -19,13 +19,36 @@
 import es6Promise = require('es6-promise');
 import Promise = es6Promise.Promise;
 
+/**
+ * Represent a Lexical Structure item
+ */
 export interface LexicalStructureItem { 
+    /**
+     * Name of the item
+     */
+    name: string; 
+    
+    /**
+     * Name of the item container
+     */
     containerName:string; 
-    name: string; position: 
-    CodeMirror.Position; 
+    
+    /**
+     * Position of the item in the file
+     */
+    position: CodeMirror.Position; 
 }
 
-
+/**
+ * A service allowing to retrieve lexical structure for a TypeScript file
+ */
 export interface ILexicalStructureService {
+    /**
+     * retrieve Lexical structure for a given file
+     * 
+     * @param fileName absolute path of the file 
+     * 
+     * @return a Promise that resolve to a list of LexicalStructureItem
+     */
     getLexicalStructureForFile(fileName: string): Promise<LexicalStructureItem[]>;
 }

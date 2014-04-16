@@ -21,7 +21,7 @@ import completion = require('../commons/completion')
 
 var ScriptElementKind = TypeScript.Services.ScriptElementKind;
 
-class CompletionService implements completion.CompletionService {
+class CompletionService implements completion.ICompletionService {
     constructor(
         private projectManager: TypeScriptProjectManager
     ) {}

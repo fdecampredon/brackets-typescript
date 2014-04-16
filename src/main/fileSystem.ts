@@ -28,7 +28,7 @@ import fs = require('../commons/fileSystem');
 /**
  * FileSystem implementations
  */
-class FileSystem implements fs.FileSystem {
+class FileSystem implements fs.IFileSystem {
     //-------------------------------
     //  constructor
     //-------------------------------

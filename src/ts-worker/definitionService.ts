@@ -21,7 +21,7 @@ import definition = require('../commons/definition')
 import Promise = es6Promise.Promise;
 
 
-class DefinitionService implements definition.DefinitionService {
+class DefinitionService implements definition.IDefinitionService {
     
     constructor(
         private projectManager: TypeScriptProjectManager

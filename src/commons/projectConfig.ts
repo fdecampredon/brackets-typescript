@@ -56,7 +56,7 @@ interface TypeScriptProjectConfig {
     /**
      * Specifies the location where debugger should locate TypeScript files instead of source locations.
      */
-    sourceRoot: string;
+    sourceRoot?: string;
     
     /**
      *  Warn on expressions and declarations with an implied 'any' type.

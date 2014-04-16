@@ -1,19 +1,24 @@
-import TypeScriptProjectConfig = require('./config');
+//   Copyright 2013-2014 François de Campredon
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//       http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
 
-var PROJECT_CONFIG_FILE_NAME: string = '.brackets-typescript';
+'use strict';
 
-/**
- * helper function that return true if the given path is a bracketsTypescript config file
- * @param path
- */
-export function isTypeScriptProjectConfigFile(path: string): boolean {
-    return path && path.substr(path.lastIndexOf('/') + 1, path.length) === PROJECT_CONFIG_FILE_NAME;
-}
-
+import TypeScriptProjectConfig = require('./projectConfig');
 
 /**
  * helper function that valid a config file
- * @param config the config file to validate
+ * @param config the config object to validate
  */
 export function validateTypeScriptProjectConfig(config : TypeScriptProjectConfig): boolean {
     if (!config) {
@@ -31,16 +36,8 @@ export function validateTypeScriptProjectConfig(config : TypeScriptProjectConfig
  * Default configuration for typescript project
  */
 export var typeScriptProjectConfigDefault: TypeScriptProjectConfig = {
-    propagateEnumConstants: false,
-    removeComments: false,
-    allowAutomaticSemicolonInsertion : true,
     noLib: false,
     target: 'es3',
     module: 'none',
-    mapSource: false,
-    declaration: false,
-    useCaseSensitiveFileResolution: false,
-    allowBool: false,
-    allowImportModule: false,
     noImplicitAny: false
 }

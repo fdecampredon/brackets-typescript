@@ -14,7 +14,7 @@
 
 
 import immediate = require('../commons/immediate');
-import ErrorService =  require('../commons/errorService');
+import IErrorService =  require('../commons/errorService');
 
 
 //--------------------------------------------------------------------------
@@ -28,11 +28,11 @@ import ErrorService =  require('../commons/errorService');
  */
 class TypeScriptErrorReporter implements brackets.InspectionProvider {
     
-    private errorService: JQueryDeferred<ErrorService> = $.Deferred()
+    private errorService: JQueryDeferred<IErrorService> = $.Deferred()
     
     
 
-    setErrorService(service: ErrorService) {
+    setErrorService(service: IErrorService) {
         this.errorService.resolve(service);
     }
     

@@ -12,7 +12,7 @@ import collections = require('../commons/collections');
 import fs = require('../commons/fileSystem');
 import ws = require('../commons/workingSet');
 import logger = require('../commons/logger');
-import TypeScriptProjectConfig = require('../commons/config');
+import TypeScriptProjectConfig = require('../commons/projectConfig');
 
 import LanguageServiceHost = require('./languageServiceHost');
 
@@ -42,8 +42,8 @@ class TypeScriptProject {
     constructor(
         private baseDirectory: string,
         private config: TypeScriptProjectConfig, 
-        private fileSystem: fs.FileSystem,
-        private workingSet: ws.WorkingSet,
+        private fileSystem: fs.IFileSystem,
+        private workingSet: ws.IWorkingSet,
         private defaultLibLocation: string
     ) {}
     
@@ -217,19 +217,9 @@ class TypeScriptProject {
     private createCompilationSettings() : TypeScript.CompilationSettings {
         var compilationSettings = new TypeScript.CompilationSettings(),
             moduleType = this.config.module.toLowerCase();
-        compilationSettings.propagateEnumConstants = this.config.propagateEnumConstants;
-        compilationSettings.removeComments = this.config.removeComments;
         compilationSettings.noLib = this.config.noLib;
         compilationSettings.noImplicitAny = this.config.noImplicitAny;
-        compilationSettings.outFileOption = this.config.outFile || '';
-        compilationSettings.outDirOption = this.config.outDir || '' ;
-        compilationSettings.mapSourceFiles = this.config.mapSource;
-        compilationSettings.sourceRoot = this.config.sourceRoot || '';
-        compilationSettings.mapRoot = this.config.mapRoot || '';
-        compilationSettings.useCaseSensitiveFileResolution = this.config.useCaseSensitiveFileResolution;
-        compilationSettings.generateDeclarationFiles = this.config.declaration;
-        compilationSettings.generateDeclarationFiles = this.config.declaration;
-        compilationSettings.generateDeclarationFiles = this.config.declaration;
+        compilationSettings.sourceRoot = this.config.sourceRoot;
         compilationSettings.codeGenTarget = this.config.target.toLowerCase() === 'es3' ? 
                                                     TypeScript.LanguageVersion.EcmaScript3 : 
                                                     TypeScript.LanguageVersion.EcmaScript5;
@@ -415,18 +405,18 @@ class TypeScriptProject {
             changeRecords.forEach(record => {
                 switch (record.kind) { 
                     case fs.FileChangeKind.ADD:
-                        if (this.isProjectSourceFile(record.path) || this.references.has(record.path)) {
-                            this.addFile(record.path);
+                        if (this.isProjectSourceFile(record.fileName) || this.references.has(record.fileName)) {
+                            this.addFile(record.fileName);
                         }
                         break;
                     case fs.FileChangeKind.DELETE:
-                        if (this.projectFilesSet.has(record.path)) {
-                            this.removeFile(record.path);
+                        if (this.projectFilesSet.has(record.fileName)) {
+                            this.removeFile(record.fileName);
                         }
                         break;
                     case fs.FileChangeKind.UPDATE:
-                        if (this.projectFilesSet.has(record.path)) {
-                            this.updateFile(record.path);
+                        if (this.projectFilesSet.has(record.fileName)) {
+                            this.updateFile(record.fileName);
                         }
                         break;
                 }
@@ -527,8 +517,8 @@ module TypeScriptProject {
     export function newProject(
         baseDirectory: string,
         config: TypeScriptProjectConfig, 
-        fileSystem: fs.FileSystem,
-        workingSet: ws.WorkingSet,
+        fileSystem: fs.IFileSystem,
+        workingSet: ws.IWorkingSet,
         defaultLibLocation: string
     ) {
         return new TypeScriptProject(baseDirectory, config, fileSystem, workingSet, defaultLibLocation);

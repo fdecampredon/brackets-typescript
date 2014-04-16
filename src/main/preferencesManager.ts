@@ -14,14 +14,17 @@
 
 'use strict';
 
-import TypeScriptProjectConfig = require('../commons/config');
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;
+import TypeScriptProjectConfig = require('../commons/projectConfig');
 import tsUtils = require('../commons/typeScriptUtils');
 import utils = require('../commons/utils');
 import logger = require('../commons/logger');
 import collections = require('../commons/collections');
 import signal = require('../commons/signal');
+import ITypescriptPreferenceManager = require('../commons/preferencesManager');
 
-class TypescriptPreferenceManager {
+class TypescriptPreferenceManager implements ITypescriptPreferenceManager {
     constructor(
         private prefManager: brackets.PreferencesManager
     ) {
@@ -36,7 +39,7 @@ class TypescriptPreferenceManager {
         if (!this.projectConfigs) {
             this.projectConfigs = this.retriveProjectsConfig()
         }
-        return this.projectConfigs.toObject(); 
+        return Promise.cast(this.projectConfigs.toObject()); 
     }
 
     dispose() {

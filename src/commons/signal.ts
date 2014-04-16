@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,18 +15,63 @@
 
 'use strict';
 
+/**
+ * C# like events and delegates for typed events
+ * dispatching
+ */
 export interface ISignal<T> {
+    /**
+     * Subscribes a listener for the signal.
+     * 
+     * @params listener the callback to call when events are dispatched
+     * @params priority an optional priority for this signal
+     */
     add(listener: (parameter: T) => any, priority?: number): void;
+    
+    /**
+     * unsubscribe a listener for the signal
+     * 
+     * @params listener the previously subscribed listener
+     */
     remove(listener: (parameter: T) => any): void;
+    
+    /**
+     * dispatch an event
+     * 
+     * @params parameter the parameter attached to the event dispatching
+     */
     dispatch(parameter?: T): boolean;
+    
+    /**
+     * Remove all listener from the signal
+     */
     clear(): void;
+    
+    /**
+     * @return true if the listener has been subsribed to this signal
+     */
     hasListeners(): boolean;
 }
 
+
 export class Signal<T> implements ISignal<T> {
+    
+    /**
+     * list of listeners that have been suscribed to this signal
+     */
     private listeners: { (parameter: T): any }[] = [];
+    
+    /**
+     * Priorities corresponding to the listeners 
+     */
     private priorities: number[] = [];
     
+    /**
+     * Subscribes a listener for the signal.
+     * 
+     * @params listener the callback to call when events are dispatched
+     * @params priority an optional priority for this signal
+     */
     add(listener: (parameter: T) => any, priority = 0): void {
         var index = this.listeners.indexOf(listener);
         if (index !== -1) {
@@ -44,6 +89,11 @@ export class Signal<T> implements ISignal<T> {
         this.listeners.push(listener);
     }
     
+    /**
+     * unsubscribe a listener for the signal
+     * 
+     * @params listener the previously subscribed listener
+     */
     remove(listener: (parameter: T) => any): void {
         var index = this.listeners.indexOf(listener);
         if (index >= 0) {
@@ -52,6 +102,11 @@ export class Signal<T> implements ISignal<T> {
         }
     }
     
+    /**
+     * dispatch an event
+     * 
+     * @params parameter the parameter attached to the event dispatching
+     */
     dispatch(parameter?: T): boolean {
         var indexesToRemove: number[];
         var hasBeenCanceled = this.listeners.every((listener: (parameter: T) => any) =>  {
@@ -62,11 +117,17 @@ export class Signal<T> implements ISignal<T> {
         return hasBeenCanceled;
     }
     
+    /**
+     * Remove all listener from the signal
+     */
     clear(): void {
         this.listeners = [];
         this.priorities = [];
     }
     
+    /**
+     * @return true if the listener has been subsribed to this signal
+     */
     hasListeners(): boolean {
         return this.listeners.length > 0;
     }

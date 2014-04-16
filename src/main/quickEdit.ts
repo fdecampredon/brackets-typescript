@@ -19,11 +19,11 @@ var DocumentManager = brackets.getModule('document/DocumentManager'),
     MultiRangeInlineEditor = brackets.getModule('editor/MultiRangeInlineEditor').MultiRangeInlineEditor;
 
 class TypeScriptQuickEditProvider {
-    private definitionService: JQueryDeferred<definition.DefinitionService> = $.Deferred()
+    private definitionService: JQueryDeferred<definition.IDefinitionService> = $.Deferred()
     
     
 
-    setDefinitionService(service: definition.DefinitionService) {
+    setDefinitionService(service: definition.IDefinitionService) {
         this.definitionService.resolve(service);
     }
     
@@ -48,7 +48,7 @@ class TypeScriptQuickEditProvider {
                 }
 
 
-                definitions.filter(definition => definition.path !== fileName || definition.lineStart !== pos.line)
+                definitions.filter(definition => definition.fileName !== fileName || definition.lineStart !== pos.line)
                 if (definitions.length === 0) {
                     deferred.reject();
                 }
@@ -57,7 +57,7 @@ class TypeScriptQuickEditProvider {
                     ranges: brackets.MultiRangeInlineEditorRange[] = [];
 
                 definitions.forEach(definition => {
-                    promises.push(DocumentManager.getDocumentForPath(definition.path).then(doc => {
+                    promises.push(DocumentManager.getDocumentForPath(definition.fileName).then(doc => {
                         ranges.push({
                             document : doc,
                             name: definition.name,

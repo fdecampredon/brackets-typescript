@@ -14,4 +14,4 @@ interface IErrorService {
     getErrorsForFile(fileName: string): Promise<{ errors: brackets.LintingError[];  aborted: boolean }>
 }
 
-export = ErrorService;
+export = IErrorService;

@@ -18,6 +18,7 @@
 import TypeScriptProjectManager = require('./projectManager');
 import es6Promise = require('es6-promise');
 import Promise = es6Promise.Promise;
+import IErrorService = require('../commons/errorService');
 
  var Type = {
     /** Unambiguous error, such as a syntax error */
@@ -28,7 +29,7 @@ import Promise = es6Promise.Promise;
     META: "problem_type_meta"
 };
 
-class ErrorService {
+class ErrorService implements IErrorService {
     
     constructor(
         private projectManager: TypeScriptProjectManager

@@ -20,11 +20,11 @@ var EditorManager = brackets.getModule('editor/EditorManager'),
     CommandManager = brackets.getModule("command/CommandManager");
 
 class TypeScriptQuickJumpProvider {
-    private definitionService: JQueryDeferred<definition.DefinitionService> = $.Deferred()
+    private definitionService: JQueryDeferred<definition.IDefinitionService> = $.Deferred()
     
     
 
-    setDefinitionService(service: definition.DefinitionService) {
+    setDefinitionService(service: definition.IDefinitionService) {
         this.definitionService.resolve(service);
     }
     
@@ -47,7 +47,7 @@ class TypeScriptQuickJumpProvider {
                     deferred.reject();
                 }
 
-                definitions.filter(definition => definition.path !== fileName || definition.lineStart !== pos.line)
+                definitions.filter(definition => definition.fileName !== fileName || definition.lineStart !== pos.line)
                 if (definitions.length === 0) {
                     deferred.reject();
                 }
