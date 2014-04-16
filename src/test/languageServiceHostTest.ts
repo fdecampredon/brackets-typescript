@@ -17,6 +17,7 @@
 'use strict';
 
 import LanguageServiceHost = require('../ts-worker/languageServiceHost');
+import utils = require('../commons/utils');
 
 describe('LanguageServiceHost', function () {
     var languageServiceHost: LanguageServiceHost
@@ -32,7 +33,7 @@ describe('LanguageServiceHost', function () {
             
             languageServiceHost.setCompilationSettings(compilationSettings);
             expect(languageServiceHost.getCompilationSettings()).toNotBe(compilationSettings);
-            expect(languageServiceHost.getCompilationSettings()).toEqual(compilationSettings);
+            expect(utils.clone(languageServiceHost.getCompilationSettings())).toEqual(compilationSettings);
         });
     })
     
