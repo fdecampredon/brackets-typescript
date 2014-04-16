@@ -38,6 +38,7 @@ class TypeScriptProject {
      * @param config the project config file
      * @param fileSystem the fileSystem wrapper used by the project
      * @param workingSet the working set wrapper used by the project
+     * @param defaultLibLocation the location of the default compiler 'lib.d.ts' file
      */
     constructor(
         private baseDirectory: string,
@@ -51,10 +52,19 @@ class TypeScriptProject {
     //  variables
     //-------------------------------
     
+    /**
+     * TypeScript CoreServices instance used by these project 
+     */
     private coreService: Services.CoreServices;
     
+    /**
+     * Language Service host instance managed by this service
+     */
     private languageServiceHost: LanguageServiceHost;
     
+    /**
+     * LanguageService managed by this project
+     */
     private languageService: Services.ILanguageService;
     
     /**
@@ -68,9 +78,14 @@ class TypeScriptProject {
     private references: collections.StringMap<collections.StringSet>;
     
     
+    /**
+     * a promise queue used to run in sequence file based operation
+     */
     private queue: PromiseQueue = new PromiseQueue();
     
-    
+    /**
+     * location of the typescript 'lib.d.ts' file
+     */
     private libLocation: string;
     
     
@@ -78,6 +93,9 @@ class TypeScriptProject {
     //  public methods
     //-------------------------------
     
+    /**
+     * Initialize the project an his component
+     */
     init(): Promise<void> {
         this.projectFilesSet = new collections.StringSet();
         this.references = new collections.StringMap<collections.StringSet>();
@@ -85,23 +103,25 @@ class TypeScriptProject {
         this.workingSet.documentEdited.add(this.documentEditedHandler);
         this.fileSystem.projectFilesChanged.add(this.filesChangeHandler);
         
-        
         return this.queue.init(
             this.getTypeScriptInfosForPath(this.config.typescriptPath).then(typeScriptInfo => {
-            
-            this.libLocation = typeScriptInfo.libLocation;
-            this.coreService = typeScriptInfo.factory.createCoreServices({ logger: new logger.LogingClass()});
-            this.languageServiceHost = new LanguageServiceHost();
-            this.languageServiceHost.setCompilationSettings(this.createCompilationSettings());
-            this.languageService = typeScriptInfo.factory.createPullLanguageService(this.languageServiceHost);
+                this.libLocation = typeScriptInfo.libLocation;
+                this.coreService = typeScriptInfo.factory.createCoreServices({ logger: new logger.LogingClass()});
+                this.languageServiceHost = new LanguageServiceHost();
+                this.languageServiceHost.setCompilationSettings(this.createCompilationSettings());
+                this.languageService = typeScriptInfo.factory.createPullLanguageService(this.languageServiceHost);
 
-            return this.collectFiles().then(() => {
+                return this.collectFiles();
+                
+            }).then(() => {
                 this.updateWorkingSet();
-            })
             })
         );
     }
     
+    /**
+     * update a project with a new config
+     */
     update(config: TypeScriptProjectConfig): Promise<void> {
         
         if (this.config.typescriptPath !== config.typescriptPath) {
@@ -129,39 +149,46 @@ class TypeScriptProject {
         })
     }
     
+    /**
+     * dispose the project
+     */
     dispose() {
         this.workingSet.workingSetChanged.remove(this.workingSetChangedHandler);
         this.workingSet.documentEdited.remove(this.documentEditedHandler);
         this.fileSystem.projectFilesChanged.remove(this.filesChangeHandler);
     }
     
-    
-    
     //-------------------------------
     //  exposed services
     //-------------------------------
     
     /**
-     * language service host of the project
+     * return the language service host of the project
      */
     getLanguageServiceHost(): LanguageServiceHost {
         return this.languageServiceHost;
     }
     
     /**
-     * core service used by the project
+     * return the core service used by the project
      */
     getCoreService(): Services.CoreServices {
         return this.coreService;
     }
     
     /**
-     * languageService used by the project
+     * return the languageService used by the project
      */
     getLanguageService(): Services.ILanguageService {
         return this.languageService;
     }
     
+    
+    
+    
+    //-------------------------------
+    //  exposed files informations
+    //-------------------------------
     /**
      * return the set of files contained in the project
      */
@@ -175,7 +202,10 @@ class TypeScriptProject {
      */
     getProjectFileKind(fileName: string): TypeScriptProject.ProjectFileKind {
         if (this.projectFilesSet.has(fileName)) {
-            return this.isProjectSourceFile(fileName) ? TypeScriptProject.ProjectFileKind.SOURCE :  TypeScriptProject.ProjectFileKind.REFERENCE;
+            return this.isProjectSourceFile(fileName) ? 
+                TypeScriptProject.ProjectFileKind.SOURCE :  
+                TypeScriptProject.ProjectFileKind.REFERENCE
+            ;
         } else {
             return TypeScriptProject.ProjectFileKind.NONE
         }
@@ -191,49 +221,60 @@ class TypeScriptProject {
      * @param typescriptPath
      */
     private getTypeScriptInfosForPath(typescriptPath: string): Promise<TypeScriptInfo> {
-        return new Promise<TypeScriptInfo>((resolve, reject) => {
-            if (!typescriptPath) {
-                resolve({
-                    factory: new Services.TypeScriptServicesFactory(),
-                    libLocation: this.defaultLibLocation
-                })
-            } else {
-                var typescriptServicesFile = path.join(typescriptPath, 'typescriptServices.js');
-                this.fileSystem.readFile(typescriptServicesFile).then(code => {
-                    var factory: TypeScript.Services.TypeScriptServicesFactory,
-                        func = new Function('var TypeScript;' + code + ';return TypeScript;'),
-                        typeScript: typeof TypeScript = func();
-                    
-                    factory = new typeScript.Services.TypeScriptServicesFactory();
-                    resolve({
-                        factory: factory,
-                        libLocation: path.join(typescriptPath, 'lib.d.ts')
-                    })
-                }).catch((e) => reject(e));
-            }
-        });
+        if (!typescriptPath) {
+            return Promise.cast({
+                factory: new Services.TypeScriptServicesFactory(),
+                libLocation: this.defaultLibLocation
+            })
+        } else {
+            var typescriptServicesFile = path.join(typescriptPath, 'typescriptServices.js');
+            
+            return this.fileSystem.readFile(typescriptServicesFile).then(code => {
+                var factory: TypeScript.Services.TypeScriptServicesFactory,
+                    func = new Function('var TypeScript;' + code + ';return TypeScript;'),
+                    typeScript: typeof TypeScript = func();
+
+                return {
+                    factory: factory,
+                    libLocation: path.join(typescriptPath, 'lib.d.ts')
+                }
+            });
+        }
     }
     
+    /**
+     * create Typescript compilation settings from config file
+     */
     private createCompilationSettings() : TypeScript.CompilationSettings {
         var compilationSettings = new TypeScript.CompilationSettings(),
             moduleType = this.config.module.toLowerCase();
+        
         compilationSettings.noLib = this.config.noLib;
         compilationSettings.noImplicitAny = this.config.noImplicitAny;
         compilationSettings.sourceRoot = this.config.sourceRoot;
-        compilationSettings.codeGenTarget = this.config.target.toLowerCase() === 'es3' ? 
-                                                    TypeScript.LanguageVersion.EcmaScript3 : 
-                                                    TypeScript.LanguageVersion.EcmaScript5;
         
-        compilationSettings.moduleGenTarget = moduleType === 'none' ? 
-                                                    TypeScript.ModuleGenTarget.Unspecified : 
-                                                    (  moduleType === 'amd' ?
-                                                        TypeScript.ModuleGenTarget.Asynchronous:
-                                                        TypeScript.ModuleGenTarget.Synchronous );
+        compilationSettings.codeGenTarget = 
+            this.config.target.toLowerCase() === 'es3' ? 
+                TypeScript.LanguageVersion.EcmaScript3 : 
+                TypeScript.LanguageVersion.EcmaScript5;
+        
+        compilationSettings.moduleGenTarget = 
+            moduleType === 'none' ? 
+                TypeScript.ModuleGenTarget.Unspecified : 
+                moduleType === 'amd' ?
+                    TypeScript.ModuleGenTarget.Asynchronous:
+                    TypeScript.ModuleGenTarget.Synchronous
+            ;
+        
         return compilationSettings
     }
     
+    /**
+     * update the languageService host script 'open' status 
+     * according to file in the working set
+     */
     private updateWorkingSet() {
-        this.workingSet.getFiles().then((files) => files.forEach(fileName => {
+        this.workingSet.getFiles().then(files => files.forEach(fileName => {
             if (this.projectFilesSet.has(fileName)) {
                 this.languageServiceHost.setScriptIsOpen(fileName, true);
             }
@@ -246,12 +287,12 @@ class TypeScriptProject {
     //-------------------------------
     
     /**
-     * retrive files content for path described in the config
+     * retrieve files content for path match described in the config
      */
     private collectFiles(): Promise<any> { 
-        return this.fileSystem.getProjectFiles().then((paths: string[]) => {
+        return this.fileSystem.getProjectFiles().then(files => {
             var promises: Promise<any>[] = [];
-            paths.forEach(fileName => {
+            files.forEach(fileName => {
                 if (this.isProjectSourceFile(fileName) && !this.projectFilesSet.has(fileName)) {
                     promises.push(this.addFile(fileName, false));
                 }
@@ -276,7 +317,7 @@ class TypeScriptProject {
     
    
     /**
-     * add a file to the project
+     * add a file to the project and all file that this file reference
      * @param path
      */
     private addFile(fileName: string, notify = true): Promise<any>  {
@@ -340,7 +381,8 @@ class TypeScriptProject {
         if (!this.projectFilesSet.has(fileName)) {
             return []
         }
-        var preProcessedFileInfo = this.coreService.getPreProcessedFileInfo(fileName, this.languageServiceHost.getScriptSnapshot(fileName)),
+        var script = this.languageServiceHost.getScriptSnapshot(fileName),
+            preProcessedFileInfo = this.coreService.getPreProcessedFileInfo(fileName, script),
             dir = path.dirname(fileName);
         
         return preProcessedFileInfo.referencedFiles.map(fileReference => {
@@ -352,7 +394,8 @@ class TypeScriptProject {
     
     /**
      * add a reference 
-     * @param path the path of the file referencing anothe file
+     * 
+     * @param fileName the path of the file referencing anothe file
      * @param referencedPath the path of the file referenced
      */
     private addReference(fileName: string, referencedPath: string) {
@@ -364,7 +407,8 @@ class TypeScriptProject {
     
     /**
      * remove a reference
-     * @param path the path of the file referencing anothe file
+     * 
+     * @param fileName the path of the file referencing anothe file
      * @param referencedPath the path of the file referenced
      */
     private removeReference(fileName: string, referencedPath: string) {
@@ -379,17 +423,22 @@ class TypeScriptProject {
         }   
     }
     
-    
-    private updateReferences(fileName: string, oldPaths: collections.StringSet) {
+    /**
+     * update file references after an update
+     * 
+     * @param fileName the absolute path of the file
+     * @param oldFileReferences list of file this file referenced before being updated
+     */
+    private updateReferences(fileName: string, oldFileReferences: collections.StringSet) {
         this.getReferencedOrImportedFiles(fileName).forEach(referencedPath => {
-            oldPaths.remove(referencedPath);
+            oldFileReferences.remove(referencedPath);
             if (!this.projectFilesSet.has(referencedPath)) {
                 this.addFile(referencedPath);
                 this.addReference(fileName, referencedPath);
             }
         });
         
-        oldPaths.values.forEach(referencedPath => this.removeReference(fileName, referencedPath));
+        oldFileReferences.values.forEach(referencedPath => this.removeReference(fileName, referencedPath));
     }
     
     
@@ -513,7 +562,14 @@ module TypeScriptProject {
     }
     
     
-    
+    /**
+     * default Project factory
+     * @param baseDirectory the baseDirectory of the project
+     * @param config the project config file
+     * @param fileSystem the fileSystem wrapper used by the project
+     * @param workingSet the working set wrapper used by the project
+     * @param defaultLibLocation the location of the default compiler 'lib.d.ts' file
+     */
     export function newProject(
         baseDirectory: string,
         config: TypeScriptProjectConfig, 

@@ -18,18 +18,28 @@
 import TypeScriptProjectManager = require('./projectManager');
 import es6Promise = require('es6-promise');
 import Promise = es6Promise.Promise;
+import ls = require('../commons/lexicalStructure');
 
-class LexicalStructureService {
+/**
+ * ILexical structure implementation
+ */
+class LexicalStructureService implements ls.ILexicalStructureService {
     
+    /**
+     * @param projectManager the Project manager used by the service to retrieve project
+     */
     constructor(
         private projectManager: TypeScriptProjectManager
     ) {}
     
-    getLexicalStructureForFile(fileName: string): Promise<{ 
-        containerName:string; 
-        name: string; 
-        position:  CodeMirror.Position; 
-    }[]> {
+    /**
+     * retrieve Lexical structure for a given file
+     * 
+     * @param fileName absolute path of the file 
+     * 
+     * @return a Promise that resolve to a list of LexicalStructureItem
+     */
+    getLexicalStructureForFile(fileName: string): Promise<ls.LexicalStructureItem[]> {
         return this.projectManager.getProjectForFile(fileName).then(project => {
             var languageServiceHost = project.getLanguageServiceHost();
             var items = project.getLanguageService().getScriptLexicalStructure(fileName) || [] ;

@@ -28,7 +28,7 @@ var ScriptElementKind = TypeScript.Services.ScriptElementKind;
 class CompletionService implements completion.ICompletionService {
     
     /**
-     * @parama projectManager the Project manager used by the service to retrieve project
+     * @param projectManager the Project manager used by the service to retrieve project
      */
     constructor(
         private projectManager: TypeScriptProjectManager
