@@ -108,7 +108,7 @@ export interface FileChangeRecord {
     /**
      * name of the file that have changed
      */
-    fileName? : string;
+    fileName : string;
 }
 
 

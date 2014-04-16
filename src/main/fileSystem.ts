@@ -139,7 +139,8 @@ class FileSystem implements fs.IFileSystem {
         this.filesPath.length = 0;
         this.init();
         this._projectFilesChanged.dispatch([{
-            kind: fs.FileChangeKind.RESET
+            kind: fs.FileChangeKind.RESET,
+            fileName: null
         }]);
     }
     
@@ -275,21 +276,21 @@ class FileSystem implements fs.IFileSystem {
                     fileDeleted.forEach(path => {
                         changes.push({
                             kind: fs.FileChangeKind.DELETE,
-                            path: path
+                            fileName: path
                         });
                     });
                     
                     fileAdded.forEach(path => {
                         changes.push({
                             kind: fs.FileChangeKind.ADD,
-                            path: path
+                            fileName: path
                         });
                     });
                     
                     fileUpdated.forEach(path => {
                         changes.push({
                             kind: fs.FileChangeKind.UPDATE,
-                            path: path
+                            fileName: path
                         });
                     });
                 
@@ -310,7 +311,7 @@ class FileSystem implements fs.IFileSystem {
             var dispatchUpdate = () => {
                 this._projectFilesChanged.dispatch([{
                    kind: fs.FileChangeKind.UPDATE,
-                   path: file.fullPath
+                   fileName: file.fullPath
                 }]);
             };
             
@@ -371,7 +372,7 @@ class FileSystem implements fs.IFileSystem {
                                 this.filesContent.delete(path);
                                 changes.push({
                                     kind: fs.FileChangeKind.DELETE,
-                                    path : path
+                                    fileName : path
                                 });
                             }
                         });
@@ -386,7 +387,7 @@ class FileSystem implements fs.IFileSystem {
                             this.filesPath.push(path);
                             changes.push({
                                 kind: fs.FileChangeKind.ADD,
-                                path : path
+                                fileName : path
                             });   
                         } else {
                             var newDir = <brackets.Directory> newFiles[path];
@@ -396,7 +397,7 @@ class FileSystem implements fs.IFileSystem {
                                     this.filesPath.push(file.fullPath);
                                     changes.push({
                                         kind: fs.FileChangeKind.ADD,
-                                        path : file.fullPath
+                                        fileName : file.fullPath
                                     });     
                                 })        
                             }))
@@ -455,10 +456,10 @@ class FileSystem implements fs.IFileSystem {
             }
             return [{
                 kind: fs.FileChangeKind.DELETE,
-                path: oldPath
+                fileName: oldPath
             }, {
                 kind: fs.FileChangeKind.ADD,
-                path: newPath
+                fileName: newPath
             }];
         }
         return [];

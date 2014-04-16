@@ -24,7 +24,7 @@ import Promise = es6Promise.Promise;;
 class FileSystem implements fs.IFileSystem {
     
     constructor( 
-        private files: { [path: string]: string } = {}
+        private files: { [fileName: string]: string } = {}
     ) {}
     
     
@@ -38,10 +38,10 @@ class FileSystem implements fs.IFileSystem {
         });
     }
     
-    readFile(path: string): Promise<string> {
+    readFile(fileName: string): Promise<string> {
         return new Promise((resolve, reject) => {
-            if (this.files.hasOwnProperty(path)) {
-                resolve(this.files[path]);
+            if (this.files.hasOwnProperty(fileName)) {
+                resolve(this.files[fileName]);
             } else {
                 reject('Not found');
             } 
@@ -50,46 +50,47 @@ class FileSystem implements fs.IFileSystem {
     
     projectFilesChanged = new signal.Signal<fs.FileChangeRecord[]>();
     
-    addFile(path: string, content: string) {
-        if (this.files.hasOwnProperty(path)) {
+    addFile(fileName: string, content: string) {
+        if (this.files.hasOwnProperty(fileName)) {
             throw new Error('File already present');
         }
-        this.files[path] = content;
+        this.files[fileName] = content;
         this.projectFilesChanged.dispatch([{
             kind : fs.FileChangeKind.ADD,
-            path: path
+            fileName: fileName
         }]);
     } 
     
-    updateFile(path: string, content: string) {
-        if (!this.files.hasOwnProperty(path)) {
+    updateFile(fileName: string, content: string) {
+        if (!this.files.hasOwnProperty(fileName)) {
             throw new Error('File does not exist');
         }
-        this.files[path] = content;
+        this.files[fileName] = content;
         this.projectFilesChanged.dispatch([{
             kind : fs.FileChangeKind.UPDATE,
-            path: path
+            fileName: fileName
         }]);
     } 
     
-    removeFile(path: string) {
-        if (!this.files.hasOwnProperty(path)) {
+    removeFile(fileName: string) {
+        if (!this.files.hasOwnProperty(fileName)) {
             throw new Error('File does not exist');
         }
-        delete this.files[path];
+        delete this.files[fileName];
         this.projectFilesChanged.dispatch([{
             kind : fs.FileChangeKind.DELETE,
-            path: path
+            fileName: fileName
         }]);
     }
     
-    setFiles(files: { [path: string]: string }) {
+    setFiles(files: { [fileName: string]: string }) {
         this.files = files || {};
     }
     
     reset(): void {
         this.projectFilesChanged.dispatch([{
-            kind : fs.FileChangeKind.RESET
+            kind : fs.FileChangeKind.RESET,
+            fileName: null
         }]);
     }
     

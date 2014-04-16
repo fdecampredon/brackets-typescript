@@ -194,7 +194,7 @@ describe('FileSystem', function() {
                 expect(changeSpy.callCount).toBe(1);
                 expect(changeSpy).toHaveBeenCalledWith([{
                     kind: fs.FileChangeKind.UPDATE,
-                    path: '/subdir2/file4.ts'
+                    fileName: '/subdir2/file4.ts'
                 }]);
             });
         });
@@ -207,7 +207,7 @@ describe('FileSystem', function() {
                 expect(changeSpy.callCount).toBe(1);
                 expect(changeSpy).toHaveBeenCalledWith([{
                     kind: fs.FileChangeKind.DELETE,
-                    path: '/subdir2/file4.ts'
+                    fileName: '/subdir2/file4.ts'
                 }]);
             })
         });
@@ -223,7 +223,7 @@ describe('FileSystem', function() {
                 expect(changeSpy.callCount).toBe(1);
                 expect(changeSpy).toHaveBeenCalledWith([{
                     kind: fs.FileChangeKind.ADD,
-                    path: '/subdir2/file8.ts'
+                    fileName: '/subdir2/file8.ts'
                 }]);
             })
         });
@@ -236,16 +236,16 @@ describe('FileSystem', function() {
                 expect(changeSpy.callCount).toBe(1);
                 expect(changeSpy).toHaveBeenCalledWith([{
                     kind: fs.FileChangeKind.DELETE,
-                    path: '/subdir2/file4.ts'
+                    fileName: '/subdir2/file4.ts'
                 },{
                     kind: fs.FileChangeKind.DELETE,
-                    path: '/subdir2/file5.ts'
+                    fileName: '/subdir2/file5.ts'
                 },{
                     kind: fs.FileChangeKind.DELETE,
-                    path: '/subdir2/subdir3/file6.ts'
+                    fileName: '/subdir2/subdir3/file6.ts'
                 },{
                     kind: fs.FileChangeKind.DELETE,
-                    path: '/subdir2/subdir3/file7.ts'
+                    fileName: '/subdir2/subdir3/file7.ts'
                 }]);
             });
         });
@@ -295,13 +295,13 @@ describe('FileSystem', function() {
                 expect(changeSpy.callCount).toBe(1);
                 expect(changeSpy).toHaveBeenCalledWith([{
                     kind: fs.FileChangeKind.ADD,
-                    path: '/subdir1/subdir5/file8.ts'
+                    fileName: '/subdir1/subdir5/file8.ts'
                 },{
                     kind: fs.FileChangeKind.ADD,
-                    path: '/subdir1/subdir5/file9.ts'
+                    fileName: '/subdir1/subdir5/file9.ts'
                 },{
                     kind: fs.FileChangeKind.ADD,
-                    path: '/subdir1/subdir5/subdir6/file10.ts'
+                    fileName: '/subdir1/subdir5/subdir6/file10.ts'
                 }]);
             })
             
@@ -390,25 +390,25 @@ describe('FileSystem', function() {
             runs(function () {
                 expect(changeSpy).toHaveBeenCalledWith([{
                     kind: fs.FileChangeKind.DELETE,
-                    path: '/file1.ts'
+                    fileName: '/file1.ts'
                 },{
                     kind: fs.FileChangeKind.DELETE,
-                    path: '/subdir2/subdir3/file6.ts'
+                    fileName: '/subdir2/subdir3/file6.ts'
                 },{
                     kind: fs.FileChangeKind.DELETE,
-                    path: '/subdir2/subdir3/file7.ts'
+                    fileName: '/subdir2/subdir3/file7.ts'
                 },{
                     kind: fs.FileChangeKind.ADD,
-                    path: '/file8.ts'
+                    fileName: '/file8.ts'
                 },{
                     kind: fs.FileChangeKind.ADD,
-                    path: '/subdir3/file6.ts'
+                    fileName: '/subdir3/file6.ts'
                 },{
                     kind: fs.FileChangeKind.ADD,
-                    path: '/subdir3/file7.ts'
+                    fileName: '/subdir3/file7.ts'
                 },{
                     kind: fs.FileChangeKind.UPDATE,
-                    path: '/subdir2/file5.ts'
+                    fileName: '/subdir2/file5.ts'
                 }]);
             });
         });
@@ -421,10 +421,10 @@ describe('FileSystem', function() {
             expect(changeSpy.callCount).toBe(1);
             expect(changeSpy).toHaveBeenCalledWith([{
                 kind: fs.FileChangeKind.DELETE,
-                path: '/subdir2/file4.ts'
+                fileName: '/subdir2/file4.ts'
             },{
                 kind: fs.FileChangeKind.ADD,
-                path: '/subdir2/newFile.ts'
+                fileName: '/subdir2/newFile.ts'
             }]);
             
             fileSystem.getProjectFiles().then(result => files = result);
@@ -474,28 +474,28 @@ describe('FileSystem', function() {
                 expect(changeSpy.callCount).toBe(1);
                 expect(changeSpy).toHaveBeenCalledWith([{
                     kind: fs.FileChangeKind.DELETE,
-                    path: '/subdir2/file4.ts'
+                    fileName: '/subdir2/file4.ts'
                 },{
                     kind: fs.FileChangeKind.ADD,
-                    path: '/subdir4/file4.ts'
+                    fileName: '/subdir4/file4.ts'
                 },{
                     kind: fs.FileChangeKind.DELETE,
-                    path: '/subdir2/file5.ts'
+                    fileName: '/subdir2/file5.ts'
                 },{
                     kind: fs.FileChangeKind.ADD,
-                    path: '/subdir4/file5.ts'
+                    fileName: '/subdir4/file5.ts'
                 },{
                     kind: fs.FileChangeKind.DELETE,
-                    path: '/subdir2/subdir3/file6.ts'
+                    fileName: '/subdir2/subdir3/file6.ts'
                 },{
                     kind: fs.FileChangeKind.ADD,
-                    path: '/subdir4/subdir3/file6.ts'
+                    fileName: '/subdir4/subdir3/file6.ts'
                 },{
                     kind: fs.FileChangeKind.DELETE,
-                    path: '/subdir2/subdir3/file7.ts'
+                    fileName: '/subdir2/subdir3/file7.ts'
                 },{
                     kind: fs.FileChangeKind.ADD,
-                    path: '/subdir4/subdir3/file7.ts'
+                    fileName: '/subdir4/subdir3/file7.ts'
                 }]);
             });
         });
