@@ -39,48 +39,81 @@ import Services = TypeScript.Services;
 
 
 /**
- * The main facade class of the extentions, responsible to create / destroy / update projects
- * by observing config files in the files of the opened brackets folder
+ * The main facade class of the extentions, responsible to create, destroy, update 
+ * projects by observing preferenreces.
  */
 class TypeScriptProjectManager {
-    
-    constructor() {
-        this.queue = new PromiseQueue();
-    }
     
     //-------------------------------
     //  variables
     //-------------------------------
     
-    private preferenceManager: TypeScriptPreferenceManager; 
-    private fileSystem: fs.IFileSystem;
-    private workingSet: ws.IWorkingSet;
-    private projectFactory: TypeScriptProjectManager.ProjectFactory;
+    /**
+     * preferences manager used to retrieve project config
+     */
+    private preferenceManager: TypeScriptPreferenceManager;
     
+    /**
+     * editor filesystem manager
+     */
+    private fileSystem: fs.IFileSystem;
+    
+    /**
+     * editor workingSet manager
+     */
+    private workingSet: ws.IWorkingSet;
+    
+    /**
+     * a factory used to create project
+     */
+    private projectFactory: TypeScriptProjectManager.ProjectFactory;
     
     /**
      * a map containing the projects 
      */
     private projectMap = new collections.StringMap<TypeScriptProject>();
     
+    /**
+     * tempory Project used for typescript file 
+     * that correspond to no registred project
+     */
     private tempProject: TypeScriptProject;
     
+    /**
+     * absolute path of the opened root directory 
+     */
     private projectRootDir: string;
     
-    private queue: PromiseQueue;
+    /**
+     * a promise queue used to insure async task are run sequentialy
+     */
+    private queue = new PromiseQueue();
     
+    /**
+     * location of the default typescript compiler lib.d.ts file
+     */
     private defaultTypeScriptLocation: string;
     
     //-------------------------------
     // Public methods
     //------------------------------- 
     
-    
     /**
      * initialize the project manager
+     * 
+     * @param defaultTypeScriptLocation location of the default typescript compiler lib.d.ts file
+     * @param preferenceManager preferences manager used to retrieve project config
+     * @param fileSystem editor filesystem manager
+     * @param workingSet editor workingset manager 
+     * @param projectFactory a factory used to create project
      */
-    init(defaultTypeScriptLocation: string, preferenceManager: TypeScriptPreferenceManager, fileSystem: fs.IFileSystem,
-        workingSet: ws.IWorkingSet, projectFactory: TypeScriptProjectManager.ProjectFactory): Promise<void> {
+    init(
+        defaultTypeScriptLocation: string, 
+        preferenceManager: TypeScriptPreferenceManager, 
+        fileSystem: fs.IFileSystem,
+        workingSet: ws.IWorkingSet, 
+        projectFactory: TypeScriptProjectManager.ProjectFactory
+    ): Promise<void> {
         
         this.defaultTypeScriptLocation = defaultTypeScriptLocation;
         this.preferenceManager = preferenceManager;
@@ -90,8 +123,12 @@ class TypeScriptProjectManager {
         
         this.preferenceManager.configChanged.add(this.configChangeHandler);
         
-        return this.queue.init(this.createProjects())
-        
+        return this.queue.init(
+            this.fileSystem.getProjectRoot().then(projectRootDir => {
+                this.projectRootDir = projectRootDir;
+                return this.createProjects();
+            })
+        );
     }
     
     
@@ -149,11 +186,11 @@ class TypeScriptProjectManager {
                 config.target = 'es5';
                 config.sources = [fileName];
                 this.tempProject = project = this.projectFactory(
-                    '', 
+                    this.projectRootDir, 
                     config,  
                     this.fileSystem, 
                     this.workingSet,
-                    this.defaultTypeScriptLocation
+                    path.join(this.defaultTypeScriptLocation, 'lib.d.ts') 
                 );
                 return this.tempProject.init().then(() => this.tempProject);
             }
@@ -167,24 +204,19 @@ class TypeScriptProjectManager {
     //------------------------------- 
     
     /**
-     * find bracketsTypescript config files and create a project for each file founds
+     * create projects from project configs retrieved by the preferenceManager
      */
     private createProjects(): Promise<any> {
         return this.preferenceManager.getProjectsConfig().then(configs => {
-            return this.fileSystem.getProjectRoot().then(projectRootDir => {
-                this.projectRootDir = projectRootDir;
-                return Promise.all(Object.keys(configs).map(projectId => {
-                    var projectConfig = configs[projectId];
-                    return this.createProjectFromConfig(projectRootDir, projectConfig).then(project => {
-                        this.projectMap.set(projectId, project);
-                    });    
-                }));
-            })
+            return Promise.all(
+                Object.keys(configs)
+                    .map(projectId => this.createProjectFromConfig(projectId, configs[projectId]))
+            );
         });
     }
     
     /**
-     * dispose every projects created by the project Manager
+     * dispose every projects created by the ProjectManager
      */
     private disposeProjects():void {
         var projectMap = this.projectMap;
@@ -201,26 +233,25 @@ class TypeScriptProjectManager {
    
     
     /**
-     * for given validated config and config file path create a project
+     * for given config and projectId create a project
      * 
-     * @param configFilePath the config file path
-     * @param config the config created from the file
+     * @param projectId the id of the project
+     * @param config the project config
      */
-    private createProjectFromConfig(projectRootDir: string, config : TypeScriptProjectConfig): Promise<TypeScriptProject> {
+    private createProjectFromConfig(projectId: string, config: TypeScriptProjectConfig) {
         var project = this.projectFactory(
-            projectRootDir, 
+            this.projectRootDir, 
             config,  
             this.fileSystem, 
             this.workingSet,
             path.join(this.defaultTypeScriptLocation, 'lib.d.ts') 
         );
         return project.init().then(() => {
-            return project;
-        }, (): TypeScriptProject => {
-            if (logger.warning()) {
-                logger.log('could not create project:' /**add projectId*/)
+            this.projectMap.set(projectId, project);
+        }, () => {
+            if (logger.fatal()) {
+                logger.log('could not create project:' + projectId)
             }
-            return null;
         })
     }
 
@@ -231,7 +262,7 @@ class TypeScriptProjectManager {
     
     
     /**
-     * handle changes in the file system, update / delete / create project accordingly
+     * handle changes in the preferences, update / delete / create project accordingly
      */
     private configChangeHandler = () => {
         this.queue.then(() => {
@@ -251,7 +282,7 @@ class TypeScriptProjectManager {
                 
                 Object.keys(configs).forEach(projectId => {
                     if (!this.projectMap.has(projectId)) {
-                        promises.push(this.createProjectFromConfig(this.projectRootDir, configs[projectId]))
+                        promises.push(this.createProjectFromConfig(projectId, configs[projectId]))
                     }
                 })
             });
@@ -260,13 +291,21 @@ class TypeScriptProjectManager {
 }
 
 module TypeScriptProjectManager {
+    /**
+     * a factory used by the projectManager to create projects
+     * @param baseDirectory the baseDirectory of the project
+     * @param config the project config file
+     * @param fileSystem the fileSystem wrapper used by the project
+     * @param workingSet the working set wrapper used by the project
+     * @param defaultLibLocation the location of the default compiler 'lib.d.ts' file
+     */
     export interface ProjectFactory {
         (
             baseDirectory: string,
             config: TypeScriptProjectConfig, 
             fileSystem: fs.IFileSystem,
             workingSet: ws.IWorkingSet,
-            typeScriptLocation: string
+            defaultLibLocation: string
         ): TypeScriptProject
     }
 }

@@ -238,6 +238,17 @@ class TypeScriptProject {
                     factory: factory,
                     libLocation: path.join(typescriptPath, 'lib.d.ts')
                 }
+            })
+            //TODO instead of silently returning default we should handle this error in project
+            //manager and return an error in the linter
+            .catch(() => {
+                if (logger.error()) {
+                    logger.log('could not retrieve typescript compiler at path: ' + typescriptPath)
+                }
+                return {
+                    factory: new Services.TypeScriptServicesFactory(),
+                    libLocation: this.defaultLibLocation
+                }
             });
         }
     }
