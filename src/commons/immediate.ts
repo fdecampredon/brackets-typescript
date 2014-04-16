@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -28,9 +28,24 @@
  */
 
 var immediateImpl: {
+    /**
+     * schedule the "immediate" execution of callback 
+     * @param expression a function or a string
+     * @param args a list of arguments to pass as the function parameter
+     * 
+     * @return id of the sheduled execution
+     */
     setImmediate(expression: any, ...args: any[]): number;
+    
+    /**
+     * cancel an immediate scheduling
+     * 
+     * @param handle id returned by setImmediate
+     */
     clearImmediate(handle: number): void;
 };
+
+
 
 interface Task {
     handle: number;
