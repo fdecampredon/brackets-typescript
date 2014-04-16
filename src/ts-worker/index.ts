@@ -14,10 +14,9 @@
 
 'use strict'
 
-declare var require: any;
+// inject global in the worker
 global.TypeScript = require('typescriptServices');
 global.window = self;
-
 
 
 import TypeScriptProjectManager = require('./projectManager');
@@ -28,10 +27,9 @@ import CompletionService = require('./completionService');
 import LexicalStructureService = require('./lexicalStructureService');
 import WorkerBridge = require('../commons/workerBridge');
 import logger = require('../commons/logger');
-
 import path = require('path');
 
-
+//instantiate the different service 
 var projectManager = new TypeScriptProjectManager(),
     errorService = new ErrorService(projectManager),
     completionService = new CompletionService(projectManager),
@@ -39,12 +37,14 @@ var projectManager = new TypeScriptProjectManager(),
     lexicalStructureService = new LexicalStructureService(projectManager),
     bridge = new WorkerBridge(<any>self);
 
+//expose the worker services
 bridge.init({
     errorService: errorService,
     completionService: completionService,
     definitionService: definitionService,
     lexicalStructureService: lexicalStructureService
 }).then(proxy => {
+    //inject main services into worker components
     proxy.getTypeScriptLocation().then( (location: string) => {
         proxy.getLogLevel().then((logLevel: string) => {  
             self.console = proxy.console;
