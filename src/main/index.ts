@@ -20,6 +20,7 @@ import WorkingSet = require('./workingSet');
 import TypeScriptPreferencesManager = require('./preferencesManager');
 import WorkerBridge = require('../commons/workerBridge');
 import TypeScriptErrorReporter = require('./errorReporter');
+import TypeScriptConfigErrorReporter = require('./configErrorReporter')
 import TypeScriptQuickEditProvider = require('./quickEdit');
 import TypeScriptQuickJumpProvider = require('./quickJump');
 import TypeScriptQuickFindDefitionProvider = require('./quickFindDefinition');
@@ -76,7 +77,6 @@ function init(config: { logLevel: string; typeScriptLocation: string; workerLoca
     codeHintProvider = new CodeHintProvider();
     CodeHintManager.registerHintProvider(codeHintProvider, ['typescript'], 0);
     
-    
     // Register quickEdit
     quickEditProvider = new TypeScriptQuickEditProvider();
     EditorManager.registerInlineEditProvider(quickEditProvider.typeScriptInlineEditorProvider);   
@@ -89,6 +89,7 @@ function init(config: { logLevel: string; typeScriptLocation: string; workerLoca
     //Register error provider
     tsErrorReporter = new TypeScriptErrorReporter();
     CodeInspection.register('typescript', tsErrorReporter); 
+    CodeInspection.register('json', new TypeScriptConfigErrorReporter());
     
     //Register quickFindDefinitionProvider
     quickFindDefinitionProvider = new TypeScriptQuickFindDefitionProvider();
