@@ -189,7 +189,7 @@ describe('FileSystem', function() {
         
         it('should dispatch an event when a file is updated', function () {
             fileSystemMock.updateFile('/subdir2/file4.ts', 'New content');
-            waits(10)
+            waits(20);
             runs(function () {
                 expect(changeSpy.callCount).toBe(1);
                 expect(changeSpy).toHaveBeenCalledWith([{
@@ -202,7 +202,7 @@ describe('FileSystem', function() {
         
         it('should ispatch an event when a file is deleted', function () {
             fileSystemMock.deleteEntry('/subdir2/file4.ts');
-            waits(10)
+            waits(20);
             runs(function () {
                 expect(changeSpy.callCount).toBe(1);
                 expect(changeSpy).toHaveBeenCalledWith([{
@@ -218,7 +218,7 @@ describe('FileSystem', function() {
                 name : 'file8.ts',
                 content : 'File8 Content'
             }, '/subdir2/file8.ts', '/subdir2/'));
-            waits(10)
+            waits(20);
             runs(function () {
                 expect(changeSpy.callCount).toBe(1);
                 expect(changeSpy).toHaveBeenCalledWith([{
@@ -231,7 +231,7 @@ describe('FileSystem', function() {
         
         it('should dispatch an event when a non empty directory is deleted', function () {
             fileSystemMock.deleteEntry('/subdir2/');
-            waits(10)
+            waits(20);
             runs(function () {
                 expect(changeSpy.callCount).toBe(1);
                 expect(changeSpy).toHaveBeenCalledWith([{
@@ -253,7 +253,7 @@ describe('FileSystem', function() {
         
         it('should not dispatch an event when an empty directory is deleted', function () {
             fileSystemMock.deleteEntry('/subdir2/subdir3/subdir4/');
-            waits(10)
+            waits(20);
             runs(function () {
                 expect(changeSpy.callCount).toBe(0);
             });
@@ -290,7 +290,7 @@ describe('FileSystem', function() {
             dir.setParent(fileSystemMock.getEntryForFile('/subdir1/', 'directory'));        
             
             fileSystemMock.addEntry(dir);
-            waits(10)
+            waits(20);
             runs(function () {
                 expect(changeSpy.callCount).toBe(1);
                 expect(changeSpy).toHaveBeenCalledWith([{
@@ -317,7 +317,7 @@ describe('FileSystem', function() {
             dir.setParent(fileSystemMock.getEntryForFile('/subdir1/', 'directory'));        
             
             fileSystemMock.addEntry(dir);
-            waits(10)
+            waits(20);
             runs(function () {
                 expect(changeSpy.callCount).toBe(0);
             });
@@ -453,7 +453,7 @@ describe('FileSystem', function() {
                 fileSystemMock.renameFile('/subdir2/file4.ts', '/subdir2/newFile.ts');
             })
             
-            waits(10);
+            waits(20);;
             runs(() => {
                 fileSystem.readFile('/subdir2/newFile.ts').then(result => newContent = result);  
             });
@@ -469,7 +469,7 @@ describe('FileSystem', function() {
                 'the directory when a directory has been renamed', function () {
                 
             fileSystemMock.renameFile('/subdir2/', '/subdir4/');
-            waits(10);
+            waits(20);;
             runs(function () {
                 expect(changeSpy.callCount).toBe(1);
                 expect(changeSpy).toHaveBeenCalledWith([{

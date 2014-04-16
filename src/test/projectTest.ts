@@ -95,7 +95,7 @@ describe('TypeScriptProject', function () {
                     'src/**/*ts'
                 ]
             });
-            waits(10)
+            waits(20)
             runs(function () {
                  expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/root/file1.ts',
@@ -121,7 +121,7 @@ describe('TypeScriptProject', function () {
                     'src/**/*ts'
                 ]
             });
-            waits(10)
+            waits(20)
             runs(function () {
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file1.ts',
@@ -142,7 +142,7 @@ describe('TypeScriptProject', function () {
             
             
             fileSystemMock.addFile('/src/file1.ts', '');
-            waits(10)
+            waits(20)
             runs(function () {
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file1.ts'
@@ -165,7 +165,7 @@ describe('TypeScriptProject', function () {
             
             fileSystemMock.addFile('/src/file1.ts', 'import test = require("../other/file3")');
             
-            waits(10)
+            waits(20)
             runs(function () {
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file1.ts',
@@ -188,7 +188,7 @@ describe('TypeScriptProject', function () {
             });
             
             fileSystemMock.addFile('/other/file2.ts', '');
-            waits(10)
+            waits(20)
             runs(function () {
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file1.ts',
@@ -211,7 +211,7 @@ describe('TypeScriptProject', function () {
             });
             
             fileSystemMock.removeFile('/src/file1.ts');
-            waits(10)
+            waits(20)
             runs(function () {
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file2.ts'
@@ -234,7 +234,7 @@ describe('TypeScriptProject', function () {
             });
             
             fileSystemMock.removeFile('/src/file1.ts');
-            waits(10)
+            waits(20)
             runs(function () {
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file2.ts'
@@ -258,7 +258,7 @@ describe('TypeScriptProject', function () {
             });
             
             fileSystemMock.removeFile('/src/file1.ts');
-            waits(10)
+            waits(20)
             runs(function () {
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file2.ts',
@@ -282,7 +282,7 @@ describe('TypeScriptProject', function () {
             });
             
             fileSystemMock.removeFile('/other/file3.ts');
-            waits(10)
+            waits(20)
             runs(function () {
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file1.ts',
@@ -308,7 +308,7 @@ describe('TypeScriptProject', function () {
             fileSystemMock.removeFile('/other/file3.ts');
             fileSystemMock.addFile('/other/file3.ts','');
             
-            waits(10)
+            waits(20)
             runs(function () {  
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file1.ts',
@@ -331,7 +331,7 @@ describe('TypeScriptProject', function () {
             });
             
             fileSystemMock.updateFile('/src/file1.ts', 'hello');
-            waits(10);
+            waits(20);
             runs(function () {
                 expect(getProjectFileContent('/src/file1.ts')).toBe('hello');
             });
@@ -351,7 +351,7 @@ describe('TypeScriptProject', function () {
             });
             
             fileSystemMock.updateFile('/src/file1.ts', '///<reference path="../other/file2.ts"/>');
-            waits(10);
+            waits(20);
             runs(function () {
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file1.ts',
@@ -374,7 +374,7 @@ describe('TypeScriptProject', function () {
             });
             
             fileSystemMock.updateFile('/src/file1.ts', '');
-            waits(10);
+            waits(20);
             runs(function () {
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file1.ts'
@@ -393,7 +393,7 @@ describe('TypeScriptProject', function () {
                     'src/**/*ts'
                 ]
             });
-            waits(10)
+            waits(20)
             runs(function () {
                 expect(typeScriptProject.getProjectFilesSet().has(defaultLibLocation)).toBe(true);
             });
@@ -411,7 +411,7 @@ describe('TypeScriptProject', function () {
                 ],
                 noLib: true
             });
-            waits(10)
+            waits(20);
             runs(function () {
                 expect(typeScriptProject.getProjectFilesSet().has(defaultLibLocation)).toBeFalsy();
             })
@@ -441,7 +441,7 @@ describe('TypeScriptProject', function () {
                 typescriptPath: '/typescript'
             });
 
-            waits(15);
+            waits(50);
             runs(function () {
                 expect(typeScriptProject.getLanguageService()).toEqual({id: "hello"})
             })
@@ -628,7 +628,7 @@ describe('TypeScriptProject', function () {
                 ]
             });
             
-            waits(10)
+            waits(20)
             runs(function () {
                 expect(typeScriptProject.getProjectFileKind('/src/file1.ts')).toBe(TypeScriptProject.ProjectFileKind.SOURCE);
             })
@@ -647,7 +647,7 @@ describe('TypeScriptProject', function () {
                 ]
             });
             
-            waits(10)
+            waits(20)
             runs(function () {
                 expect(typeScriptProject.getProjectFileKind('/other/file2.ts')).toBe(TypeScriptProject.ProjectFileKind.REFERENCE)
             })
@@ -665,7 +665,7 @@ describe('TypeScriptProject', function () {
                 ]
             });
             
-            waits(10)
+            waits(20)
             runs(function () {
                 expect(typeScriptProject.getProjectFileKind('/other/file2.ts')).toBe(TypeScriptProject.ProjectFileKind.NONE);
             })
@@ -704,7 +704,7 @@ describe('TypeScriptProject', function () {
         
         it('should mark as \'open\' every file added to working set', function () {
             workingSetMock.addFiles(['/src/file3.ts','/src/file4.ts']);
-            waits(10)
+            waits(20)
             runs(function () {
                 testWorkingSetOpenCorrespondance();
             })
@@ -712,7 +712,7 @@ describe('TypeScriptProject', function () {
         
         it('should mark as \'closed\' every file removed from the working set', function () {
             workingSetMock.removeFiles(['/src/file1.ts']);
-            waits(10)
+            waits(20)
             runs(function () {
                 testWorkingSetOpenCorrespondance();
             })
@@ -757,7 +757,7 @@ describe('TypeScriptProject', function () {
                 }],
                 documentText : 'console.log(\'hello world\')'
             });
-            waits(10);
+            waits(20);
             runs(function () {
                 expect(getProjectFileContent('/src/file1.ts')).toBe('console.log(\'hello world\')');
                 workingSetMock.documentEdited.dispatch({
@@ -779,7 +779,7 @@ describe('TypeScriptProject', function () {
             });
             
             
-            waits(10);
+            waits(20);
             runs(function () {
                 expect(getProjectFileContent('/src/file1.ts')).toBe('console.warn(\'hello world\')');
             });
@@ -798,7 +798,7 @@ describe('TypeScriptProject', function () {
             });
                 
                 
-            waits(10);
+            waits(20);
             runs(function () {
                 expect(getProjectFileContent('/src/file1.ts')).toBe('console.log(\'hello world\')');
                 workingSetMock.documentEdited.dispatch({
@@ -814,7 +814,7 @@ describe('TypeScriptProject', function () {
             })
             
             
-            waits(10);
+            waits(20);
             runs(function () {
                 expect(getProjectFileContent('/src/file1.ts')).toBe('console.warn(\'hello world\')');
             });
@@ -839,7 +839,7 @@ describe('TypeScriptProject', function () {
             });
                 
                 
-            waits(10);
+            waits(20);
             runs(function () {
                 expect(getProjectFileContent('/src/file1.ts')).toBe('console.warn(\'hello world\')');
             });
@@ -864,7 +864,7 @@ describe('TypeScriptProject', function () {
                 documentText : 'console.log(\'hello world\')'
             });
             workingSetMock.removeFiles(['/src/file1.ts']);
-            waits(10);
+            waits(20);
             runs(function () {
                 expect(getProjectFileContent('/src/file1.ts')).toBe('');
             });
