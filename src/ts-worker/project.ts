@@ -244,12 +244,12 @@ class TypeScriptProject {
             var typescriptServicesFile = path.join(typescriptPath, 'typescriptServices.js');
             
             return this.fileSystem.readFile(typescriptServicesFile).then(code => {
-                var factory: TypeScript.Services.TypeScriptServicesFactory,
-                    func = new Function('var TypeScript;' + code + ';return TypeScript;'),
+                var func = new Function('var TypeScript;' + code + ';return TypeScript;'),
                     typeScript: typeof TypeScript = func();
+                
 
                 return {
-                    factory: factory,
+                    factory: new typeScript.Services.TypeScriptServicesFactory(),
                     libLocation: path.join(typescriptPath, 'lib.d.ts')
                 }
             })
