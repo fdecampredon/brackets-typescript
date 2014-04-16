@@ -40,8 +40,17 @@ describe('TypescriptPreferenceManager', function () {
         tsPrefManager.dispose();
     })
     
+    function expectProjectConfig(compareValue: any) {
+        var configs: any;
+        tsPrefManager.getProjectsConfig().then(result =>  configs = result);
+        waitsFor(() => !!configs, 'config should have been set');
+        runs(function () {
+           expect(configs).toEqual(compareValue); 
+        });
+    }
+    
     it('should not contains any project config if typescript preference section contains nothing', function () {
-        expect(tsPrefManager.getProjectsConfig()).toEqual({});
+        expectProjectConfig({});
     });
     
     
@@ -51,20 +60,12 @@ describe('TypescriptPreferenceManager', function () {
             sources: ['src/'],
             target: 'es5'
         }
-        expect(tsPrefManager.getProjectsConfig()).toEqual({
+        expectProjectConfig({
             default: {
                 sources: ['src/'],
-                propagateEnumConstants: false,
-                removeComments: false,
-                allowAutomaticSemicolonInsertion : true,
-                noLib: false,
                 target: 'es5',
+                noLib: false,
                 module: 'none',
-                mapSource: false,
-                declaration: false,
-                useCaseSensitiveFileResolution: false,
-                allowBool: false,
-                allowImportModule: false,
                 noImplicitAny: false
             }
         });
@@ -72,8 +73,8 @@ describe('TypescriptPreferenceManager', function () {
     
     
     it('should retrieve no project config if the config is not valid', function () {
-        preferences = { };
-        expect(tsPrefManager.getProjectsConfig()).toEqual({});
+        preferences = { hello:'world' };
+        expectProjectConfig({});
     });
     
     
@@ -90,35 +91,19 @@ describe('TypescriptPreferenceManager', function () {
                 }
             }
         };
-        expect(tsPrefManager.getProjectsConfig()).toEqual({
+        expectProjectConfig({
             project1: {
                 sources: ['src/'],
-                propagateEnumConstants: false,
-                removeComments: false,
-                allowAutomaticSemicolonInsertion : true,
-                noLib: false,
                 target: 'es3',
+                noLib: false,
                 module: 'commonjs',
-                mapSource: false,
-                declaration: false,
-                useCaseSensitiveFileResolution: false,
-                allowBool: false,
-                allowImportModule: false,
                 noImplicitAny: false
             },
             project2: {
                 sources: ['src/'],
-                propagateEnumConstants: false,
-                removeComments: false,
-                allowAutomaticSemicolonInsertion : true,
-                noLib: false,
                 target: 'es5',
+                noLib: false,
                 module: 'commonjs',
-                mapSource: false,
-                declaration: false,
-                useCaseSensitiveFileResolution: false,
-                allowBool: false,
-                allowImportModule: false,
                 noImplicitAny: false
             }
         });
