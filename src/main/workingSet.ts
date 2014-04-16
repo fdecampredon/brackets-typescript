@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -12,12 +12,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+'use strict';
+
 
 import signal = require('../commons/signal');
 import collections = require('../commons/collections');
 import ws = require('../commons/workingSet');
-
-
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;
 
 
 
@@ -25,7 +27,7 @@ import ws = require('../commons/workingSet');
 /**
  * implementation of the IWorkingSet
  */
-class WorkingSet  {
+class WorkingSet implements ws.IWorkingSet  {
     
     //-------------------------------
     //  constructor
@@ -79,14 +81,14 @@ class WorkingSet  {
     
     
     /**
-     * @see IWorkingSet#getFiles
+     * list of files in the working set
      */
     getFiles() {
-        return this.filesSet.values;
+        return Promise.cast(this.filesSet.values);
     }
     
     /**
-     * @see IWorkingSet#workingSetChanged
+     * a signal dispatching events when change occured in the working set
      */
     get workingSetChanged() {
         return this._workingSetChanged;
@@ -94,15 +96,15 @@ class WorkingSet  {
     
     
     /**
-     * @see IWorkingSet#documentEdited
+     * a signal that provide fine grained change over edited document
      */
     get documentEdited() {
         return this._documentEdited;
     }
 
     /**
-     * @see IWorkingSet#dispose
-     */    
+     * dispose the working set 
+     */   
     dispose(): void {
         $(this.documentManager).off('workingSetAdd', <any>this.workingSetAddHandler);
         $(this.documentManager).off('workingSetAddList', <any>this.workingSetAddListHandler);
@@ -121,7 +123,7 @@ class WorkingSet  {
      * set working set files
      */
     private setFiles(files: string[]) {
-        this.getFiles().forEach(path => this.filesSet.remove(path))
+        this.filesSet.values.forEach(path => this.filesSet.remove(path))
         if (files) {
             files.forEach(path => this.filesSet.add(path));
         }
@@ -185,6 +187,9 @@ class WorkingSet  {
         }
     }
  
+    /**
+     * attach events to the activeEditor
+     */
     private setActiveEditor(editor: brackets.Editor) {
         if (this.currentDocument) {
             $(this.currentDocument).off('change', <any>this.documentChangesHandler);
@@ -217,6 +222,9 @@ class WorkingSet  {
         }   
     }
     
+    /**
+     * handle active editor change
+     */
     private activeEditorChangeHandler = (event: any, current: brackets.Editor, previous: brackets.Editor) => {
         this.setActiveEditor(current);
     }

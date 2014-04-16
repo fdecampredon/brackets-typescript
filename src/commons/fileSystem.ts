@@ -41,7 +41,7 @@ export interface IFileSystem {
     projectFilesChanged: signal.Signal<FileChangeRecord[]>
     
     /**
-     * return a promise that resolve with a string containing all the files of the projects
+     * return a promise that resolve with an array of string containing all the files of the projects
      */
     getProjectFiles(): Promise<string[]>;
     

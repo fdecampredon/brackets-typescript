@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,13 +26,17 @@ import fs = require('../commons/fileSystem');
 
 
 /**
- * FileSystem implementations
+ * IFileSystem implementations
  */
 class FileSystem implements fs.IFileSystem {
     //-------------------------------
     //  constructor
     //-------------------------------
     
+    /**
+     * @param nativeFileSystem brackets FileSystem module
+     * @param projectManager brackets ProjectManager Module
+     */
     constructor(
         private nativeFileSystem: brackets.FileSystem,
         private projectManager: brackets.ProjectManager
@@ -74,21 +78,21 @@ class FileSystem implements fs.IFileSystem {
     //-------------------------------
 
     /**
-     * @see IFileSystem.getProjectRoot
+     * return a promise resolving to the project root folder path
      */
     getProjectRoot(): Promise<string> {
         return Promise.cast(this.projectManager.getProjectRoot().fullPath);
     }
     
     /**
-     * @see IFileSystem.projectFilesChanged
+     * a signal dispatching fine grained change reflecting the change that happens in the working set
      */
     get projectFilesChanged(): signal.Signal<fs.FileChangeRecord[]> {
         return this._projectFilesChanged;
     }
     
     /**
-     * @see IFileSystem.getProjectFiles
+     * return a promise that resolve with an array of string containing all the files of the projects
      */
     getProjectFiles(): Promise<string[]> {
         return new Promise(resolve => {
@@ -97,7 +101,9 @@ class FileSystem implements fs.IFileSystem {
     }
       
     /**
-     * @see IFileSystem.readFile
+     * read a file, return a promise with that resolve to the file content
+     * 
+     * @param path the file to read
      */
     readFile(path: string): Promise<string> {
         return new Promise((resolve, reject) => {
@@ -125,7 +131,7 @@ class FileSystem implements fs.IFileSystem {
     }
     
     /**
-     * @see IFileSystem.reset
+     * reset the wrapper and dispatch a refresh event
      */
     reset(): void {
         this.initialized = false;
@@ -139,7 +145,7 @@ class FileSystem implements fs.IFileSystem {
     
 
     /**
-     * @see IFileSystem.dispose
+     * clean the wrapper for disposal
      */
     dispose(): void {
         this.nativeFileSystem.off('change', this.changesHandler);
@@ -151,7 +157,7 @@ class FileSystem implements fs.IFileSystem {
     //  privates methods
     //-------------------------------
     
-     /**
+    /**
      * initialize the wrapper
      */
     private init() {
@@ -412,6 +418,9 @@ class FileSystem implements fs.IFileSystem {
     }
     
     
+    /**
+     * handle file renaming event
+     */
     private renameHandler = (event: any, oldPath : string, newPath: string) => {
         var isDirectory = oldPath[oldPath.length -1] === '/';
         var changes: fs.FileChangeRecord[];
@@ -431,6 +440,9 @@ class FileSystem implements fs.IFileSystem {
         }
     }
     
+    /**
+     * dispatch events when a file has been renamed
+     */
     private fileRenamedHandler(oldPath: string, newPath: string) {
         var index = this.filesPath.indexOf(oldPath);
         if (index !== -1) {

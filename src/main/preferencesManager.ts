@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -24,17 +24,30 @@ import collections = require('../commons/collections');
 import signal = require('../commons/signal');
 import ITypescriptPreferenceManager = require('../commons/preferencesManager');
 
+/**
+ * Implementation of the ITypescriptPreferenceManager
+ */
 class TypescriptPreferenceManager implements ITypescriptPreferenceManager {
+    /**
+     * @prama prefManager brackets PreferenceManager module
+     */
     constructor(
         private prefManager: brackets.PreferencesManager
     ) {
         this.prefManager.on('change', this.preferenceChangedHandler);
     }
     
+    /**
+     * map projectId => config of collected config file
+     */
     private projectConfigs: collections.StringMap<TypeScriptProjectConfig>;
     
     configChanged = new signal.Signal<void>();
     
+    /**
+     * @return a Promise resolving to and map projectId <=> project config
+     * corresponding to the typescript section in project preference
+     */
     getProjectsConfig() {
         if (!this.projectConfigs) {
             this.projectConfigs = this.retriveProjectsConfig()
@@ -42,10 +55,16 @@ class TypescriptPreferenceManager implements ITypescriptPreferenceManager {
         return Promise.cast(this.projectConfigs.toObject()); 
     }
 
+    /**
+     * A signal notifying when preferences might have changed
+     */
     dispose() {
         this.configChanged.clear();
     }
     
+    /**
+     * retrieve project configs from preferences
+     */
     private retriveProjectsConfig(): collections.StringMap<TypeScriptProjectConfig>  {
         var result = new collections.StringMap<TypeScriptProjectConfig>();
         
@@ -89,6 +108,9 @@ class TypescriptPreferenceManager implements ITypescriptPreferenceManager {
         return result;
     }
     
+    /**
+     * handle change in preferences
+     */
     private preferenceChangedHandler = (e: any, data: any) => {
         if (data && Array.isArray(data.ids) && data.ids.indexOf('typescript') !== -1) {
             this.projectConfigs = null;

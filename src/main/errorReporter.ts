@@ -12,7 +12,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+'use strict'
 
+//TODO that part of the application is not well tested and just 'work' it needs to be refactored
+
+import ServiceConsumer = require('./serviceConsumer');
 import immediate = require('../commons/immediate');
 import IErrorService =  require('../commons/errorService');
 
@@ -26,15 +30,7 @@ import IErrorService =  require('../commons/errorService');
 /**
  * TypeScript Inspection Provider
  */
-class TypeScriptErrorReporter implements brackets.InspectionProvider {
-    
-    private errorService: JQueryDeferred<IErrorService> = $.Deferred()
-    
-    
-
-    setErrorService(service: IErrorService) {
-        this.errorService.resolve(service);
-    }
+class TypeScriptErrorReporter extends ServiceConsumer<IErrorService> implements brackets.InspectionProvider {
     
     /**
      * name of the error reporter
@@ -47,7 +43,7 @@ class TypeScriptErrorReporter implements brackets.InspectionProvider {
     scanFileAsync(content: string, path: string): JQueryPromise<{ errors: brackets.LintingError[];  aborted: boolean }> {
         return $.Deferred(deferred => {
             immediate.setImmediate(() => {
-                this.errorService.then(service => {
+                this.getService().then(service => {
                     service.getErrorsForFile(path).then(
                         result => {
                             deferred.resolve(result);
@@ -62,11 +58,6 @@ class TypeScriptErrorReporter implements brackets.InspectionProvider {
                 })    
             })
         }).promise();
-    }
-    
-    
-    reset() {
-        this.errorService = $.Deferred();
     }
 }
 

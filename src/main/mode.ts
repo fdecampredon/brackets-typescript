@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -12,7 +12,12 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-'use strict';
+'use strict'
+
+// TODO If we could not depends of TypeScript here, or at least extract just the part we are interested in
+// We could avoid bundling the entire TypeScript Service with use
+// see : https://github.com/fdecampredon/brackets-typescript/issues/13
+
 
 declare var require: any;
 var TypeScript: typeof TypeScript = require('typescriptServices');

@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -12,21 +12,17 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+'use strict'
 
+//TODO that part of the application is not well tested and just 'work' it needs to be refactored
+
+import ServiceConsumer = require('./serviceConsumer');
 import definition = require('../commons/definition');
 
 var DocumentManager = brackets.getModule('document/DocumentManager'),
     MultiRangeInlineEditor = brackets.getModule('editor/MultiRangeInlineEditor').MultiRangeInlineEditor;
 
-class TypeScriptQuickEditProvider {
-    private definitionService: JQueryDeferred<definition.IDefinitionService> = $.Deferred()
-    
-    
-
-    setDefinitionService(service: definition.IDefinitionService) {
-        this.definitionService.resolve(service);
-    }
-    
+class TypeScriptQuickEditProvider extends ServiceConsumer<definition.IDefinitionService> {
     
     
     typeScriptInlineEditorProvider = (hostEditor: brackets.Editor, pos: CodeMirror.Position): JQueryPromise<brackets.InlineWidget> => {
@@ -40,7 +36,7 @@ class TypeScriptQuickEditProvider {
             return null;
         }
         var deferred = $.Deferred()
-        this.definitionService.then(service => {
+        this.getService().then(service => {
             var fileName = hostEditor.document.file.fullPath;
             service.getDefinitionForFile(fileName, pos).then(definitions => {
                 if (!definitions || definitions.length === 0) {

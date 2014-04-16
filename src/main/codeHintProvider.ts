@@ -1,3 +1,22 @@
+//   Copyright 2013-2014 François de Campredon
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//       http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+
+'use strict'
+
+//TODO that part of the application is not well tested and just 'work' it needs to be refactored
+
+import ServiceConsumer = require('./serviceConsumer');
 import completion = require('../commons/completion');
 
 var CompletionKind = completion.CompletionKind;
@@ -12,14 +31,10 @@ var HINT_TEMPLATE = [
 ].join('\n');
 
 
-class CodeHintProvider implements brackets.CodeHintProvider {
-    
-    private completionService: JQueryDeferred<completion.ICompletionService> = $.Deferred()
-    
-    setCompletionService(service: completion.ICompletionService) {
-        this.completionService.resolve(service);
-    }
-    
+/**
+ * basic implementation
+ */
+class CodeHintProvider extends ServiceConsumer<completion.ICompletionService> implements brackets.CodeHintProvider {
     
     
     private editor: brackets.Editor;
@@ -44,7 +59,7 @@ class CodeHintProvider implements brackets.CodeHintProvider {
         var currentFileName: string = this.editor.document.file.fullPath, 
             position = this.editor.getCursorPos(),
             deferred = $.Deferred()
-        this.completionService.then(service => {
+        this.getService().then(service => {
             service.getCompletionAtPosition(currentFileName, position).then(result => {
                 deferred.resolve({
                     hints: result.entries.map(entry => {

@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -12,23 +12,18 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+'use strict'
 
+//TODO that part of the application is not well tested and just 'work' it needs to be refactored
+
+import ServiceConsumer = require('./serviceConsumer');
 import definition = require('../commons/definition');
 
 var EditorManager = brackets.getModule('editor/EditorManager'),
     Commands = brackets.getModule("command/Commands"),
     CommandManager = brackets.getModule("command/CommandManager");
 
-class TypeScriptQuickJumpProvider {
-    private definitionService: JQueryDeferred<definition.IDefinitionService> = $.Deferred()
-    
-    
-
-    setDefinitionService(service: definition.IDefinitionService) {
-        this.definitionService.resolve(service);
-    }
-    
-    
+class TypeScriptQuickJumpProvider extends ServiceConsumer<definition.IDefinitionService> {
     
     handleJumpToDefinition = (): JQueryPromise<boolean> => {
         var editor = EditorManager.getFocusedEditor();
@@ -41,7 +36,7 @@ class TypeScriptQuickJumpProvider {
             fileName = editor.document.file.fullPath,
             deferred = $.Deferred();
         
-        this.definitionService.then(service => {
+        this.getService().then(service => {
             service.getDefinitionForFile(fileName, pos).then(definitions => {
                 if (!definitions || definitions.length === 0) {
                     deferred.reject();

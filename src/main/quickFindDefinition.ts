@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -12,9 +12,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-'use strict';
+'use strict'
 
+//TODO that part of the application is not well tested and just 'work' it needs to be refactored
 
+import ServiceConsumer = require('./serviceConsumer');
 import ls = require('../commons/lexicalStructure');
 import WorkingSet = require('./workingSet')
 
@@ -29,15 +31,10 @@ class Session {
 } 
 
 
-class TypeScriptQuickFindDefitionProvider implements brackets.QuickOpenPluginDef<TypeScriptQuickFindDefitionProvider.LexicalStructureItem> {
-    
-    private lexicalStructureService: JQueryDeferred<ls.ILexicalStructureService> = $.Deferred();
+class TypeScriptQuickFindDefitionProvider extends ServiceConsumer<ls.ILexicalStructureService> implements 
+    brackets.QuickOpenPluginDef<TypeScriptQuickFindDefitionProvider.LexicalStructureItem> {
     
     private session: Session;
-    
-    setLexicalStructureService(service: ls.ILexicalStructureService) {
-        this.lexicalStructureService.resolve(service);
-    }
     
     
     name = 'TypeScriptQuickFindDefitionProvider';
@@ -81,7 +78,7 @@ class TypeScriptQuickFindDefitionProvider implements brackets.QuickOpenPluginDef
             if (this.session) {
                 deferred.resolve(this.session)
             } else {
-                this.lexicalStructureService.then(lexicalStructureService => {
+                this.getService().then(lexicalStructureService => {
                     var editor = EditorManager.getActiveEditor(),
                         currentFile = editor.document.file.fullPath;
                     lexicalStructureService.getLexicalStructureForFile(currentFile).then(items => {

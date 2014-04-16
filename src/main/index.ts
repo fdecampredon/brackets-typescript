@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -12,9 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-
 'use strict';
-
 
 import logger = require('../commons/logger');
 import FileSystem = require('./fileSystem');
@@ -112,6 +110,10 @@ function disposeServices() {
     preferencesManager.dispose();
     
     tsErrorReporter.reset();
+    codeHintProvider.reset();
+    quickEditProvider.reset();
+    quickJumpProvider.reset();
+    quickFindDefinitionProvider.reset();
 }
 
 
@@ -134,11 +136,11 @@ function initServices(workerLocation: string, typeScriptLocation: string, logLev
             return logLevel;
         }
     }).then(proxy => {
-        tsErrorReporter.setErrorService(proxy.errorService);
-        codeHintProvider.setCompletionService(proxy.completionService);
-        quickEditProvider.setDefinitionService(proxy.definitionService);
-        quickJumpProvider.setDefinitionService(proxy.definitionService);
-        quickFindDefinitionProvider.setLexicalStructureService(proxy.lexicalStructureService);
+        tsErrorReporter.setService(proxy.errorService);
+        codeHintProvider.setService(proxy.completionService);
+        quickEditProvider.setService(proxy.definitionService);
+        quickJumpProvider.setService(proxy.definitionService);
+        quickFindDefinitionProvider.setService(proxy.lexicalStructureService);
     });
 }
 
