@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,12 +21,26 @@ import definition = require('../commons/definition')
 import Promise = es6Promise.Promise;
 
 
+/**
+ * implementation of the IDefinitionService
+ */
 class DefinitionService implements definition.IDefinitionService {
     
+    /**
+     * @param projectManager the Project manager used by the service to retrieve project
+     */
     constructor(
         private projectManager: TypeScriptProjectManager
     ) {}
     
+    
+    /**
+     * retrieve definition info of a symbol at a given position in a given file
+     * @param fileName the absolute path of the file 
+     * @param position in the file where you want to retrieve definition info
+     * 
+     * @return a promise resolving to a list of definition info
+     */
     getDefinitionForFile(fileName: string, position: CodeMirror.Position): Promise<definition.DefinitionInfo[]> {
         return this.projectManager.getProjectForFile(fileName).then(project => {
             var languageService = project.getLanguageService(),

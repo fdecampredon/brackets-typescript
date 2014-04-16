@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,7 +20,10 @@ import es6Promise = require('es6-promise');
 import Promise = es6Promise.Promise;
 import IErrorService = require('../commons/errorService');
 
- var Type = {
+/**
+ * brackets Error message type
+ */
+var Type = {
     /** Unambiguous error, such as a syntax error */
     ERROR: "problem_type_error",
     /** Maintainability issue, probable error / bad smell, etc. */
@@ -29,13 +32,24 @@ import IErrorService = require('../commons/errorService');
     META: "problem_type_meta"
 };
 
+/**
+ * implementation of the IErrorService
+ */
 class ErrorService implements IErrorService {
     
+    /**
+     * @param projectManager the Project manager used by the service to retrieve project
+     */
     constructor(
         private projectManager: TypeScriptProjectManager
     ) {}
 
-    
+    /**
+     * Retrieve a list of errors for a given file
+     * @param fileName the absolute path of the file 
+     * 
+     * @return a promise resolving to a list of errors
+     */
     getErrorsForFile(fileName: string): Promise<{ errors: brackets.LintingError[];  aborted: boolean }> {
         return this.projectManager.getProjectForFile(fileName).then(project => {
             var languageService = project.getLanguageService(),
@@ -60,7 +74,7 @@ class ErrorService implements IErrorService {
     }
     
     /**
-     * convert TypeScript Diagnostic or brackets error format
+     * convert TypeScript Diagnostic to brackets error format
      * @param diagnostics
      */
     private diagnosticToError(diagnostics: TypeScript.Diagnostic[]): brackets.LintingError[] {

@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,24 +15,36 @@
 'use strict'
 
 import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;;
+import Promise = es6Promise.Promise;
 import TypeScriptProjectManager = require('./projectManager');
-import completion = require('../commons/completion')
+import completion = require('../commons/completion');
+import logger = require('../commons/logger');
 
 var ScriptElementKind = TypeScript.Services.ScriptElementKind;
 
+/**
+ * implementation of the ICompletionService
+ */
 class CompletionService implements completion.ICompletionService {
+    
+    /**
+     * @parama projectManager the Project manager used by the service to retrieve project
+     */
     constructor(
         private projectManager: TypeScriptProjectManager
     ) {}
     
-    private isValidTokenKind(tokenKind: number) {
-        return tokenKind === TypeScript.SyntaxKind.IdentifierName ||
-            (tokenKind >= TypeScript.SyntaxKind.BreakKeyword && tokenKind < TypeScript.SyntaxKind.OpenBraceToken) 
-    }
         
+    /**
+     * Retrieve completion proposal at a given point in a given file
+     * @param fileName the absolute path of the file 
+     * @param position in the file where you want to retrieve completion proposal
+     * 
+     * @return a promise resolving to a list of proposals
+     */
     getCompletionAtPosition(fileName: string, position: CodeMirror.Position): Promise<completion.CompletionResult> {
         return this.projectManager.getProjectForFile(fileName).then(project => {
+            
             var languageService = project.getLanguageService(),
                 languageServiceHost = project.getLanguageServiceHost(),
                 index = languageServiceHost.getIndexFromPos(fileName, position),
@@ -57,7 +69,7 @@ class CompletionService implements completion.ICompletionService {
                 if (currentToken.element().trailingTrivia()) {
                     match = match.substr(0, match.length - currentToken.element().trailingTriviaWidth());
                 }
-                //match = match.substr(currentToken.element().leadingTriviaWidth(), match.length - currentToken.element().trailingTriviaWidth() -1);
+                
                 typeScriptEntries = typeScriptEntries.filter(entry => {
                     return entry.name && entry.name.toLowerCase().indexOf(match.toLowerCase()) === 0;
                 });
@@ -142,7 +154,9 @@ class CompletionService implements completion.ICompletionService {
                     case ScriptElementKind.indexSignatureElement:
                     case ScriptElementKind.memberGetAccessorElement:
                     case ScriptElementKind.memberSetAccessorElement:
-                        console.log('untreated case ' + typeScriptEntry.kind);
+                        if (logger.information()) {
+                            logger.log('un handled ScriptElementKind in completion list: ' +  typeScriptEntry.kind);
+                        }
                         break;
                 }
 
@@ -157,6 +171,14 @@ class CompletionService implements completion.ICompletionService {
             entries: [],
             match : ''
         }));
+    }
+    
+    /**
+     * helper method return true if the token correspond to an 'completable' token
+     */
+    private isValidTokenKind(tokenKind: number) {
+        return tokenKind === TypeScript.SyntaxKind.IdentifierName ||
+            (tokenKind >= TypeScript.SyntaxKind.BreakKeyword && tokenKind < TypeScript.SyntaxKind.OpenBraceToken) 
     }
 }
 
