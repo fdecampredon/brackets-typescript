@@ -274,7 +274,12 @@ class ScriptInfo {
      */
     updateContent(newContent: string): void {
         this.setContent(newContent);
-        this.editRanges = []
+        this.editRanges.push(
+            new TypeScript.TextChangeRange(
+                TypeScript.TextSpan.fromBounds(0, this.content.length), 
+                newContent.length
+            )
+        );
         this.version++;
     }
 
@@ -301,27 +306,6 @@ class ScriptInfo {
         this.version++;
     }
 
-    /**
-     * return edit range between 2 version
-     * 
-     * @param startVersion
-     * @param endVersion
-     */
-    getTextChangeRangeBetweenVersions(startVersion: number, endVersion: number): TypeScript.TextChangeRange {
-        if (startVersion === endVersion) {
-            // No edits!
-            return TypeScript.TextChangeRange.unchanged;
-        }
-
-        var initialEditRangeIndex = this.editRanges.length - (this.version - startVersion);
-        var lastEditRangeIndex = this.editRanges.length - (this.version - endVersion);
-
-        var entries = this.editRanges.slice(initialEditRangeIndex, lastEditRangeIndex);
-        if (entries.length === 0) {
-            return null;
-        }
-        return TypeScript.TextChangeRange.collapseChangesAcrossMultipleVersions(entries);
-    }
      
      
     /**
@@ -365,11 +349,13 @@ class ScriptSnapshot implements TypeScript.IScriptSnapshot {
     private lineMap: TypeScript.LineMap = null;
     private textSnapshot: string;
     private version: number;
+    private editRanges: TypeScript.TextChangeRange[];
 
     constructor(scriptInfo: ScriptInfo) {
         this.scriptInfo = scriptInfo;
         this.textSnapshot = scriptInfo.content;
         this.version = scriptInfo.version;
+        this.editRanges = scriptInfo.editRanges.slice(0);
     }
 
     getText(start: number, end: number): string {
@@ -388,7 +374,18 @@ class ScriptSnapshot implements TypeScript.IScriptSnapshot {
     }
 
     getTextChangeRangeSinceVersion(scriptVersion: number): TypeScript.TextChangeRange {
-        return this.scriptInfo.getTextChangeRangeBetweenVersions(scriptVersion, this.version);
+        if (scriptVersion === this.version) {
+            // No edits!
+            return TypeScript.TextChangeRange.unchanged;
+        }
+
+        var initialEditRangeIndex = this.editRanges.length - (this.version - scriptVersion);
+
+        var entries = this.editRanges.slice(initialEditRangeIndex);
+        if (entries.length === 0) {
+            return null;
+        }
+        return TypeScript.TextChangeRange.collapseChangesAcrossMultipleVersions(entries);
     }
 }
 
