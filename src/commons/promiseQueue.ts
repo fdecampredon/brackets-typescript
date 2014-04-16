@@ -62,7 +62,7 @@ class PromiseQueue {
         } else {
             this.initialized = true;
             this.initializer(val);
-            return this.promise; 
+            return this.promise;
         }
     }
     
@@ -78,7 +78,10 @@ class PromiseQueue {
      * enqueue an action
      */
     then(action: () => void): Promise<void> {
-        return this.promise = this.promise.then(() => action());
+        return this.promise = this.promise.then(
+            () => action(), 
+            () => action()
+        )
     }
 }
 
