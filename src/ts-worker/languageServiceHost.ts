@@ -72,7 +72,7 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
     updateScript(fileName: string, content: string) {
         var script = this.fileNameToScript.get(fileName);
         if (script) {
-            script.updateContent(content); 
+            script.updateContent(content);
             return;
         }
         throw new Error("No script with name '" + fileName + "'");
@@ -273,11 +273,9 @@ class ScriptInfo {
      * @param newContent the new script content
      */
     updateContent(newContent: string): void {
-        if (newContent !== this.content) {
-            this.setContent(newContent);
-            this.editRanges = []
-            this.version++;
-        }
+        this.setContent(newContent);
+        this.editRanges = []
+        this.version++;
     }
 
 
@@ -304,21 +302,25 @@ class ScriptInfo {
     }
 
     /**
-     * return edit range since a given version
+     * return edit range between 2 version
      * 
-     * @param version
+     * @param startVersion
+     * @param endVersion
      */
-    getTextChangeRangeSinceVersion(version: number): TypeScript.TextChangeRange {
-        if (this.version === version) {
+    getTextChangeRangeBetweenVersions(startVersion: number, endVersion: number): TypeScript.TextChangeRange {
+        if (startVersion === endVersion) {
+            // No edits!
             return TypeScript.TextChangeRange.unchanged;
-        } else if (this.version - version <= this.editRanges.length) {
-            var start = this.editRanges.length - (this.version - version);
-            var changes = this.editRanges.slice(start);
+        }
 
-            return TypeScript.TextChangeRange.collapseChangesAcrossMultipleVersions(changes);
-        } else {
+        var initialEditRangeIndex = this.editRanges.length - (this.version - startVersion);
+        var lastEditRangeIndex = this.editRanges.length - (this.version - endVersion);
+
+        var entries = this.editRanges.slice(initialEditRangeIndex, lastEditRangeIndex);
+        if (entries.length === 0) {
             return null;
         }
+        return TypeScript.TextChangeRange.collapseChangesAcrossMultipleVersions(entries);
     }
      
      
@@ -360,25 +362,33 @@ class ScriptInfo {
  */
 class ScriptSnapshot implements TypeScript.IScriptSnapshot {
     private scriptInfo: ScriptInfo;
+    private lineMap: TypeScript.LineMap = null;
+    private textSnapshot: string;
+    private version: number;
 
     constructor(scriptInfo: ScriptInfo) {
         this.scriptInfo = scriptInfo;
+        this.textSnapshot = scriptInfo.content;
+        this.version = scriptInfo.version;
     }
 
     getText(start: number, end: number): string {
-        return this.scriptInfo.content.substring(start, end);
+        return this.textSnapshot.substring(start, end);
     }
 
     getLength(): number {
-        return this.scriptInfo.content.length;
+        return this.textSnapshot.length;
     }
 
     getLineStartPositions(): number[] {
-        return this.scriptInfo.lineMap.lineStarts();
+        if (this.lineMap === null) {
+            this.lineMap = TypeScript.LineMap1.fromString(this.textSnapshot);
+        }
+        return this.lineMap.lineStarts();
     }
 
     getTextChangeRangeSinceVersion(scriptVersion: number): TypeScript.TextChangeRange {
-        return this.scriptInfo.getTextChangeRangeSinceVersion(scriptVersion);
+        return this.scriptInfo.getTextChangeRangeBetweenVersions(scriptVersion, this.version);
     }
 }
 
