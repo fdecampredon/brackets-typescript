@@ -119,11 +119,14 @@ describe('TypeScriptProjectManager', function () {
          
             initiProjectManager();
             
-             projectConfigs = {
-                project1: {}
-            } 
-            
-            preferenceManagerMock.configChanged.dispatch();
+            waits(20);
+            runs(function () {
+                projectConfigs = {
+                    project1: {}
+                } 
+
+                preferenceManagerMock.configChanged.dispatch();
+            });
            
             waits(50);
             runs(function () {
