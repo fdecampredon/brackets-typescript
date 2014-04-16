@@ -47,15 +47,13 @@ module.exports = function (grunt) {
             main: {
                 src: '<%= source %>',
                 dest: '<%= tmpFolder %>',
-                base_path : 'src/main/',
                 options: {
-                    base_path : 'src',
+                    basePath : 'src',
                     module : 'commonjs',
                     target: 'es5',
                     sourcemap: false,
                     comments : true,
-                    noImplicitAny: true,
-                    ignoreTypeCheck: false
+                    noImplicitAny: true
                 }
             },
             
@@ -63,15 +61,13 @@ module.exports = function (grunt) {
             worker: {
                 src: '<%= workerSource %>',
                 dest: '<%= tmpFolder %>',
-                base_path : 'src/ts-worker/',
                 options: {
-                    base_path : 'src',
+                    basePath : 'src',
                     module : 'commonjs',
                     target: 'es5',
                     sourcemap: false,
                     comments : true,
-                    noImplicitAny: true,
-                    ignoreTypeCheck: false
+                    noImplicitAny: true
                 }
             },
             
@@ -80,13 +76,12 @@ module.exports = function (grunt) {
                 dest: '<%= tmpFolder %>',
                 
                 options: {
-                    base_path : 'src',
+                    basePath : 'src',
                     module: 'commonjs',
                     target: 'es5',
                     sourcemap: false,
                     comments : true,
-                    noImplicitAny: true,
-                    ignoreTypeCheck: false
+                    noImplicitAny: true
                 }
             }
 		},
