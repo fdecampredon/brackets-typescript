@@ -4,7 +4,7 @@ import Promise = es6Promise.Promise;
 /**
  * A service allowing to retrieve typescript errors
  */
-interface ErrorService {
+interface IErrorService {
     /**
      * Retrieve a list of errors for a given file
      * @param fileName the absolute path of the file 

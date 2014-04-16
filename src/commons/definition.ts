@@ -40,7 +40,7 @@ export interface DefinitionInfo {
 /**
  * A service allowing to retrieve definition info
  */
-export interface DefinitionService {
+export interface IDefinitionService {
     
     /**
      * retrieve definition info of a symbol at a given position in a given file

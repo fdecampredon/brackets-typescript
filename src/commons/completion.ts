@@ -101,7 +101,7 @@ export interface CompletionResult {
 /**
  * A service allowing to request completion proposal
  */
-export interface CompletionService {
+export interface ICompletionService {
     /**
      * Retrieve completion proposal at a given point in a given file
      * @param fileName the absolute path of the file 
