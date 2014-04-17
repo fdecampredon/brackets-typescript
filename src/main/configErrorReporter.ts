@@ -58,9 +58,9 @@ class TypeScriptConfigErrorReporter implements brackets.InspectionProvider {
         if (!isBracketsPreferenceFile(path)) {
             return null;
         }
-        var data: any = JSON.parse(content);
+        var data: any;
         try {
-            
+            data = JSON.parse(content);
         } catch (e) {
             return {
                 errors: [],
@@ -76,71 +76,54 @@ class TypeScriptConfigErrorReporter implements brackets.InspectionProvider {
             }
         }
         
-        var errors: brackets.LintingError[] = [];
+        var errors: string[] = [];
         if (typescript.projects && typescript.sources) {
-            errors.push({
-                pos: { line: 0, ch: 0},
-                type: Type.ERROR,
-                message: 'You cannot have sources and projects at the same level'
-            });
+            errors.push('You cannot have sources and projects at the same level');
         }
         
-        validateSection(null, typescript, !!typescript.projects, errors);
+        validateSection(null, typescript, !typescript.projects, errors);
         
         if (typescript.projects) {
             if (typeof typescript.projects !== 'object') {
-                errors.push({
-                    pos: { line: 0, ch: 0},
-                    type: Type.ERROR,
-                    message: 'invalid section projects, it must be an object'
-                })
+                errors.push('invalid section projects, it must be an object');
             } 
             Object.keys(typescript.projects).forEach(key => {
-               validateSection(key, typescript.projects[key], true, errors); 
+               validateSection(key + ': ', typescript.projects[key], true, errors); 
             });
         }
         
         return {
-            errors: errors,
+            errors: errors.map(message =>({
+                message: message,
+                type: Type.ERROR,
+                pos: {line: -1, ch: -1}
+            })),
             aborted: false
         };
     }
 }
 
-function validateSection(sectionName: string, config: any, mustHaveSources: boolean, errors:brackets.LintingError[] ) {
+function validateSection(sectionName: string, config: any, mustHaveSources: boolean, errors: string[] ) {
     var prefix = sectionName? sectionName + ': ' : '';
     if (config.target && ['es3', 'es5'].indexOf(config.target.toLowerCase()) === -1) {
-        errors.push({
-            pos: { line: 0, ch: 0},
-            type: Type.ERROR,
-            message: prefix + 'the target section has invalid value authorized values are \'es3\' or \'es5\''
-        });
+        errors.push('the target section has invalid value authorized values are \'es3\' or \'es5\'');
     }
     if (config.module && ['none', 'amd', 'commonjs'].indexOf(config.module.toLowerCase()) === -1) {
-        errors.push({
-            pos: { line: 0, ch: 0},
-            type: Type.ERROR,
-            message: prefix + 'the module section has invalid value authorized values are \'none\', \'amd\' or \'commonjs\''
-        });
+        errors.push('the module section has invalid value authorized values are \'none\', \'amd\' or \'commonjs\'');
     }
     if (config.sourceRoot && typeof config.sourceRoot !== 'string') {
-        errors.push({
-            pos: { line: 0, ch: 0},
-            type: Type.ERROR,
-            message: prefix + 'the sourceRoot section must be a string'
-        });
+        errors.push('the sourceRoot section must be a string');
     }
-    if (mustHaveSources && (
+    if (mustHaveSources) {
+        if (
             !config.sources || 
             !Array.isArray(config.sources) || 
-            !config.sources.every((pattern: string) => typeof pattern === 'string'))) {
-        
-        errors.push({
-            pos: { line: 0, ch: 0},
-            type: Type.ERROR,
-            message: prefix + 'invalid sources section it must be an array of string'
-        });
-    }
+            !config.sources.every((pattern: string) => typeof pattern === 'string')
+        ) {
+            errors.push('invalid sources section it must be an array of string');
+        }  
+    } 
+      
 }
 
 export = TypeScriptConfigErrorReporter;
