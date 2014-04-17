@@ -146,15 +146,41 @@ module.exports = function (grunt) {
                     templateOptions: {
                         coverage: 'coverage/coverage.json',
                         report: 'coverage',
-                        files: ['!**/test/**/*'],
-                        /*thresholds: {
-                            lines: 70,
-                            statements: 70,
-                            branches: 70,
-                            functions: 70
-                        }*/
+                        files: ['!**/test/**/*']
                     }
                 }
+            }
+        },
+        
+                
+        copy: {
+            release: {
+                expand: true,
+                cwd: '<%= localBinFolder %>',
+                src: '**/*.js',
+                dest: '<%= releaseBinFolder %>'
+            }
+        },
+        
+        compress: {
+            main: {
+                options: {
+                    archive: 'brackets-typescript.zip',
+                    mode: 'zip'
+                },
+                files: [
+                    {
+                        expand: true,
+                        cwd: 'release-templates',
+                        src: '*',
+                        dest: '/',
+                        filter: 'isFile'
+                    }, {
+                        expand : true,
+                        src: ['main.js', 'bin/**/*', 'third_party/typescript/**/*'],
+                        dest : '/'
+                    }
+                ]
             }
         }
     });
@@ -166,57 +192,8 @@ module.exports = function (grunt) {
     grunt.registerTask('test', ['build-test', 'jasmine', 'clean:tmp']);
     grunt.registerTask('build',['clean:local', 'build-main', 'build-worker']);
     grunt.registerTask('default', ['test', 'build']);
-    
-    
-    //grunt.registerTask('release', ['test', 'build', 'clean:release', 'copy:release']);
-    
-    
-//    var commented = {
-//    
-//        
-//        copy: {
-//            release: {
-//                expand: true,
-//                cwd: '<%= localBinFolder %>',
-//                src: '**/*.js',
-//                dest: '<%= releaseBinFolder %>'
-//            }
-//        },
-//        // later when the editor support tslint himself
-//        tslint: {
-//            options: {
-//                configuration: grunt.file.readJSON("tslint.json")
-//            },
-//            main: {
-//                src: ['src/main/**/*.ts']
-//            },
-//            test: {
-//                src: ['src/test/**/*.ts']
-//            }
-//        },
-//        
-//        compress: {
-//            main: {
-//                options: {
-//                    archive: 'brackets-typescript.zip',
-//                    mode: 'zip'
-//                },
-//                files: [
-//                    {
-//                        expand: true,
-//                        cwd: 'release-templates',
-//                        src: '*',
-//                        dest: '/',
-//                        filter: 'isFile'
-//                    }, {
-//                        expand : true,
-//                        src: ['main.js', 'bin/**/*', 'third_party/**/*'],
-//                        dest : '/'
-//                    }
-//                ]
-//            }
-//        }
-//};    
+    grunt.registerTask('release', ['test', 'build', 'clean:release', 'copy:release','compress']);
+
 };
 
 

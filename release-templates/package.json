@@ -1,7 +1,7 @@
 {
   "name": "fdecampredon.brackets-typescript",
   "title": "Brackets TypeScript",
-  "description": "TypeScript Support for brackets",
+  "description": "TypeScript Support for Brackets",
   "homepage": "https://github.com/fdecampredon/brackets-typescript",
   "version": "0.2.0",
   "author": "François de Campredon <francois.de.campredon@gmail.com> (https://github.com/fdecampredon)",

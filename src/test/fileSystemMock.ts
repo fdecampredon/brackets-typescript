@@ -45,7 +45,7 @@ class FileSystem implements fs.IFileSystem {
             } else {
                 reject('Not found');
             } 
-        })
+        });
     }
     
     projectFilesChanged = new signal.Signal<fs.FileChangeRecord[]>();
