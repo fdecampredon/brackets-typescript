@@ -3,52 +3,57 @@ brackets-typescript
 
 This is a [brackets](http://brackets.io/) extensions to add support for typescript.
 
-Current Features :
------------------
+Features:
+----------
 
 * Code completions
 * Quick Edit 
+* Quick Jumb
+* Quick Find Definition
 * Syntactic coloring and indentation
 * Error reporting
 * Project level configuration
 
 
-Installation :
--------------
+Installation:
+--------------
 
-To install this software please use the [brackets-registry](https://brackets-registry.aboutweb.com/) or, use the install from url features of brackets with this [link](https://github.com/fdecampredon/brackets-typescript/releases/download/v0.1.0/brackets-typescript.zip)
+To install this software please use the [brackets-registry](https://brackets-registry.aboutweb.com/) or, use the install from url features of brackets with this [link](https://github.com/fdecampredon/brackets-typescript/releases/download/v0.2.0/brackets-typescript.zip).
 
 Using brackets-typescript:
 -------------------------
 
-To benefits from all brackets-typescript features create a file '.brackets-typescript' in any folder under your project root folder (included).
-This config file has to be valid json, here is a complete list of available options :
+Brackets-typescript enable all the Brackets features for TypeScript, to see how to use those features see the [How To Use Brackets Guide](https://github.com/adobe/brackets/wiki/How-to-Use-Brackets).
 
-* `sources` *(`string[]`)* , **mandatory**  : An array of string describing in '[minimatch](https://github.com/isaacs/minimatch)' format the sources of your project
+Configuration:
+--------------
 
-* `compileOnSave` *(`boolean`, default `false`)*: if true compile the project files when a file is saved (not implemented yet)
+While you can Edit any typescript file and enjoy all the brackets features, using project configuration allows to specify the compilation scope of your project and to customize typescript compiler options. 
+To configure your project simply create a brackets configuration file (a file named `.brackets.json` at the  root of your project) and add a `typescript` to your json, example :
+```json 
+{
+    "typescript": {
+        "target": "ES5",
+        "module": "AMD",
+        "noImplicitAny": true,
+        "sources" : [
+            "src/declarations/**/*.ts",
+            "src/main/**/*.ts"
+        ]
+    }
+}
+```
 
-* `propagateEnumConstants` *(`boolean`, default `false`)* : see `propagateEnumConstants` options of the typescript compiler
+###Supported Options:
 
-* `removeComments` *(`boolean`, default `false`)* : see `removeComments` options of the typescript compiler
+* `sources` *(`string[]`)* , **mandatory**  : An array of '[minimatch](https://github.com/isaacs/minimatch)' string describing the sources of your project
 
-* `noLib` *(`boolean`, default `false`)* : see `noLib` options of the typescript compiler
+* `noLib` *(`boolean`, default `false`)* : Do not include the default `lib.d.ts` within global declaration
 
-* `target` *(`("es3" | "es5")`, default `es3`)* : see `target` options of the typescript compiler
+* `target` *(`("es3" | "es5")`, default `es3`)* : Specify ECMAScript target version: 'ES3' (default), or 'ES5'
 
-* `module` *(`("none" | "amd" | "commonjs")`, default `none`)* :  see `module` options of the typescript compiler
+* `module` *(`("none" | "amd" | "commonjs")`, default `none`)* :  Specify module code generation: 'commonjs' or 'amd'
 
-* `outFile` *(`string`)* : see `out` options of the typescript compiler 
+* `sourceRoot` *(`string`)* : Specifies the location where debugger should locate TypeScript files instead of source locations.
 
-* `outDir` *(`string`)* : see `outDir` options of the typescript compiler 
-
-* `mapSource`*(`string`)* : see `mapSource` options of the typescript compiler 
-
-* `sourceRoot` *(`string`)* :see `sourceRoot` options of the typescript compiler 
-
-* `declaration` *(`boolean`, default `false`)* : see `declaration` options of the typescript compiler
-
-* `useCaseSensitiveFileResolution` *(`boolean`, default `false`)* : see `useCaseSensitiveFileResolution` options of the typescript compiler
-
-* `noImplicitAny` *(`boolean`, default `false`)* : see `noImplicitAny` options of the typescript compiler 
 
