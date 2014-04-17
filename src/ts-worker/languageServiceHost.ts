@@ -274,12 +274,7 @@ class ScriptInfo {
      */
     updateContent(newContent: string): void {
         this.setContent(newContent);
-        this.editRanges.push(
-            new TypeScript.TextChangeRange(
-                TypeScript.TextSpan.fromBounds(0, this.content.length), 
-                newContent.length
-            )
-        );
+        this.editRanges = [];
         this.version++;
     }
 
@@ -378,13 +373,13 @@ class ScriptSnapshot implements TypeScript.IScriptSnapshot {
             // No edits!
             return TypeScript.TextChangeRange.unchanged;
         }
-
         var initialEditRangeIndex = this.editRanges.length - (this.version - scriptVersion);
 
-        var entries = this.editRanges.slice(initialEditRangeIndex);
-        if (entries.length === 0) {
+        if (initialEditRangeIndex < 0) {
             return null;
         }
+        
+        var entries = this.editRanges.slice(initialEditRangeIndex);
         return TypeScript.TextChangeRange.collapseChangesAcrossMultipleVersions(entries);
     }
 }
