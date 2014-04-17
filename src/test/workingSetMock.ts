@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -12,18 +12,27 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+/*istanbulify ignore file*/
 
-import ws = require('../main/workingSet');
-import signal = require('../main/utils/signal');
+'use strict';
+
+import ws = require('../commons/workingSet');
+import signal = require('../commons/signal');
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;;
 
 class WorkingSetMock implements ws.IWorkingSet {
     files: string [] = [];
-    workingSetChanged = new signal.Signal<ws.ChangeRecord>();
-    documentEdited = new signal.Signal<ws.DocumentChangeDescriptor[]>();
+    workingSetChanged = new signal.Signal<ws.WorkingSetChangeRecord>();
+    documentEdited = new signal.Signal<ws.DocumentChangeRecord>();
+    
+    getFiles() {
+        return Promise.cast(this.files);
+    }
     
     dispose(): void {
-        this.workingSetChanged.clear();
-        this.documentEdited.clear();
+        /*this.workingSetChanged.clear();
+        this.documentEdited.clear();*/
     }
     
     addFiles(paths: string[]) {

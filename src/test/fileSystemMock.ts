@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -12,74 +12,85 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+/*istanbulify ignore file*/
 
-import fs = require('../main/fileSystem');
-import signal = require('../main/utils/signal');
+'use strict';
+
+import fs = require('../commons/fileSystem');
+import signal = require('../commons/signal');
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;;
 
 class FileSystem implements fs.IFileSystem {
     
     constructor( 
-        private files: { [path: string]: string } = {}
+        private files: { [fileName: string]: string } = {}
     ) {}
     
-    getProjectFiles(forceRefresh?: boolean): JQueryPromise<string> {
-        var deferred = $.Deferred();
-        deferred.resolve(Object.keys(this.files));
-        return deferred.promise();
+    
+    getProjectRoot() {
+        return Promise.cast('/');
     }
     
-    readFile(path: string): JQueryPromise<string> {
-        var deferred = $.Deferred();
-        if (this.files.hasOwnProperty(path)) {
-            deferred.resolve(this.files[path]);
-        } else {
-            deferred.reject('Not found');
-        }
-        return deferred.promise();
+    getProjectFiles(forceRefresh?: boolean): Promise<string[]> {
+        return new Promise(resolve => {
+            resolve(Object.keys(this.files))
+        });
     }
     
-    projectFilesChanged = new signal.Signal<fs.ChangeRecord[]>();
+    readFile(fileName: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            if (this.files.hasOwnProperty(fileName)) {
+                resolve(this.files[fileName]);
+            } else {
+                reject('Not found');
+            } 
+        });
+    }
     
-    addFile(path: string, content: string) {
-        if (this.files.hasOwnProperty(path)) {
+    projectFilesChanged = new signal.Signal<fs.FileChangeRecord[]>();
+    
+    addFile(fileName: string, content: string) {
+        if (this.files.hasOwnProperty(fileName)) {
             throw new Error('File already present');
         }
-        this.files[path] = content;
+        this.files[fileName] = content;
         this.projectFilesChanged.dispatch([{
             kind : fs.FileChangeKind.ADD,
-            path: path
+            fileName: fileName
         }]);
     } 
     
-    updateFile(path: string, content: string) {
-        if (!this.files.hasOwnProperty(path)) {
+    updateFile(fileName: string, content: string) {
+        if (!this.files.hasOwnProperty(fileName)) {
             throw new Error('File does not exist');
         }
-        this.files[path] = content;
+        this.files[fileName] = content;
         this.projectFilesChanged.dispatch([{
             kind : fs.FileChangeKind.UPDATE,
-            path: path
+            fileName: fileName
         }]);
     } 
     
-    removeFile(path: string) {
-        if (!this.files.hasOwnProperty(path)) {
+    removeFile(fileName: string) {
+        if (!this.files.hasOwnProperty(fileName)) {
             throw new Error('File does not exist');
         }
-        delete this.files[path];
+        delete this.files[fileName];
         this.projectFilesChanged.dispatch([{
             kind : fs.FileChangeKind.DELETE,
-            path: path
+            fileName: fileName
         }]);
     }
     
-    setFiles(files: { [path: string]: string }) {
+    setFiles(files: { [fileName: string]: string }) {
         this.files = files || {};
     }
     
     reset(): void {
         this.projectFilesChanged.dispatch([{
-            kind : fs.FileChangeKind.RESET
+            kind : fs.FileChangeKind.RESET,
+            fileName: null
         }]);
     }
     

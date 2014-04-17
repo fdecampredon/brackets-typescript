@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,7 +14,27 @@
 
 'use strict';
 
-import Logger = require('./logger');
+// TODO If we could not depends of TypeScript here, or at least extract just the part we are interested in
+// We could avoid bundling the entire TypeScript Service with use
+// see : https://github.com/fdecampredon/brackets-typescript/issues/13
+
+
+declare var require: any;
+var TypeScript: typeof TypeScript = require('typescriptServices');
+
+
+
+class FormattingOptions {
+    constructor(public useTabs: boolean,
+                public spacesPerTab: number,
+                public indentSpaces: number,
+                public newLineCharacter: string) {
+    }
+
+    public static defaultOptions = new FormattingOptions(/*useTabs:*/ false, /*spacesPerTab:*/ 4, /*indentSpaces:*/ 4, /*newLineCharacter*/ "\r\n");
+}
+
+import logger = require('../commons/logger');
 import Services = TypeScript.Services;
 import Formatting = TypeScript.Services.Formatting;
 
@@ -78,7 +98,7 @@ class TypeScriptMode implements CodeMirror.CodeMirrorMode<LineDescriptor> {
 		else {
 			stream.skipToEnd();
 		}
-	 
+
 		return null;
 	}
 
@@ -139,7 +159,7 @@ class TypeScriptMode implements CodeMirror.CodeMirrorMode<LineDescriptor> {
 
 
 
-var classifier:Services.Classifier = new Services.TypeScriptServicesFactory().createClassifier(new Logger());
+var classifier:Services.Classifier = new Services.TypeScriptServicesFactory().createClassifier(new logger.LogingClass());
 
 function getClassificationsForLine(text:string, eolState:Services.EndOfLineState ) {
 	var classificationResult = classifier.getClassificationsForLine(text, eolState),
@@ -200,7 +220,7 @@ function getStyleForToken(token:Token, textBefore:string):string {
 				default:
 					return 'keyword';
 			}
-			
+
 		case TokenClass.Identifier:
 			return "variable";
 		case TokenClass.Punctuation: 
@@ -216,4 +236,3 @@ function typeScriptModeFactory(options:CodeMirror.EditorConfiguration, spec: any
 }
 
 export = typeScriptModeFactory;
-

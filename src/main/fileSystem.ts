@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,129 +15,31 @@
 
 'use strict';
 
-import signal = require('./utils/signal');
-import collections = require('./utils/collections');
+
+import collections = require('../commons/collections');
+import signal = require('../commons/signal');
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;;
+import fs = require('../commons/fileSystem');
 
 
-//--------------------------------------------------------------------------
-//
-//  IFileSystem
-//
-//--------------------------------------------------------------------------
-
-/**
- * A simple wrapper over brackets filesystem that provide simple function and 
- * typed watcher
- */
-export interface IFileSystem {
-    /**
-     * a signal dispatching fine grained change reflecting the change that happens in the working set
-     */
-    projectFilesChanged: signal.ISignal<ChangeRecord[]> ;
-    
-    /**
-     * return a promise that resolve with a string containing the files in the project
-     */
-    getProjectFiles(): JQueryPromise<string []>;
-    
-    /**
-     * read a file, return a promise with the file content
-     * @param path the file to read
-     */
-    readFile(path: string): JQueryPromise<string>;
-    
-    /**
-     * reset the wrapper and dispatch a refresh event
-     */
-    reset(): void;
-    
-    /**
-     * clean the wrapper for disposal
-     */
-    dispose(): void;
-}
-
-
-//--------------------------------------------------------------------------
-//
-//  Change record
-//
-//--------------------------------------------------------------------------
-
-
-/**
- * enum representing the kind change possible in the fileSysem
- */
-export enum FileChangeKind {
-    /**
-     * a file has been added
-     */
-    ADD,
-    
-    /**
-     * a file has been updated
-     */
-    UPDATE,
-    
-    /**
-     * a file has been deleted
-     */
-    DELETE,
-    
-    /**
-     * the project files has been reset 
-     */
-    RESET
-}
-
-/**
- * represent a change in file system
- */
-export interface ChangeRecord {
-    kind : FileChangeKind;
-    path? : string;
-}
-
-
-//--------------------------------------------------------------------------
-//
-//  IFileSystem implementation
-//
-//--------------------------------------------------------------------------
-
-
-/**
- * Extracted interface of the brackets FileSystem
- */
-export interface BracketsFileSystem{
-    getFileForPath(path: string): brackets.File; 
-    
-    on(event: string, handler: (event: any, newpath: string, oldPath: string) => any): void
-    on(event: string, handler: (event: any, entry?: brackets.FileSystemEntry) => any): void
-
-    off(event: string, handler: (event: any, newpath: string, oldPath: string) => any): void
-    off(event: string, handler: (event: any, entry?: brackets.FileSystemEntry) => any): void
-} 
-
-/**
- * extracted inteface of the brackets ProjectManager
- */
-export interface BracketsProjectManager {
-    getAllFiles(filter?: (file: brackets.File) => boolean, includeWorkingSet?: boolean):JQueryPromise<brackets.File[]>;
-}
 
 
 /**
  * IFileSystem implementations
  */
-export class FileSystem implements IFileSystem {
+class FileSystem implements fs.IFileSystem {
     //-------------------------------
     //  constructor
     //-------------------------------
     
+    /**
+     * @param nativeFileSystem brackets FileSystem module
+     * @param projectManager brackets ProjectManager Module
+     */
     constructor(
-        private nativeFileSystem: BracketsFileSystem,
-        private projectManager: BracketsProjectManager
+        private nativeFileSystem: brackets.FileSystem,
+        private projectManager: brackets.ProjectManager
     ) {
         nativeFileSystem.on('change', this.changesHandler);
         nativeFileSystem.on('rename', this.renameHandler);
@@ -169,54 +71,67 @@ export class FileSystem implements IFileSystem {
     private initializationStack: { (): void }[] = [];
     
  
-    private _projectFilesChanged = new signal.Signal<ChangeRecord[]>();
+    private _projectFilesChanged = new signal.Signal<fs.FileChangeRecord[]>();
     
     //-------------------------------
     //  IFileSystem implementation
     //-------------------------------
+
+    /**
+     * return a promise resolving to the project root folder path
+     */
+    getProjectRoot(): Promise<string> {
+        return Promise.cast(this.projectManager.getProjectRoot().fullPath);
+    }
     
     /**
-     * @see IFileSystem.projectFilesChanged
+     * a signal dispatching fine grained change reflecting the change that happens in the working set
      */
-    get projectFilesChanged(): signal.ISignal<ChangeRecord[]> {
+    get projectFilesChanged(): signal.Signal<fs.FileChangeRecord[]> {
         return this._projectFilesChanged;
     }
     
     /**
-     * @see IFileSystem.getProjectFiles
+     * return a promise that resolve with an array of string containing all the files of the projects
      */
-    getProjectFiles(): JQueryPromise<string[]> {
-        var deferred = $.Deferred<string[]>();
-        this.addToInitializatioStack(() => deferred.resolve(this.filesPath));
-        return deferred.promise();
+    getProjectFiles(): Promise<string[]> {
+        return new Promise(resolve => {
+            this.addToInitializatioStack(() => resolve(this.filesPath));
+        })
     }
       
     /**
-     * @see IFileSystem.readFile
+     * read a file, return a promise with that resolve to the file content
+     * 
+     * @param path the file to read
      */
-    readFile(path: string): JQueryPromise<string> {
-        var result = $.Deferred<string>();
-        this.addToInitializatioStack(() => {
-            if (this.filesContent.has(path)) {
-                result.resolve(this.filesContent.get(path))
-            } else {
-                var file = this.nativeFileSystem.getFileForPath(path);
-                file.read({}, (err: string, content: string) => {
-                    if (err) {
-                        result.reject(err);
-                    } else {
-                        content = content && this.normalizeText(content);
-                        this.filesContent.set(path, content); 
-                        result.resolve(content);
+    readFile(path: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            this.addToInitializatioStack(() => {
+                if (this.filesContent.has(path)) {
+                    resolve(this.filesContent.get(path))
+                } else {
+                    var file = this.nativeFileSystem.getFileForPath(path);
+                    if (file.isDirectory) {
+                        reject('not found');
+                        return;
                     }
-                });
-            }
-        });
-        return result.promise();
+                    file.read({}, (err: string, content: string) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            content = content && this.normalizeText(content);
+                            this.filesContent.set(path, content); 
+                            resolve(content);
+                        }
+                    });
+                }
+            });    
+        })
     }
     
     /**
-     * @see IFileSystem.reset
+     * reset the wrapper and dispatch a refresh event
      */
     reset(): void {
         this.initialized = false;
@@ -224,13 +139,14 @@ export class FileSystem implements IFileSystem {
         this.filesPath.length = 0;
         this.init();
         this._projectFilesChanged.dispatch([{
-            kind: FileChangeKind.RESET
+            kind: fs.FileChangeKind.RESET,
+            fileName: null
         }]);
     }
     
 
     /**
-     * @see IFileSystem.dispose
+     * clean the wrapper for disposal
      */
     dispose(): void {
         this.nativeFileSystem.off('change', this.changesHandler);
@@ -242,7 +158,7 @@ export class FileSystem implements IFileSystem {
     //  privates methods
     //-------------------------------
     
-     /**
+    /**
      * initialize the wrapper
      */
     private init() {
@@ -274,19 +190,18 @@ export class FileSystem implements IFileSystem {
     /**
      * retrieves all files contained in a directory (and in subdirectory)
      */
-    private getDirectoryFiles(directory: brackets.Directory): JQueryPromise<brackets.File[]> {
-        var deferred = $.Deferred(),
-            files: brackets.File[] = []; 
-        
-        directory.visit(entry => {
-            if (entry.isFile) {
-                files.push(<brackets.File> entry);
-            }
-            return true;
-        }, {} , (err) => {
-            deferred.resolve(files);
-        });
-        return deferred.promise()
+    private getDirectoryFiles(directory: brackets.Directory): Promise<brackets.File[]> {
+        return new Promise((resolve, reject) => {
+            var  files: brackets.File[] = []; 
+            directory.visit(entry => {
+                if (entry.isFile) {
+                    files.push(<brackets.File> entry);
+                }
+                return true;
+            }, {} , (err) => {
+                resolve(files);
+            });
+        })
     }
 
     /**
@@ -324,24 +239,25 @@ export class FileSystem implements IFileSystem {
                     fileDeleted: string[] = [],
                     fileUpdated: string[] = [],
                     newPathsSet = new collections.StringSet(),
-                    promises: JQueryPromise<any>[] = []; 
+                    promises: Promise<any>[] = []; 
                 
                 this.filesPath = (files || []).map(file => {
                     if (!oldPathsSet.has(file.fullPath)) {
                         fileAdded.push(file.fullPath);
                     }
                     if (oldFilesContent.has(file.fullPath)) {
-                        var deferred = $.Deferred<any>();
-                        promises.push(deferred.promise());
-                        file.read({}, (err: string, content: string) => {
-                            if (!err) {
-                                this.filesContent.set(file.fullPath, content)
-                            }
-                            if (err || content !== oldFilesContent.get(file.fullPath)) {
-                                fileUpdated.push(file.fullPath);
-                            } 
-                            deferred.resolve();
-                        });
+                        promises.push(new Promise((resolve, reject) => {
+                            file.read({}, (err: string, content: string) => {
+                                if (!err) {
+                                    this.filesContent.set(file.fullPath, content)
+                                }
+                                if (err || content !== oldFilesContent.get(file.fullPath)) {
+                                    fileUpdated.push(file.fullPath);
+                                } 
+                                resolve(true);
+                            });    
+                        }));
+                        
                     }
                     newPathsSet.add(file.fullPath);
                     return file.fullPath;
@@ -353,33 +269,33 @@ export class FileSystem implements IFileSystem {
                     }
                 });
                 
-                (<JQueryPromise<any>>$.when.apply($, promises)).then(() => {
+                Promise.all(promises).then(() => {
                     
-                    var changes: ChangeRecord[] = [];
+                    var changes: fs.FileChangeRecord[] = [];
                     
                     fileDeleted.forEach(path => {
                         changes.push({
-                            kind: FileChangeKind.DELETE,
-                            path: path
+                            kind: fs.FileChangeKind.DELETE,
+                            fileName: path
                         });
                     });
                     
                     fileAdded.forEach(path => {
                         changes.push({
-                            kind: FileChangeKind.ADD,
-                            path: path
+                            kind: fs.FileChangeKind.ADD,
+                            fileName: path
                         });
                     });
                     
                     fileUpdated.forEach(path => {
                         changes.push({
-                            kind: FileChangeKind.UPDATE,
-                            path: path
+                            kind: fs.FileChangeKind.UPDATE,
+                            fileName: path
                         });
                     });
                 
                     if (changes.length > 0) {
-                        this.projectFilesChanged.dispatch(changes);  
+                        this._projectFilesChanged.dispatch(changes);  
                     }
                     this.initialized = true;
                     this.resolveInitializationStack();
@@ -393,9 +309,9 @@ export class FileSystem implements IFileSystem {
             //file have been updated simply dispatch an update event and update the cache if necessary
             
             var dispatchUpdate = () => {
-                this.projectFilesChanged.dispatch([{
-                   kind: FileChangeKind.UPDATE,
-                   path: file.fullPath
+                this._projectFilesChanged.dispatch([{
+                   kind: fs.FileChangeKind.UPDATE,
+                   fileName: file.fullPath
                 }]);
             };
             
@@ -404,7 +320,7 @@ export class FileSystem implements IFileSystem {
                 this.filesContent.delete(file.fullPath);
                 this.readFile(file.fullPath).then((content) => {
                     this.filesContent.set(file.fullPath, content)
-                }).always(dispatchUpdate);
+                }).catch().then(dispatchUpdate);
             } else {
                 dispatchUpdate()
             }
@@ -445,7 +361,7 @@ export class FileSystem implements IFileSystem {
                     newFiles[file.fullPath] = file;
                 });
                 
-                var changes: ChangeRecord[] = [];
+                var changes: fs.FileChangeRecord[] = [];
                 for (var path in oldFiles) {
                     if (!newFiles.hasOwnProperty(path) && oldFiles.hasOwnProperty(path)) {
                         //for each files that has been deleted add a DELETE record
@@ -455,23 +371,23 @@ export class FileSystem implements IFileSystem {
                                 this.filesPath.splice(index, 1);
                                 this.filesContent.delete(path);
                                 changes.push({
-                                    kind: FileChangeKind.DELETE,
-                                    path : path
+                                    kind: fs.FileChangeKind.DELETE,
+                                    fileName : path
                                 });
                             }
                         });
                     }
                 }
                 
-                var promises: JQueryPromise<any>[] = []
+                var promises: Promise<any>[] = []
                 for (var path in newFiles) {
                     if (newFiles.hasOwnProperty(path) && !oldFiles.hasOwnProperty(path))  {
                         //if a file has been added just add a ADD record
                         if (newFiles[path].isFile) {
                             this.filesPath.push(path);
                             changes.push({
-                                kind: FileChangeKind.ADD,
-                                path : path
+                                kind: fs.FileChangeKind.ADD,
+                                fileName : path
                             });   
                         } else {
                             var newDir = <brackets.Directory> newFiles[path];
@@ -480,8 +396,8 @@ export class FileSystem implements IFileSystem {
                                 files.forEach(file => {
                                     this.filesPath.push(file.fullPath);
                                     changes.push({
-                                        kind: FileChangeKind.ADD,
-                                        path : file.fullPath
+                                        kind: fs.FileChangeKind.ADD,
+                                        fileName : file.fullPath
                                     });     
                                 })        
                             }))
@@ -490,9 +406,9 @@ export class FileSystem implements IFileSystem {
                 };
                 
                
-                (<JQueryPromise<any>>$.when.apply($, promises)).then(() => {
+                Promise.all(promises).then(() => {
                     if (changes.length > 0) {
-                        this.projectFilesChanged.dispatch(changes);  
+                        this._projectFilesChanged.dispatch(changes);  
                     }  
                 }, () => {
                     //in case of error reset
@@ -503,9 +419,12 @@ export class FileSystem implements IFileSystem {
     }
     
     
+    /**
+     * handle file renaming event
+     */
     private renameHandler = (event: any, oldPath : string, newPath: string) => {
         var isDirectory = oldPath[oldPath.length -1] === '/';
-        var changes: ChangeRecord[];
+        var changes: fs.FileChangeRecord[];
         if (isDirectory) {
             changes = [];
             this.filesPath.concat().forEach(path => {
@@ -518,10 +437,13 @@ export class FileSystem implements IFileSystem {
             changes = this.fileRenamedHandler(oldPath, newPath);
         }
         if (changes.length > 0) {
-            this.projectFilesChanged.dispatch(changes);
+            this._projectFilesChanged.dispatch(changes);
         }
     }
     
+    /**
+     * dispatch events when a file has been renamed
+     */
     private fileRenamedHandler(oldPath: string, newPath: string) {
         var index = this.filesPath.indexOf(oldPath);
         if (index !== -1) {
@@ -533,15 +455,15 @@ export class FileSystem implements IFileSystem {
                 this.filesContent.set(newPath, content);
             }
             return [{
-                kind: FileChangeKind.DELETE,
-                path: oldPath
+                kind: fs.FileChangeKind.DELETE,
+                fileName: oldPath
             }, {
-                kind: FileChangeKind.ADD,
-                path: newPath
+                kind: fs.FileChangeKind.ADD,
+                fileName: newPath
             }];
         }
         return [];
     }
-    
-   
 }
+
+export = FileSystem;

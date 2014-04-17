@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -12,166 +12,22 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-
-import signal = require('./utils/signal');
-import collections = require('./utils/collections');
+'use strict';
 
 
-
-//--------------------------------------------------------------------------
-//
-//  IWorkingSet
-//
-//--------------------------------------------------------------------------
-
-/**
- * A simple wrapper over brackets Document and DocumentManager that
- * provide information of change in the working set and
- * in the edited document.
- */
-export interface IWorkingSet {
-    /**
-     * list of files in the working set
-     */
-    files: string [];
-    
-    /**
-     * a signal dispatching events when change occured in the working set
-     */
-    workingSetChanged: signal.ISignal<ChangeRecord>;
-    
-    /**
-     * a signal that provide fine grained change over edited document
-     */
-    documentEdited: signal.ISignal<DocumentChangeDescriptor[]>;
-
-    /**
-     * dispose the working set 
-     */
-    dispose(): void;
-}
+import signal = require('../commons/signal');
+import collections = require('../commons/collections');
+import ws = require('../commons/workingSet');
+import es6Promise = require('es6-promise');
+import Promise = es6Promise.Promise;
 
 
 
-//--------------------------------------------------------------------------
-//
-//  ChangeRecord
-//
-//--------------------------------------------------------------------------
-
-
-/**
- * describe change in the working set
- */
-export interface ChangeRecord {
-    /**
-     * kind of change that occured in the working set
-     */
-    kind: WorkingSetChangeKind;
-    
-    /**
-     * list of paths that has been added or removed from the working set
-     */
-    paths : string[];
-}
-
-
-/**
- * enum listing the change kind that occur in a working set
- */
-export enum WorkingSetChangeKind {
-    ADD,
-    REMOVE
-}
-
-
-//--------------------------------------------------------------------------
-//
-//  DocumentChangeDescriptor
-//
-//--------------------------------------------------------------------------
-
-/**
- * describe a change in a document
- */
-export interface DocumentChangeDescriptor {
-    /**
-     * path of the files that has changed
-     */
-    path: string;
-    
-    /**
-     * start position of the change
-     */
-    from?: Position;
-    
-    /**
-     * end positon of the change
-     */
-    to?: Position;
-    
-    /**
-     * text that has been inserted (if any)
-     */
-    text?: string;
-    
-    /**
-     * text that has been removed (if any)
-     */
-    removed?: string;
-    
-    documentText?: string
-    
-}
-
-/**
- * describe a positon in a document by line/character
- */
-export interface Position {
-    line: number;
-    ch: number;
-}
-
-
-//--------------------------------------------------------------------------
-//
-//  IWorkingSet implementation
-//
-//--------------------------------------------------------------------------
-
-/**
- * extracted interface of the brackets DocumentManager 
- */
-export interface BracketesDocumentManager {
-    getWorkingSet(): { fullPath: string }[];
-}
-
-/**
- * extracted interface of the brackets Document
- */
-export interface BracketsDocument {
-    file: { fullPath: string };
-    getText(): string;
-}
-
-/**
- * extracted interface of the brackets EditorManager
- */
-export interface BracketsEditorManager {
-    getActiveEditor(): BracketsEditor;
-}
-
-/**
- * extracted interface of the brackets Editor
- */
-export interface BracketsEditor {
-    document: BracketsDocument;
-}
 
 /**
  * implementation of the IWorkingSet
  */
-export class WorkingSet implements IWorkingSet {
+class WorkingSet implements ws.IWorkingSet  {
     
     //-------------------------------
     //  constructor
@@ -179,15 +35,15 @@ export class WorkingSet implements IWorkingSet {
 
 
     constructor(
-            private documentManager: BracketesDocumentManager,
-            private editorManager: BracketsEditorManager
+            private documentManager: brackets.DocumentManager,
+            private editorManager: brackets.EditorManager
     ) {
-        $(documentManager).on('workingSetAdd', this.workingSetAddHandler);
-        $(documentManager).on('workingSetAddList', this.workingSetAddListHandler);
-        $(documentManager).on('workingSetRemove', this.workingSetRemoveHandler);
-        $(documentManager).on('workingSetRemoveList', this.workingSetRemoveListHandler);
+        $(documentManager).on('workingSetAdd', <any>this.workingSetAddHandler);
+        $(documentManager).on('workingSetAddList', <any>this.workingSetAddListHandler);
+        $(documentManager).on('workingSetRemove', <any>this.workingSetRemoveHandler);
+        $(documentManager).on('workingSetRemoveList', <any>this.workingSetRemoveListHandler);
         
-        $(editorManager).on('activeEditorChange', this.activeEditorChangeHandler); 
+        $(editorManager).on('activeEditorChange', <any>this.activeEditorChangeHandler); 
         
         this.setFiles(documentManager.getWorkingSet().map(file => file.fullPath));
         this.setActiveEditor(editorManager.getActiveEditor());
@@ -200,12 +56,12 @@ export class WorkingSet implements IWorkingSet {
     /**
      * internal signal for workingSetChanged
      */
-    private _workingSetChanged = new signal.Signal<ChangeRecord>();
+    private _workingSetChanged = new signal.Signal<ws.WorkingSetChangeRecord>();
     
     /**
      * internal signal for documentEdited
      */
-    private _documentEdited = new signal.Signal<DocumentChangeDescriptor[]>();
+    private _documentEdited = new signal.Signal<ws.DocumentChangeRecord>();
     
         
     /**
@@ -216,7 +72,7 @@ export class WorkingSet implements IWorkingSet {
     /**
      * Set of file path in the working set
      */
-    private currentDocument: BracketsDocument;
+    private currentDocument: brackets.Document;
 
     
     //-------------------------------
@@ -225,14 +81,14 @@ export class WorkingSet implements IWorkingSet {
     
     
     /**
-     * @see IWorkingSet#files
+     * list of files in the working set
      */
-    get files(): string[] {
-        return this.filesSet.values;
+    getFiles() {
+        return Promise.cast(this.filesSet.values);
     }
     
     /**
-     * @see IWorkingSet#workingSetChanged
+     * a signal dispatching events when change occured in the working set
      */
     get workingSetChanged() {
         return this._workingSetChanged;
@@ -240,21 +96,21 @@ export class WorkingSet implements IWorkingSet {
     
     
     /**
-     * @see IWorkingSet#documentEdited
+     * a signal that provide fine grained change over edited document
      */
     get documentEdited() {
         return this._documentEdited;
     }
 
     /**
-     * @see IWorkingSet#dispose
-     */    
+     * dispose the working set 
+     */   
     dispose(): void {
-        $(this.documentManager).off('workingSetAdd', this.workingSetAddHandler);
-        $(this.documentManager).off('workingSetAddList', this.workingSetAddListHandler);
-        $(this.documentManager).off('workingSetRemove', this.workingSetRemoveHandler);
-        $(this.documentManager).off('workingSetRemoveList', this.workingSetRemoveListHandler);
-        $(this.editorManager).off('activeEditorChange', this.activeEditorChangeHandler); 
+        $(this.documentManager).off('workingSetAdd', <any>this.workingSetAddHandler);
+        $(this.documentManager).off('workingSetAddList', <any>this.workingSetAddListHandler);
+        $(this.documentManager).off('workingSetRemove', <any>this.workingSetRemoveHandler);
+        $(this.documentManager).off('workingSetRemoveList', <any>this.workingSetRemoveListHandler);
+        $(this.editorManager).off('activeEditorChange', <any>this.activeEditorChangeHandler); 
         this.setFiles(null);
         this.setActiveEditor(null);
     }
@@ -267,7 +123,7 @@ export class WorkingSet implements IWorkingSet {
      * set working set files
      */
     private setFiles(files: string[]) {
-        this.files.forEach(path => this.filesSet.remove(path))
+        this.filesSet.values.forEach(path => this.filesSet.remove(path))
         if (files) {
             files.forEach(path => this.filesSet.add(path));
         }
@@ -283,7 +139,7 @@ export class WorkingSet implements IWorkingSet {
     private workingSetAddHandler = (event: any, file: brackets.File) => {
         this.filesSet.add(file.fullPath);
         this.workingSetChanged.dispatch({
-            kind: WorkingSetChangeKind.ADD,
+            kind: ws.WorkingSetChangeKind.ADD,
             paths: [file.fullPath]
         });
     }
@@ -298,7 +154,7 @@ export class WorkingSet implements IWorkingSet {
         });
         if (paths.length > 0) {
             this.workingSetChanged.dispatch({
-                kind: WorkingSetChangeKind.ADD,
+                kind: ws.WorkingSetChangeKind.ADD,
                 paths: paths
             });
         }
@@ -310,7 +166,7 @@ export class WorkingSet implements IWorkingSet {
     private workingSetRemoveHandler = (event: any, file: brackets.File) => {
         this.filesSet.remove(file.fullPath);
         this.workingSetChanged.dispatch({
-            kind: WorkingSetChangeKind.REMOVE,
+            kind: ws.WorkingSetChangeKind.REMOVE,
             paths: [file.fullPath]
         });
     }
@@ -325,19 +181,22 @@ export class WorkingSet implements IWorkingSet {
         });
         if (paths.length > 0) {
             this.workingSetChanged.dispatch({
-                kind: WorkingSetChangeKind.REMOVE,
+                kind: ws.WorkingSetChangeKind.REMOVE,
                 paths: paths
             });
         }
     }
  
-    private setActiveEditor(editor: BracketsEditor) {
+    /**
+     * attach events to the activeEditor
+     */
+    private setActiveEditor(editor: brackets.Editor) {
         if (this.currentDocument) {
-            $(this.currentDocument).off('change', this.documentChangesHandler);
+            $(this.currentDocument).off('change', <any>this.documentChangesHandler);
         }
         this.currentDocument = editor && editor.document;
         if (this.currentDocument) {
-            $(this.currentDocument).on('change', this.documentChangesHandler);
+            $(this.currentDocument).on('change', <any>this.documentChangesHandler);
         }
     }
             
@@ -345,32 +204,34 @@ export class WorkingSet implements IWorkingSet {
     /**
      * handle 'change' on document
      */
-    private documentChangesHandler = (event: any, document: BracketsDocument, change: CodeMirror.EditorChangeLinkedList) => {
-        var changesDescriptor: DocumentChangeDescriptor[] = [];
-        while (change) {
-            var changeDescriptor: DocumentChangeDescriptor ={
-                path: document.file.fullPath,
+    private documentChangesHandler = (event: any, document: brackets.Document, changes: CodeMirror.EditorChange[]) => {
+        var changeList: ws.DocumentChangeDescriptor[] = 
+            changes.map(change => ({
                 from: change.from,
                 to: change.to,
                 text: change.text && change.text.join('\n'),
                 removed: change.removed ? change.removed.join("\n") : ""
-            }
-            if (!changeDescriptor.from || !changeDescriptor.to) {
-                changeDescriptor.documentText = document.getText()
-            }
-            changesDescriptor.push(changeDescriptor);
-            change = change.next; 
-        }
-        if (changesDescriptor.length > 0) {
-            this.documentEdited.dispatch(changesDescriptor);
+            }));
+            
+        if (changeList.length > 0) {
+            this.documentEdited.dispatch({
+                path: document.file.fullPath,
+                changeList: changeList,
+                documentText: document.getText()
+            });
         }   
     }
     
-    private activeEditorChangeHandler = (event: any, current: BracketsEditor, previous: BracketsEditor) => {
+    /**
+     * handle active editor change
+     */
+    private activeEditorChangeHandler = (event: any, current: brackets.Editor, previous: brackets.Editor) => {
         this.setActiveEditor(current);
     }
 
 }
+
+export = WorkingSet;
 
 
 

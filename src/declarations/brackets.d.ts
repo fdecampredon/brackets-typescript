@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -778,8 +778,200 @@ declare module brackets {
          * @see getFocusedEditor()
          * @returns {?Editor}
          */
-        getActiveEditor():Editor
+        getActiveEditor():Editor;
+        getCurrentFullEditor(): Editor;
     }
+    
+    //--------------------------------------------------------------------------
+    //
+    //  Editor
+    //
+    //--------------------------------------------------------------------------
+    
+    /**
+     * PreferencesManager
+     *
+     */
+    interface PreferencesManager extends Preferences {
+        /**
+         * Creates an extension-specific preferences manager using the prefix given.
+         * A `.` character will be appended to the prefix. So, a preference named `foo`
+         * with a prefix of `myExtension` will be stored as `myExtension.foo` in the
+         * preferences files.
+         * 
+         * @param prefix Prefix to be applied
+         */
+        getExtensionPrefs(prefix: string): Preferences;
+        
+        
+        /**
+         * Get the full path to the user-level preferences file.
+         * 
+         * @return Path to the preferences file
+         */
+        getUserPrefFile(): string;
+        
+        /**
+         * Context to look up preferences for the currently edited file.
+         * This is undefined because this is the default behavior of PreferencesSystem.get.
+         */ 
+        CURRENT_FILE: any;
+        /**
+         * Context to look up preferences in the current project.
+         */
+        CURRENT_PROJECT: any;
+    }
+    
+    interface Preferences {
+        /**
+         * Defines a new (prefixed) preference.
+         * 
+         * @param id unprefixed identifier of the preference. Generally a dotted name.
+         * @param type Data type for the preference (generally, string, boolean, number)
+         * @param initial Default value for the preference
+         * @param options Additional options for the pref. Can include name and description
+         *                          that will ultimately be used in UI.
+         * @return {Object} The preference object.
+         */
+        definePreference(id: string, type: string, value: any, options?: { name?: string; description: string; }): any;
+        
+        
+        /**
+         * Get the prefixed preference object
+         * 
+         * @param {string} id ID of the pref to retrieve.
+         */
+        getPreference(id: string): any;
+        
+        /**
+         * Gets the prefixed preference
+         * 
+         * @param id Name of the preference for which the value should be retrieved
+         * @param context Optional context object to change the preference lookup
+         */
+        get(id: string, context?: any): any;
+        
+        /**
+         * Gets the location in which the value of a prefixed preference has been set.
+         * 
+         * @param id Name of the preference for which the value should be retrieved
+         * @param context Optional context object to change the preference lookup
+         * @return Object describing where the preferences came from
+         */
+        getPreferenceLocation(id: string, context?: any): {scope: string; layer?: string; layerID?: any};
+        
+        /**
+         * Sets the prefixed preference
+         * 
+         * @param id Identifier of the preference to set
+         * @param value New value for the preference
+         * @param options Specific location in which to set the value or the context to use when setting the value
+         * @return true if a value was set
+         */
+        set(id:string, value: any, options?: {location: any; context?: any; }): boolean;
+        
+        
+        /**
+         * Sets up a listener for events for this PrefixedPreferencesSystem. Only prefixed events
+         * will notify. Optionally, you can set up a listener for a
+         * specific preference.
+         * 
+         * @param event Name of the event to listen for
+         * @param preferenceID Name of a specific preference
+         * @param handler Handler for the event
+         */
+        on(event: string, preferenceId: string, handler: (...rest: any[]) => void): void;
+        /**
+         * Sets up a listener for events for this PrefixedPreferencesSystem. Only prefixed events
+         * will notify. Optionally, you can set up a listener for a
+         * specific preference.
+         * 
+         * @param event Name of the event to listen for
+         * @param handler Handler for the event
+         */
+        on(event: string, handler: (...rest: any[]) => void): void;
+        
+        
+        /**
+         * Turns off the event handlers for a given event, optionally for a specific preference
+         * or a specific handler function.
+         * 
+         * @param event Name of the event for which to turn off listening
+         * @param preferenceID Name of a specific preference
+         * @param handler Specific handler which should stop being notified
+         */
+        off(event: string, preferenceId: string, handler: (...rest: any[]) => void): void;
+        /**
+         * Turns off the event handlers for a given event, optionally for a specific preference
+         * or a specific handler function.
+         * 
+         * @param event Name of the event to listen for
+         * @param handler Specific handler which should stop being notified
+         */
+        off(event: string, handler: (...rest: any[]) => void): void;
+        
+        
+        /**
+         * Saves the preferences. If a save is already in progress, a Promise is returned for
+         * that save operation.
+         * 
+         * @return  a promise resolved when the preferences are done saving.
+         */
+        save(): JQueryPromise<void>;
+    }
+    
+    
+    
+    //--------------------------------------------------------------------------
+    //
+    //  PanelManager
+    //
+    //--------------------------------------------------------------------------
+    
+    /**
+     * Represents a panel below the editor area (a child of ".content").
+     */
+    interface Panel {
+        isVisible(): boolean;
+        show(): void;
+        hide(): void;
+        setVisible(visible: boolean): void;
+        $panel: JQuery
+    }
+    
+    /**
+     * Manages layout of panels surrounding the editor area, and size of the editor area (but not its contents).
+     * 
+     * Updates panel sizes when the window is resized. Maintains the max resizing limits for panels, based on
+     * currently available window size.
+     * 
+     * Events:
+     *    - editorAreaResize -- When editor-holder's size changes for any reason (including panel show/hide
+     *              panel resize, or the window resize).
+     *              The 2nd arg is the new editor-holder height.
+     *              The 3rd arg is a refreshHint flag for internal EditorManager use.
+     */
+
+    interface PanelManager {
+         /**
+         * Creates a new panel beneath the editor area and above the status bar footer. Panel is initially invisible.
+         * 
+         * @param id  Unique id for this panel. Use package-style naming, e.g. "myextension.feature.panelname"
+         * @param $panel  DOM content to use as the panel. Need not be in the document yet.
+         * @param minSize  Minimum height of panel in px.
+         */
+        createBottomPanel(id: string, $panel: JQuery, minSize: number): Panel;
+    }
+    
+    //--------------------------------------------------------------------------
+    //
+    //  Command
+    //
+    //--------------------------------------------------------------------------
+    interface CommandManager {
+        execute(id: string, args: any): JQueryPromise<any>;
+    }
+    
   
     //--------------------------------------------------------------------------
     //
@@ -810,15 +1002,11 @@ declare module brackets {
     //
     //--------------------------------------------------------------------------
     
-    enum ErrorType {
-        ERROR,
-        WARNING,
-        META
-    }
+
     
     interface CodeInspection {
         register(languageId: string, provider: InspectionProvider): void;
-        Type:typeof ErrorType;
+        Type: { [index: string]: string}
     }
     
     
@@ -826,12 +1014,13 @@ declare module brackets {
         pos: CodeMirror.Position; 
         endPos?: CodeMirror.Position;
         message: string; 
-        type?: ErrorType; 
+        type?: string; 
     }
     
     interface InspectionProvider {
         name: string;
-        scanFile(content: string, path: string):{ errors: LintingError[];  aborted: boolean }; 
+        scanFile?(content: string, path: string):{ errors: LintingError[];  aborted: boolean };
+        scanFileAsync?(content: string, path: string):JQueryPromise<{ errors: LintingError[];  aborted: boolean }>; 
     }
     
     
@@ -846,6 +1035,80 @@ declare module brackets {
     }
     
     
+        
+    //--------------------------------------------------------------------------
+    //
+    //  QuickOpen
+    //
+    //--------------------------------------------------------------------------
+    
+    interface QuickOpen {
+        /**
+         * Creates and registers a new QuickOpenPlugin
+         */
+        addQuickOpenPlugin<S>(def: QuickOpenPluginDef<S>): void;
+        highlightMatch(item: string): string;
+    }
+    
+    
+    interface QuickOpenPluginDef<S> { 
+        /**
+         * plug-in name, **must be unique**
+         */
+        name: string; 
+        /**
+         * language Ids array. Example: ["javascript", "css", "html"]. To allow any language, pass []. Required.
+         */
+        languageIds: string[];
+        /**
+         * called when quick open is complete. Plug-in should clear its internal state. Optional.
+         */
+        done?: () => void;
+        /**
+         * takes a query string and a StringMatcher (the use of which is optional but can speed up your searches) 
+         * and returns an array of strings that match the query. Required.
+         */
+        search: (request: string, stringMatcher: StringMatcher) => JQueryPromise<S[]>;
+        /**
+         * takes a query string and returns true if this plug-in wants to provide
+         */
+        match: (query: string) => boolean;
+        /**
+         * performs an action when a result has been highlighted (via arrow keys, mouseover, etc.).
+         */
+        itemFocus?: (result: S) => void;
+        /**
+         * performs an action when a result is chosen.
+         */
+        itemSelect:  (result: S) => void;
+        /**
+         * takes a query string and an item string and returns 
+         * a <LI> item to insert into the displayed search results. Optional.
+         */
+        resultsFormatter?: (result: S) => string;
+        /**
+         * options to pass along to the StringMatcher (see StringMatch.StringMatcher for available options). 
+         */
+        matcherOptions? : StringMatcherOptions;
+        /**
+         * if provided, the label to show before the query field. Optional.
+         */
+        label?: string;
+    }
+    
+    interface StringMatcherOptions {
+        preferPrefixMatches?: boolean;
+        segmentedSearch?: boolean;
+    }
+    
+    interface StringMatcher {
+        match(target:string, query: string):{
+            ranges:{ text: string; matched: boolean; includesLastSegment: boolean}[];
+            matchGoodness: number; 
+            scoreDebug: any;
+        }
+    }
+    
      
     //--------------------------------------------------------------------------
     //
@@ -858,7 +1121,7 @@ declare module brackets {
     }
     
     interface JumpDoDefProvider {
-        (hostEditor: Editor, pos: CodeMirror.Position): JQueryPromise<InlineWidget>
+        (): JQueryPromise<boolean>
     }
     
     
@@ -890,6 +1153,10 @@ declare module brackets {
     function getModule(module: 'editor/EditorManager'): EditorManager;
     function getModule(module: 'editor/MultiRangeInlineEditor'): typeof MultiRangeInlineEditor;
     function getModule(module: 'language/CodeInspection'): CodeInspection;
+    function getModule(module: 'view/PanelManager'): PanelManager;
+    function getModule(module: 'command/CommandManager'): CommandManager;
+    function getModule(module: 'search/QuickOpen'): QuickOpen;
+    function getModule(module: 'preferences/PreferencesManager'): PreferencesManager;
     function getModule(module: string): any;
     
 }

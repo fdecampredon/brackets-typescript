@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -84,3 +84,10 @@ interface MiniMatchStatic {
     (path: string, pattern: string, options?: MiniMatchOptions): boolean;
     filter(pattern: string, options?: MiniMatchOptions): { (path: string): boolean };
 }
+
+declare module "minimatch" {
+    var minimatch: MiniMatchStatic;
+    export = minimatch;
+}
+
+

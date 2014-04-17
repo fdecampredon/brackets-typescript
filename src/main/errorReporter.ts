@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -12,9 +12,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+'use strict';
 
-import project = require('./project');
-import immediate = require('./utils/immediate');
+//TODO that part of the application is not well tested and just 'work' it needs to be refactored
+
+import ServiceConsumer = require('./serviceConsumer');
+import immediate = require('../commons/immediate');
+import IErrorService =  require('../commons/errorService');
+
 
 //--------------------------------------------------------------------------
 //
@@ -25,17 +30,8 @@ import immediate = require('./utils/immediate');
 /**
  * TypeScript Inspection Provider
  */
-class TypeScriptErrorReporter implements brackets.InspectionProvider {
-    private typescriptProjectManager: project.TypeScriptProjectManager;
+class TypeScriptErrorReporter extends ServiceConsumer<IErrorService> implements brackets.InspectionProvider {
     
-    constructor(
-        private errorType: typeof brackets.ErrorType
-    ) {}
-
-    init(typescriptProjectManager: project.TypeScriptProjectManager) {
-        this.typescriptProjectManager = typescriptProjectManager;
-    }
-
     /**
      * name of the error reporter
      */
@@ -44,73 +40,25 @@ class TypeScriptErrorReporter implements brackets.InspectionProvider {
     /**
      * scan file
      */
-    scanFile(content: string, path: string): { errors: brackets.LintingError[];  aborted: boolean } {
-        try { 
-            var project = this.typescriptProjectManager.getProjectForFile(path),
-                languageService = project && project.getLanguageService();
-            
-            if (!project || !languageService) {
-                return { errors: [],  aborted: true };
-            }
-            
-            var syntacticDiagnostics = languageService.getSyntacticDiagnostics(path),
-                errors = this.diagnosticToError(syntacticDiagnostics);
-            
-            if (errors.length === 0) {
-                var semanticDiagnostic = languageService.getSemanticDiagnostics(path);
-                errors = this.diagnosticToError(semanticDiagnostic);
-            }
-            
-            return { 
-                errors: errors, 
-                aborted: false
-            };
-        } catch(e) {
-            return { errors: [],  aborted: true };
-        }
+    scanFileAsync(content: string, path: string): JQueryPromise<{ errors: brackets.LintingError[];  aborted: boolean }> {
+        return $.Deferred(deferred => {
+            immediate.setImmediate(() => {
+                this.getService().then(service => {
+                    service.getErrorsForFile(path).then(
+                        result => {
+                            deferred.resolve(result);
+                        },
+                        () => {
+                            deferred.resolve({ 
+                                errors: [], 
+                                aborted : false
+                            });
+                        }
+                    );
+                })    
+            })
+        }).promise();
     }
-    
-    /**
-     * convert TypeScript Diagnostic or brackets error format
-     * @param diagnostics
-     */
-    private diagnosticToError(diagnostics: TypeScript.Diagnostic[]): brackets.LintingError[] {
-        if (!diagnostics) {
-            return [];
-        }
-        return diagnostics.map(diagnostic => {
-            var info = diagnostic.info(),
-                type: brackets.ErrorType;
-            
-            switch(info.category) {
-                case TypeScript.DiagnosticCategory.Error:
-                    type = this.errorType.ERROR;
-                    break;
-                case TypeScript.DiagnosticCategory.Warning:
-                    type = this.errorType.WARNING;
-                    break;
-                case TypeScript.DiagnosticCategory.NoPrefix:
-                    type = this.errorType.ERROR;
-                    break;
-                case TypeScript.DiagnosticCategory.Message:
-                    type = this.errorType.META;
-                    break;
-            }
-            
-            return {
-                pos: {
-                    line: diagnostic.line(),
-                    ch: diagnostic.character()
-                },
-                endpos: {
-                    line: diagnostic.line(),
-                    ch: diagnostic.character() + diagnostic.length()
-                },
-                message: diagnostic.message(),
-                type: type
-            };
-        });
-    }   
 }
 
 export = TypeScriptErrorReporter

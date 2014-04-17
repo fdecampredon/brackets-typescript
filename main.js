@@ -1,32 +1,30 @@
 /*jslint vars: true, plusplus: true, devel: true, nomen: true, regexp: true, indent: 4, maxerr: 50 */
-/*global define, $, brackets, window */
+/*global define, $, brackets, window, Worker */
 
 define(function (require, exports, module) {
     'use strict';
-    require(
-        [
-            'third_party/typescriptServices',
-            'third_party/minimatch',
-            'text!config.json'
-        ],
-        function (typescript, minimatch, configText) {
-            var AppInit = brackets.getModule('utils/AppInit'),
-                config = JSON.parse(configText);
+    
+    require(['text!config.json'], function (configText) {
+        var AppInit = brackets.getModule('utils/AppInit'),
+            config = JSON.parse(configText),
+            baseUrl = config.isDebug ? './built/' : './bin/';
+
+
+        require([baseUrl + 'main'], function (init) {
+            var initConfig = {
+                logLevel: config.logLevel,
+                typeScriptLocation: require.toUrl('./third_party/typescript/'),
+                workerLocation: require.toUrl(baseUrl + 'worker.js')
+            };
             
-            var bin = config.isDebug ? 'built/local/main/' : 'bin/main/';
-            
-            require([ bin + 'typeScriptUtils', bin + 'index'], function (typeScriptUtils, init) {
-                typeScriptUtils.DEFAULT_LIB_LOCATION = require.toUrl('third_party/lib.d.ts');
-                typeScriptUtils.minimatch = minimatch;
-                //in debug mode avoid using AppInit that catch errors ...
-                if (config.isDebug) {
-                    init(config);
-                } else {
-                    AppInit.appReady(function () {
-                        init(config);
-                    });
+            AppInit.appReady(function () {
+                try {
+                    init(initConfig);
+                } catch(e) {
+                    console.error(e.stack);
                 }
             });
-        }
-    );
+            
+        });
+    });
 });

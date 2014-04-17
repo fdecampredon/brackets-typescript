@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -12,9 +12,13 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+/*istanbulify ignore file*/
+
 'use strict';
 
-import ws = require('../main/workingSet');
+import WorkingSet = require('../main/workingSet');
+import ws = require('../commons/workingSet');
+import signal = require('../commons/signal');
 
 describe('WorkingSet', function (): void {
     var workingSetFiles: string[],
@@ -43,18 +47,18 @@ describe('WorkingSet', function (): void {
             }
             
         },
-        currentEditor: ws.BracketsEditor,
+        currentEditor: brackets.Editor,
         editorManagerMock = {
             getActiveEditor() {
                 return currentEditor;
             },
-            setActiveEditor(editor: ws.BracketsEditor) {
+            setActiveEditor(editor:  brackets.Editor) {
                 var previous = currentEditor
                 currentEditor = editor;
                 $(this).triggerHandler("activeEditorChange", [currentEditor, previous]);
             }
         },
-        workingSet: ws.IWorkingSet
+        workingSet: WorkingSet;
     
     beforeEach(function () {
         workingSetFiles = [
@@ -63,30 +67,40 @@ describe('WorkingSet', function (): void {
             '/path/file4.ts'
         ];
         
-        currentEditor = {
+        currentEditor = <brackets.Editor>{
             document : {
                 file: {fullPath : '/path/file1.ts'},
-                getText() { return "hello world"}
+                getText() { return 'hello world'}
             }
         };
-        workingSet = new ws.WorkingSet(documentManagerMock, editorManagerMock);
+        workingSet = new WorkingSet(<any>documentManagerMock, <any>editorManagerMock );
     })
     
     afterEach(function () {
         workingSet.dispose();
     });
     
+    function expectWorkingSetFilesMatch() {
+        var files: string[];
+        workingSet.getFiles().then(result => files = result)
+        waitsFor(() => !!files, 'files should have been set')
+
+        runs(function () {
+            expect(files).toEqual(workingSetFiles);
+        })
+    }
+    
     describe('files', function () {
         it('should return the list of file in the working set', function () {
-            expect(workingSet.files).toEqual(workingSetFiles);
+            expectWorkingSetFilesMatch();
         });
     });
     
     describe('workingSetChanged', function () {
-        var spy = jasmine.createSpy('workingSetChangedHandler');
+        var spy = jasmine.createSpy('workingSetChangedHandler')
         
         beforeEach(function () {
-            workingSet.workingSetChanged.add(spy);
+           workingSet.workingSetChanged.add(spy);
         });
         
         afterEach(function () {
@@ -102,7 +116,7 @@ describe('WorkingSet', function (): void {
                 kind: ws.WorkingSetChangeKind.ADD,
                 paths : ['/path/file5.ts']
             });
-            expect(workingSet.files).toEqual(workingSetFiles);
+            expectWorkingSetFilesMatch();
         });
         
         it('should notify when a list of file has been added to the working set', function () {
@@ -112,7 +126,7 @@ describe('WorkingSet', function (): void {
                 kind: ws.WorkingSetChangeKind.ADD,
                 paths : ['/path/file5.ts', '/path/file6.ts']
             });
-            expect(workingSet.files).toEqual(workingSetFiles);
+            expectWorkingSetFilesMatch();
         });
         
         it('should notify when a file has been removed from the working set', function () {
@@ -122,7 +136,7 @@ describe('WorkingSet', function (): void {
                 kind: ws.WorkingSetChangeKind.REMOVE,
                 paths : ['/path/file3.ts']
             });
-            expect(workingSet.files).toEqual(workingSetFiles);
+            expectWorkingSetFilesMatch();
         });
         
         it('should notify when a list of file has been removed from the working set', function () {
@@ -132,7 +146,7 @@ describe('WorkingSet', function (): void {
                 kind: ws.WorkingSetChangeKind.REMOVE,
                 paths : ['/path/file1.ts', '/path/file3.ts']
             });
-            expect(workingSet.files).toEqual(workingSetFiles);
+            expectWorkingSetFilesMatch();
         });
     });
 
@@ -140,7 +154,7 @@ describe('WorkingSet', function (): void {
         var spy = jasmine.createSpy('documentEdited');
         
         beforeEach(function () {
-            workingSet.documentEdited.add(spy);
+           workingSet.documentEdited.add(spy);
         });
         
         afterEach(function () {
@@ -152,7 +166,7 @@ describe('WorkingSet', function (): void {
        it('should notify when a document has been edited', function () {
             var doc = currentEditor.document
                
-            $(doc).triggerHandler('change', [doc, {
+            $(doc).triggerHandler('change', [doc, [{
                 from : {
                     ch: 0,
                     line: 0
@@ -162,24 +176,23 @@ describe('WorkingSet', function (): void {
                     line: 0,
                 },
                 text : ['\'use strict\'','console.log(\'Hello World\')'],
-                removed : [''],
-                next:  {
-                    from : {
-                        ch: 8,
-                        line: 1
-                    },
-                    to: {
-                        ch: 11,
-                        line: 1
-                    },
-                    text : ['warn'],
-                    removed : ['log']
-                }
-            }]);
+                removed : ['']
+            }, {
+                from : {
+                    ch: 8,
+                    line: 1
+                },
+                to: {
+                    ch: 11,
+                    line: 1
+                },
+                text : ['warn'],
+                removed : ['log']
+            }]]);
             expect(spy.callCount).toBe(1);
-            expect(spy).toHaveBeenCalledWith([
-                {
-                    path: '/path/file1.ts',
+            expect(spy).toHaveBeenCalledWith({
+                path: '/path/file1.ts',
+                changeList: [{
                     from: {
                         ch: 0,
                         line: 0
@@ -191,7 +204,6 @@ describe('WorkingSet', function (): void {
                     text: '\'use strict\'\nconsole.log(\'Hello World\')',
                     removed: ''
                 },{
-                    path: '/path/file1.ts',
                     from : {
                         ch: 8,
                         line: 1
@@ -202,136 +214,9 @@ describe('WorkingSet', function (): void {
                     },
                     text: 'warn',
                     removed: 'log'
-                }
-            ]);
+                }],
+                documentText: 'hello world'
+           });
         });
-        
-        it('should notify when a multiple document have been edited', function () {
-           
-            var doc = currentEditor.document;
-            $(doc).triggerHandler('change', [doc, {
-                from : {
-                    ch: 0,
-                    line: 0
-                },
-                to: {
-                    ch: 0,
-                    line: 0,
-                },
-                text : ['hello'],
-                removed: null
-            }]);
-            
-           
-            doc = {
-                file: { fullPath : '/path/file3.ts' },
-                getText() { return ""}
-            };
-            editorManagerMock.setActiveEditor({ document: doc });
-            
-            $(doc).triggerHandler('change', [doc, {
-                from : {
-                    ch: 0,
-                    line: 0
-                },
-                to: {
-                    ch: 0,
-                    line: 0,
-                },
-                text : ['world'],
-                removed: null
-            }]);
-            
-            expect(spy.callCount).toBe(2);
-            expect(spy).toHaveBeenCalledWith([
-                {
-                    path: '/path/file1.ts',
-                    from : {
-                        ch: 0,
-                        line: 0
-                    },
-                    to: {
-                        ch: 0,
-                        line: 0,
-                    },
-                    text: 'hello',
-                    removed: ''
-                }
-            ]);
-        
-            expect(spy).toHaveBeenCalledWith([
-                {
-                    path: '/path/file3.ts',
-                    from : {
-                        ch: 0,
-                        line: 0
-                    },
-                    to: {
-                        ch: 0,
-                        line: 0,
-                    },
-                    text: 'world',
-                    removed: ''
-                }
-            ]);
-        });
-        
-        it('should include \'documentText\' property if change does not contain \'to\' or \'from\' properties', function () {
-           
-            var doc = currentEditor.document;
-            $(doc).triggerHandler('change', [doc, {
-                text : ['hello'],
-                from : {
-                    ch: 0,
-                    line: 0
-                },
-                removed: null
-            }]);
-            
-           
-            doc = {
-                file: { fullPath : '/path/file3.ts' },
-                getText() { return "hello world"}
-            };
-            editorManagerMock.setActiveEditor({ document: doc });
-            $(doc).triggerHandler('change', [doc, {
-                to: {
-                    ch: 0,
-                    line: 0,
-                },
-                text : ['world'],
-                removed: null
-            }]);
-            
-            expect(spy.callCount).toBe(2);
-            expect(spy).toHaveBeenCalledWith([
-                {
-                    path: '/path/file1.ts',
-                    from : {
-                        ch: 0,
-                        line: 0
-                    },
-                    to: undefined,
-                    text: 'hello',
-                    removed: '',
-                    documentText: "hello world"
-                }
-            ]);
-        
-            expect(spy).toHaveBeenCalledWith([
-                {
-                    path: '/path/file3.ts',
-                    from : undefined,
-                    to: {
-                        ch: 0,
-                        line: 0,
-                    },
-                    text: 'world',
-                    removed: '',
-                    documentText: "hello world"
-                }
-            ]);
-        });
-        
     });
 });

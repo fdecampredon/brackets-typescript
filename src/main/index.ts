@@ -1,4 +1,4 @@
-//   Copyright 2013 François de Campredon
+//   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -12,58 +12,61 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-
 'use strict';
+
+import logger = require('../commons/logger');
+import FileSystem = require('./fileSystem');
+import WorkingSet = require('./workingSet');
+import TypeScriptPreferencesManager = require('./preferencesManager');
+import WorkerBridge = require('../commons/workerBridge');
+import TypeScriptErrorReporter = require('./errorReporter');
+import TypeScriptConfigErrorReporter = require('./configErrorReporter')
+import TypeScriptQuickEditProvider = require('./quickEdit');
+import TypeScriptQuickJumpProvider = require('./quickJump');
+import TypeScriptQuickFindDefitionProvider = require('./quickFindDefinition');
+import CodeHintProvider = require('./codeHintProvider');
+import typeScriptModeFactory = require('./mode');
+
+
 
 //--------------------------------------------------------------------------
 //
 //  Main entry point of the extension
 //
 //--------------------------------------------------------------------------
-        
-
-import typeScriptModeFactory = require('./mode');
-import fs = require('./fileSystem');
-import ws = require('./workingSet');
-import project = require('./project');
-import codeHint = require('./codeHint');
-import TypeScriptErrorReporter = require('./errorReporter');
-import qe = require('./quickEdit');
-import commentsHelper = require('./commentsHelper');
-import signal = require('./utils/signal');
-import logger = require('./logger');
 
 // brackets dependency
 var LanguageManager = brackets.getModule('language/LanguageManager'),
-    FileSystem = brackets.getModule('filesystem/FileSystem'),
+    BracketsFileSystem = brackets.getModule('filesystem/FileSystem'),
     DocumentManager = brackets.getModule('document/DocumentManager'), 
     ProjectManager = brackets.getModule('project/ProjectManager'),
     CodeHintManager = brackets.getModule('editor/CodeHintManager'),
     CodeInspection = brackets.getModule('language/CodeInspection'),
-    EditorManager = brackets.getModule('editor/EditorManager');
+    EditorManager = brackets.getModule('editor/EditorManager'),
+    QuickOpen = brackets.getModule('search/QuickOpen'),
+    PreferencesManager = brackets.getModule('preferences/PreferencesManager'),
+    CodeMirror: typeof CodeMirror = brackets.getModule("thirdparty/CodeMirror2/lib/codemirror");
 
-
-
-var fileSystem : fs.IFileSystem,
-    workingSet: ws.IWorkingSet,
-    projectManager : project.TypeScriptProjectManager,
-    hintService : codeHint.HintService,
-    tsErrorReporter : TypeScriptErrorReporter,
-    quickEditProvider : qe.TypeScriptQuickEditProvider;
+var tsErrorReporter : TypeScriptErrorReporter,
+    quickEditProvider: TypeScriptQuickEditProvider,
+    codeHintProvider : CodeHintProvider,
+    quickJumpProvider: TypeScriptQuickJumpProvider,
+    quickFindDefinitionProvider: TypeScriptQuickFindDefitionProvider;
     
-/**
- * The init function is the main entry point of the extention
- * It is responsible for bootstraping, and injecting depency of the
- * main components in the application.
- */
-function init(conf: { isDebug: boolean; logLevel: string; }) {
-    logger.setLogLevel(conf.logLevel);
     
-    //Register the typescript mode
+ 
+var fileSystem: FileSystem,
+    workingSet: WorkingSet,
+    worker: Worker,
+    preferencesManager: TypeScriptPreferencesManager,
+    bridge: WorkerBridge;
+
+function init(config: { logLevel: string; typeScriptLocation: string; workerLocation: string;}) {
+    logger.setLogLevel(config.logLevel);
     CodeMirror.defineMode('typescript', typeScriptModeFactory); 
-	
+
     //Register the language extension
-  	LanguageManager.defineLanguage('typescript', {
+    LanguageManager.defineLanguage('typescript', {
 	    name: 'TypeScript',
 	    mode: 'typescript',
 	    fileExtensions: ['ts'],
@@ -71,52 +74,76 @@ function init(conf: { isDebug: boolean; logLevel: string; }) {
 	    lineComment: ['//']
 	});
     
-    
     // Register code hint
-    hintService = new codeHint.HintService();
-    CodeHintManager.registerHintProvider(new codeHint.TypeScriptCodeHintProvider(hintService), ['typescript'], 0);
-    
+    codeHintProvider = new CodeHintProvider();
+    CodeHintManager.registerHintProvider(codeHintProvider, ['typescript'], 0);
     
     // Register quickEdit
-    quickEditProvider = new qe.TypeScriptQuickEditProvider();
-    EditorManager.registerInlineEditProvider(quickEditProvider.typeScriptInlineEditorProvider);    
+    quickEditProvider = new TypeScriptQuickEditProvider();
+    EditorManager.registerInlineEditProvider(quickEditProvider.typeScriptInlineEditorProvider);   
+    
+    //Register quickJump
+    quickJumpProvider = new TypeScriptQuickJumpProvider();
+    EditorManager.registerJumpToDefProvider(quickJumpProvider.handleJumpToDefinition)
     
       
     //Register error provider
-    tsErrorReporter = new TypeScriptErrorReporter(CodeInspection.Type);
+    tsErrorReporter = new TypeScriptErrorReporter();
     CodeInspection.register('typescript', tsErrorReporter); 
-
-    //Register comments helper
-    commentsHelper.init(new signal.DomSignalWrapper<KeyboardEvent>($("#editor-holder")[0], "keydown", true));
+    CodeInspection.register('json', new TypeScriptConfigErrorReporter());
     
-    initServices();
+    //Register quickFindDefinitionProvider
+    quickFindDefinitionProvider = new TypeScriptQuickFindDefitionProvider();
+    QuickOpen.addQuickOpenPlugin(quickFindDefinitionProvider);
+
+    
+    initServices(config.workerLocation, config.typeScriptLocation, config.logLevel);
     
     $(ProjectManager).on('beforeProjectClose beforeAppClose', disposeServices);
-    $(ProjectManager).on('projectOpen', initServices);
+    $(ProjectManager).on('projectOpen', () => initServices(config.workerLocation, config.typeScriptLocation, config.logLevel));
 }
+
 
 function disposeServices() {
+    bridge.dispose();
+    worker.terminate();
     fileSystem.dispose();
     workingSet.dispose();
-    projectManager.dispose();
+    preferencesManager.dispose();
+    
+    tsErrorReporter.reset();
+    codeHintProvider.reset();
+    quickEditProvider.reset();
+    quickJumpProvider.reset();
+    quickFindDefinitionProvider.reset();
 }
 
 
-function initServices() {
+function initServices(workerLocation: string, typeScriptLocation: string, logLevel: string) {
+    fileSystem = new FileSystem(BracketsFileSystem, ProjectManager);
+    workingSet = new WorkingSet(DocumentManager, EditorManager);
+    worker = new Worker(workerLocation);
+    bridge = new WorkerBridge(worker);
+    preferencesManager = new TypeScriptPreferencesManager(PreferencesManager);
     
-    //Create warpers
-    fileSystem = new fs.FileSystem(FileSystem, ProjectManager);
-    workingSet = new ws.WorkingSet(DocumentManager, EditorManager);
-    
-    // project manager
-    projectManager = new project.TypeScriptProjectManager(fileSystem, workingSet);  
-    projectManager.init();
-    
-    //services initialization
-    hintService.init(projectManager);
-    quickEditProvider.init(projectManager);
-    tsErrorReporter.init(projectManager);
+    bridge.init({
+        console: console,
+        workingSet: workingSet,
+        fileSystem: fileSystem,
+        preferencesManager: preferencesManager,
+        getTypeScriptLocation: function () {
+            return typeScriptLocation;
+        },
+        getLogLevel: function () {
+            return logLevel;
+        }
+    }).then(proxy => {
+        tsErrorReporter.setService(proxy.errorService);
+        codeHintProvider.setService(proxy.completionService);
+        quickEditProvider.setService(proxy.definitionService);
+        quickJumpProvider.setService(proxy.definitionService);
+        quickFindDefinitionProvider.setService(proxy.lexicalStructureService);
+    });
 }
 
 export = init;
-
