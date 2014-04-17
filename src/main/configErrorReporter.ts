@@ -55,7 +55,7 @@ class TypeScriptConfigErrorReporter implements brackets.InspectionProvider {
      * scan file
      */
     scanFile(content: string, path: string) : { errors: brackets.LintingError[];  aborted: boolean; } {
-        if (!isBracketsPreferenceFile(content)) {
+        if (!isBracketsPreferenceFile(path)) {
             return null;
         }
         var data: any = JSON.parse(content);
@@ -76,7 +76,7 @@ class TypeScriptConfigErrorReporter implements brackets.InspectionProvider {
             }
         }
         
-        var errors: brackets.LintingError[];
+        var errors: brackets.LintingError[] = [];
         if (typescript.projects && typescript.sources) {
             errors.push({
                 pos: { line: 0, ch: 0},
@@ -130,12 +130,11 @@ function validateSection(sectionName: string, config: any, mustHaveSources: bool
             message: prefix + 'the sourceRoot section must be a string'
         });
     }
-    if (
-        mustHaveSources && 
-        !config.sources || 
-        !Array.isArray(config.sources) || 
-        !config.sources.every((pattern: string) => typeof pattern === 'string')
-    ) {
+    if (mustHaveSources && (
+            !config.sources || 
+            !Array.isArray(config.sources) || 
+            !config.sources.every((pattern: string) => typeof pattern === 'string'))) {
+        
         errors.push({
             pos: { line: 0, ch: 0},
             type: Type.ERROR,
