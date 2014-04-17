@@ -44,7 +44,8 @@ var LanguageManager = brackets.getModule('language/LanguageManager'),
     CodeInspection = brackets.getModule('language/CodeInspection'),
     EditorManager = brackets.getModule('editor/EditorManager'),
     QuickOpen = brackets.getModule('search/QuickOpen'),
-    PreferencesManager = brackets.getModule('preferences/PreferencesManager');
+    PreferencesManager = brackets.getModule('preferences/PreferencesManager'),
+    CodeMirror: typeof CodeMirror = brackets.getModule("thirdparty/CodeMirror2/lib/codemirror");
 
 var tsErrorReporter : TypeScriptErrorReporter,
     quickEditProvider: TypeScriptQuickEditProvider,
