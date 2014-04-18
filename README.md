@@ -48,7 +48,7 @@ To configure your project simply create a brackets configuration file (a file na
 
 ###Supported Options:
 
-* `sources` (`string[]`) , **mandatory**: An array of '[minimatch](https://github.com/isaacs/minimatch)' pattern string describing the sources of your project.
+* `sources` (`string[]`) , **mandatory**: An array of '[minimatch](https://github.com/isaacs/minimatch)' pattern strings describing the sources of your project.
 
 * `noLib` (`boolean`, default `false`): Do not include the default `lib.d.ts` file within global declaration.
 
