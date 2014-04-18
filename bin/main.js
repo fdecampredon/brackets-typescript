@@ -71438,68 +71438,74 @@ var CodeHintProvider = (function (_super) {
 
     CodeHintProvider.prototype.getHints = function (implicitChar) {
         var currentFileName = this.editor.document.file.fullPath, position = this.editor.getCursorPos(), deferred = $.Deferred();
-        this.getService().then(function (service) {
-            service.getCompletionAtPosition(currentFileName, position).then(function (result) {
-                deferred.resolve({
-                    hints: result.entries.map(function (entry) {
-                        var text = entry.name, match, suffix, class_type = '';
-
-                        switch (entry.kind) {
-                            case 7 /* KEYWORD */:
-                                switch (entry.name) {
-                                    case 'static':
-                                    case 'public':
-                                    case 'private':
-                                    case 'export':
-                                    case 'get':
-                                    case 'set':
-                                        class_type = 'cm-qualifier';
-                                        break;
-                                    case 'class':
-                                    case 'function':
-                                    case 'module':
-                                    case 'var':
-                                        class_type = 'cm-def';
-                                        break;
-                                    default:
-                                        class_type = 'cm-keyword';
-                                        break;
-                                }
-                                break;
-                            case 5 /* METHOD */:
-                            case 6 /* FUNCTION */:
-                                text += entry.type ? entry.type : '';
-                                break;
-                            default:
-                                text += entry.type ? ' - ' + entry.type : '';
-                                break;
-                        }
-
-                        // highlight the matched portion of each hint
-                        if (result.match) {
-                            match = text.slice(0, result.match.length);
-                            suffix = text.slice(result.match.length);
-                        } else {
-                            match = '';
-                            suffix = text;
-                        }
-
-                        var jqueryObj = $(Mustache.render(HINT_TEMPLATE, {
-                            match: match,
-                            suffix: suffix,
-                            class_type: class_type
-                        }));
-                        jqueryObj.data('entry', entry);
-                        jqueryObj.data('match', result.match);
-                        return jqueryObj;
-                    }),
-                    selectInitial: !!implicitChar
-                });
-            }).catch(function (error) {
-                return deferred.reject(error);
+        if (!this.hasHints(this.editor, implicitChar)) {
+            deferred.resolve({
+                hints: [],
+                selectInitial: false
             });
-        });
+        } else {
+            this.getService().then(function (service) {
+                service.getCompletionAtPosition(currentFileName, position).then(function (result) {
+                    deferred.resolve({
+                        hints: result.entries.map(function (entry) {
+                            var text = entry.name, match, suffix, class_type = '';
 
+                            switch (entry.kind) {
+                                case 7 /* KEYWORD */:
+                                    switch (entry.name) {
+                                        case 'static':
+                                        case 'public':
+                                        case 'private':
+                                        case 'export':
+                                        case 'get':
+                                        case 'set':
+                                            class_type = 'cm-qualifier';
+                                            break;
+                                        case 'class':
+                                        case 'function':
+                                        case 'module':
+                                        case 'var':
+                                            class_type = 'cm-def';
+                                            break;
+                                        default:
+                                            class_type = 'cm-keyword';
+                                            break;
+                                    }
+                                    break;
+                                case 5 /* METHOD */:
+                                case 6 /* FUNCTION */:
+                                    text += entry.type ? entry.type : '';
+                                    break;
+                                default:
+                                    text += entry.type ? ' - ' + entry.type : '';
+                                    break;
+                            }
+
+                            // highlight the matched portion of each hint
+                            if (result.match) {
+                                match = text.slice(0, result.match.length);
+                                suffix = text.slice(result.match.length);
+                            } else {
+                                match = '';
+                                suffix = text;
+                            }
+
+                            var jqueryObj = $(Mustache.render(HINT_TEMPLATE, {
+                                match: match,
+                                suffix: suffix,
+                                class_type: class_type
+                            }));
+                            jqueryObj.data('entry', entry);
+                            jqueryObj.data('match', result.match);
+                            return jqueryObj;
+                        }),
+                        selectInitial: !!implicitChar
+                    });
+                }).catch(function (error) {
+                    return deferred.reject(error);
+                });
+            });
+        }
         return deferred;
     };
 
