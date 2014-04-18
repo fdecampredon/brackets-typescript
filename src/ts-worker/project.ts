@@ -27,6 +27,7 @@ import fs = require('../commons/fileSystem');
 import ws = require('../commons/workingSet');
 import logger = require('../commons/logger');
 import TypeScriptProjectConfig = require('../commons/projectConfig');
+import utils = require('../commons/utils');
 
 import LanguageServiceHost = require('./languageServiceHost');
 
@@ -411,9 +412,9 @@ class TypeScriptProject {
             dir = path.dirname(fileName);
         
         return preProcessedFileInfo.referencedFiles.map(fileReference => {
-            return path.resolve(dir, fileReference.path);
+            return utils.pathResolve(dir, fileReference.path);
         }).concat(preProcessedFileInfo.importedFiles.map(fileReference => {
-            return path.resolve(dir, fileReference.path + '.ts');
+            return utils.pathResolve(dir, fileReference.path + '.ts');
         }));
     }
     

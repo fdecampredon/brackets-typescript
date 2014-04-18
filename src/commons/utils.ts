@@ -14,6 +14,8 @@
 
 'use strict';
 
+import path = require('path');
+
 /**
  * assign all properties of a list of object to an object
  * @param target the object that will receive properties
@@ -78,6 +80,15 @@ export function mergeAll<T>(array: T[][]): T[] {
     
     return results;
 };
+
+/**
+ * browserify path.resolve is buggy on windows
+ */
+export function pathResolve(from: string, to: string): string {
+    var result = path.resolve(from, to);
+    var index = result.indexOf(from[0]);
+    return result.slice(index);
+}
 
 
 
