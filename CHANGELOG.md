@@ -7,3 +7,4 @@
 * Quick Find Definiton #17
 * Reports error in configuration file #15
 * Works now on all typescript files if no configuration are provided #19
+* Bump version to typescript 1.0.0
