@@ -57,73 +57,80 @@ class CodeHintProvider extends ServiceConsumer<completion.ICompletionService> im
     getHints(implicitChar:string): JQueryDeferred<brackets.HintResult> {
         var currentFileName: string = this.editor.document.file.fullPath, 
             position = this.editor.getCursorPos(),
-            deferred = $.Deferred()
-        this.getService().then(service => {
-            service.getCompletionAtPosition(currentFileName, position).then(result => {
-                deferred.resolve({
-                    hints: result.entries.map(entry => {
-                        var text = entry.name,
-                            match: string,
-                            suffix: string,
-                            class_type= '';
+            deferred = $.Deferred();
+        if (!this.hasHints(this.editor, implicitChar)) {
+            deferred.resolve({
+                hints: [],
+                selectInitial: false 
+            });
+        } else {
 
-                        switch(entry.kind) {
-                            case CompletionKind.KEYWORD:
-                                switch (entry.name) {
-                                    case 'static':
-                                    case 'public':
-                                    case 'private':
-                                    case 'export':
-                                    case 'get':
-                                    case 'set':
-                                        class_type = 'cm-qualifier';
-                                        break;
-                                    case 'class':
-                                    case 'function':
-                                    case 'module':
-                                    case 'var':
-                                        class_type = 'cm-def';
-                                        break;
-                                    default:
-                                        class_type = 'cm-keyword';
-                                        break;
-                                }
-                                break;
-                            case CompletionKind.METHOD:
-                            case CompletionKind.FUNCTION:
-                                text += entry.type ?  entry.type : ''; 
-                                break;
-                            default:
-                                text += entry.type ? ' - ' + entry.type : ''; 
-                                break;
-                        }
+            this.getService().then(service => {
+                service.getCompletionAtPosition(currentFileName, position).then(result => {
+                    deferred.resolve({
+                        hints: result.entries.map(entry => {
+                            var text = entry.name,
+                                match: string,
+                                suffix: string,
+                                class_type= '';
 
-                        // highlight the matched portion of each hint
-                        if (result.match) {
-                            match= text.slice(0, result.match.length);
-                            suffix  = text.slice(result.match.length);
+                            switch(entry.kind) {
+                                case CompletionKind.KEYWORD:
+                                    switch (entry.name) {
+                                        case 'static':
+                                        case 'public':
+                                        case 'private':
+                                        case 'export':
+                                        case 'get':
+                                        case 'set':
+                                            class_type = 'cm-qualifier';
+                                            break;
+                                        case 'class':
+                                        case 'function':
+                                        case 'module':
+                                        case 'var':
+                                            class_type = 'cm-def';
+                                            break;
+                                        default:
+                                            class_type = 'cm-keyword';
+                                            break;
+                                    }
+                                    break;
+                                case CompletionKind.METHOD:
+                                case CompletionKind.FUNCTION:
+                                    text += entry.type ?  entry.type : ''; 
+                                    break;
+                                default:
+                                    text += entry.type ? ' - ' + entry.type : ''; 
+                                    break;
+                            }
 
-                        } else {
-                            match = '';
-                            suffix = text
-                        }
+                            // highlight the matched portion of each hint
+                            if (result.match) {
+                                match= text.slice(0, result.match.length);
+                                suffix  = text.slice(result.match.length);
+
+                            } else {
+                                match = '';
+                                suffix = text
+                            }
 
 
-                        var jqueryObj = $(Mustache.render(HINT_TEMPLATE, {
-                            match: match,
-                            suffix: suffix,
-                            class_type: class_type
-                        })); 
-                        jqueryObj.data('entry', entry)
-                        jqueryObj.data('match', result.match)
-                        return jqueryObj;
+                            var jqueryObj = $(Mustache.render(HINT_TEMPLATE, {
+                                match: match,
+                                suffix: suffix,
+                                class_type: class_type
+                            })); 
+                            jqueryObj.data('entry', entry)
+                            jqueryObj.data('match', result.match)
+                            return jqueryObj;
 
-                    }),
-                    selectInitial: !!implicitChar
-                })
-            }).catch(error => deferred.reject(error))
-        });
-        
+                        }),
+                        selectInitial: !!implicitChar
+                    })
+                }).catch(error => deferred.reject(error))
+            });
+        }
         return deferred;
     }
     

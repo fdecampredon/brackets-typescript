@@ -54,12 +54,238 @@ process.chdir = function (dir) {
 };
 
 },{}],2:[function(_dereq_,module,exports){
+(function (process){// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+// resolves . and .. elements in a path array with directory names there
+// must be no slashes, empty elements, or device names (c:\) in the array
+// (so also no leading and trailing slashes - it does not distinguish
+// relative and absolute paths)
+function normalizeArray(parts, allowAboveRoot) {
+  // if the path tries to go above the root, `up` ends up > 0
+  var up = 0;
+  for (var i = parts.length - 1; i >= 0; i--) {
+    var last = parts[i];
+    if (last === '.') {
+      parts.splice(i, 1);
+    } else if (last === '..') {
+      parts.splice(i, 1);
+      up++;
+    } else if (up) {
+      parts.splice(i, 1);
+      up--;
+    }
+  }
+
+  // if the path is allowed to go above the root, restore leading ..s
+  if (allowAboveRoot) {
+    for (; up--; up) {
+      parts.unshift('..');
+    }
+  }
+
+  return parts;
+}
+
+// Split a filename into [root, dir, basename, ext], unix version
+// 'root' is just a slash, or nothing.
+var splitPathRe =
+    /^(\/?|)([\s\S]*?)((?:\.{1,2}|[^\/]+?|)(\.[^.\/]*|))(?:[\/]*)$/;
+var splitPath = function(filename) {
+  return splitPathRe.exec(filename).slice(1);
+};
+
+// path.resolve([from ...], to)
+// posix version
+exports.resolve = function() {
+  var resolvedPath = '',
+      resolvedAbsolute = false;
+
+  for (var i = arguments.length - 1; i >= -1 && !resolvedAbsolute; i--) {
+    var path = (i >= 0) ? arguments[i] : process.cwd();
+
+    // Skip empty and invalid entries
+    if (typeof path !== 'string') {
+      throw new TypeError('Arguments to path.resolve must be strings');
+    } else if (!path) {
+      continue;
+    }
+
+    resolvedPath = path + '/' + resolvedPath;
+    resolvedAbsolute = path.charAt(0) === '/';
+  }
+
+  // At this point the path should be resolved to a full absolute path, but
+  // handle relative paths to be safe (might happen when process.cwd() fails)
+
+  // Normalize the path
+  resolvedPath = normalizeArray(filter(resolvedPath.split('/'), function(p) {
+    return !!p;
+  }), !resolvedAbsolute).join('/');
+
+  return ((resolvedAbsolute ? '/' : '') + resolvedPath) || '.';
+};
+
+// path.normalize(path)
+// posix version
+exports.normalize = function(path) {
+  var isAbsolute = exports.isAbsolute(path),
+      trailingSlash = substr(path, -1) === '/';
+
+  // Normalize the path
+  path = normalizeArray(filter(path.split('/'), function(p) {
+    return !!p;
+  }), !isAbsolute).join('/');
+
+  if (!path && !isAbsolute) {
+    path = '.';
+  }
+  if (path && trailingSlash) {
+    path += '/';
+  }
+
+  return (isAbsolute ? '/' : '') + path;
+};
+
+// posix version
+exports.isAbsolute = function(path) {
+  return path.charAt(0) === '/';
+};
+
+// posix version
+exports.join = function() {
+  var paths = Array.prototype.slice.call(arguments, 0);
+  return exports.normalize(filter(paths, function(p, index) {
+    if (typeof p !== 'string') {
+      throw new TypeError('Arguments to path.join must be strings');
+    }
+    return p;
+  }).join('/'));
+};
+
+
+// path.relative(from, to)
+// posix version
+exports.relative = function(from, to) {
+  from = exports.resolve(from).substr(1);
+  to = exports.resolve(to).substr(1);
+
+  function trim(arr) {
+    var start = 0;
+    for (; start < arr.length; start++) {
+      if (arr[start] !== '') break;
+    }
+
+    var end = arr.length - 1;
+    for (; end >= 0; end--) {
+      if (arr[end] !== '') break;
+    }
+
+    if (start > end) return [];
+    return arr.slice(start, end - start + 1);
+  }
+
+  var fromParts = trim(from.split('/'));
+  var toParts = trim(to.split('/'));
+
+  var length = Math.min(fromParts.length, toParts.length);
+  var samePartsLength = length;
+  for (var i = 0; i < length; i++) {
+    if (fromParts[i] !== toParts[i]) {
+      samePartsLength = i;
+      break;
+    }
+  }
+
+  var outputParts = [];
+  for (var i = samePartsLength; i < fromParts.length; i++) {
+    outputParts.push('..');
+  }
+
+  outputParts = outputParts.concat(toParts.slice(samePartsLength));
+
+  return outputParts.join('/');
+};
+
+exports.sep = '/';
+exports.delimiter = ':';
+
+exports.dirname = function(path) {
+  var result = splitPath(path),
+      root = result[0],
+      dir = result[1];
+
+  if (!root && !dir) {
+    // No dirname whatsoever
+    return '.';
+  }
+
+  if (dir) {
+    // It has a dirname, strip trailing slash
+    dir = dir.substr(0, dir.length - 1);
+  }
+
+  return root + dir;
+};
+
+
+exports.basename = function(path, ext) {
+  var f = splitPath(path)[2];
+  // TODO: make this comparison case-insensitive on windows?
+  if (ext && f.substr(-1 * ext.length) === ext) {
+    f = f.substr(0, f.length - ext.length);
+  }
+  return f;
+};
+
+
+exports.extname = function(path) {
+  return splitPath(path)[3];
+};
+
+function filter (xs, f) {
+    if (xs.filter) return xs.filter(f);
+    var res = [];
+    for (var i = 0; i < xs.length; i++) {
+        if (f(xs[i], i, xs)) res.push(xs[i]);
+    }
+    return res;
+}
+
+// String.prototype.substr - negative index don't work in IE8
+var substr = 'ab'.substr(-1) === 'b'
+    ? function (str, start, len) { return str.substr(start, len) }
+    : function (str, start, len) {
+        if (start < 0) start = str.length + start;
+        return str.substr(start, len);
+    }
+;
+}).call(this,_dereq_("/Users/kapit/Documents/workspaces/typescript/brackets-typescript/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"))
+},{"/Users/kapit/Documents/workspaces/typescript/brackets-typescript/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":1}],3:[function(_dereq_,module,exports){
 "use strict";
 var Promise = _dereq_("./promise/promise").Promise;
 var polyfill = _dereq_("./promise/polyfill").polyfill;
 exports.Promise = Promise;
 exports.polyfill = polyfill;
-},{"./promise/polyfill":7,"./promise/promise":8}],3:[function(_dereq_,module,exports){
+},{"./promise/polyfill":8,"./promise/promise":9}],4:[function(_dereq_,module,exports){
 "use strict";
 /* global toString */
 
@@ -153,7 +379,7 @@ function all(promises) {
 }
 
 exports.all = all;
-},{"./utils":12}],4:[function(_dereq_,module,exports){
+},{"./utils":13}],5:[function(_dereq_,module,exports){
 (function (process,global){"use strict";
 var browserGlobal = (typeof window !== 'undefined') ? window : {};
 var BrowserMutationObserver = browserGlobal.MutationObserver || browserGlobal.WebKitMutationObserver;
@@ -215,7 +441,7 @@ function asap(callback, arg) {
 }
 
 exports.asap = asap;}).call(this,_dereq_("/Users/kapit/Documents/workspaces/typescript/brackets-typescript/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"),typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"/Users/kapit/Documents/workspaces/typescript/brackets-typescript/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":1}],5:[function(_dereq_,module,exports){
+},{"/Users/kapit/Documents/workspaces/typescript/brackets-typescript/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":1}],6:[function(_dereq_,module,exports){
 "use strict";
 /**
   `RSVP.Promise.cast` returns the same promise if that promise shares a constructor
@@ -283,7 +509,7 @@ function cast(object) {
 }
 
 exports.cast = cast;
-},{}],6:[function(_dereq_,module,exports){
+},{}],7:[function(_dereq_,module,exports){
 "use strict";
 var config = {
   instrument: false
@@ -299,7 +525,7 @@ function configure(name, value) {
 
 exports.config = config;
 exports.configure = configure;
-},{}],7:[function(_dereq_,module,exports){
+},{}],8:[function(_dereq_,module,exports){
 "use strict";
 var RSVPPromise = _dereq_("./promise").Promise;
 var isFunction = _dereq_("./utils").isFunction;
@@ -328,7 +554,7 @@ function polyfill() {
 }
 
 exports.polyfill = polyfill;
-},{"./promise":8,"./utils":12}],8:[function(_dereq_,module,exports){
+},{"./promise":9,"./utils":13}],9:[function(_dereq_,module,exports){
 "use strict";
 var config = _dereq_("./config").config;
 var configure = _dereq_("./config").configure;
@@ -542,7 +768,7 @@ function publishRejection(promise) {
 }
 
 exports.Promise = Promise;
-},{"./all":3,"./asap":4,"./cast":5,"./config":6,"./race":9,"./reject":10,"./resolve":11,"./utils":12}],9:[function(_dereq_,module,exports){
+},{"./all":4,"./asap":5,"./cast":6,"./config":7,"./race":10,"./reject":11,"./resolve":12,"./utils":13}],10:[function(_dereq_,module,exports){
 "use strict";
 /* global toString */
 var isArray = _dereq_("./utils").isArray;
@@ -632,7 +858,7 @@ function race(promises) {
 }
 
 exports.race = race;
-},{"./utils":12}],10:[function(_dereq_,module,exports){
+},{"./utils":13}],11:[function(_dereq_,module,exports){
 "use strict";
 /**
   `RSVP.reject` returns a promise that will become rejected with the passed
@@ -680,7 +906,7 @@ function reject(reason) {
 }
 
 exports.reject = reject;
-},{}],11:[function(_dereq_,module,exports){
+},{}],12:[function(_dereq_,module,exports){
 "use strict";
 /**
   `RSVP.resolve` returns a promise that will become fulfilled with the passed
@@ -723,7 +949,7 @@ function resolve(value) {
 }
 
 exports.resolve = resolve;
-},{}],12:[function(_dereq_,module,exports){
+},{}],13:[function(_dereq_,module,exports){
 "use strict";
 function objectOrFunction(x) {
   return isFunction(x) || (typeof x === "object" && x !== null);
@@ -70367,7 +70593,7 @@ var TypeScript;
 
 }).call(global, undefined, undefined, undefined, function defineExport(ex) { module.exports = ex; });
 
-},{}],15:[function(_dereq_,module,exports){
+},{}],16:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -70566,7 +70792,7 @@ var StringMap = (function () {
 })();
 exports.StringMap = StringMap;
 
-},{}],16:[function(_dereq_,module,exports){
+},{}],17:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -70634,7 +70860,7 @@ var CompletionKind = exports.CompletionKind;
 
 
 
-},{}],17:[function(_dereq_,module,exports){
+},{}],18:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -70681,7 +70907,7 @@ var CompletionKind = exports.CompletionKind;
 var FileChangeKind = exports.FileChangeKind;
 
 
-},{}],18:[function(_dereq_,module,exports){
+},{}],19:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -70750,7 +70976,7 @@ if (typeof window.setImmediate !== 'undefined') {
 
 module.exports = immediateImpl;
 
-},{}],19:[function(_dereq_,module,exports){
+},{}],20:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -70864,7 +71090,7 @@ var LogingClass = (function () {
 })();
 exports.LogingClass = LogingClass;
 
-},{}],20:[function(_dereq_,module,exports){
+},{}],21:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -70961,7 +71187,7 @@ var Signal = (function () {
 })();
 exports.Signal = Signal;
 
-},{}],21:[function(_dereq_,module,exports){
+},{}],22:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -71013,7 +71239,7 @@ exports.typeScriptProjectConfigDefault = {
     noImplicitAny: false
 };
 
-},{}],22:[function(_dereq_,module,exports){
+},{}],23:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -71028,6 +71254,8 @@ exports.typeScriptProjectConfigDefault = {
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 'use strict';
+var path = _dereq_('path');
+
 /**
 * assign all properties of a list of object to an object
 * @param target the object that will receive properties
@@ -71103,7 +71331,17 @@ function mergeAll(array) {
 exports.mergeAll = mergeAll;
 ;
 
-},{}],23:[function(_dereq_,module,exports){
+/**
+* browserify path.resolve is buggy on windows
+*/
+function pathResolve(from, to) {
+    var result = path.resolve(from, to);
+    var index = result.indexOf(from[0]);
+    return result.slice(index);
+}
+exports.pathResolve = pathResolve;
+
+},{"path":2}],24:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -71349,7 +71587,7 @@ var WorkerBridge = (function () {
 
 module.exports = WorkerBridge;
 
-},{"./collections":15,"./signal":20,"./utils":22,"es6-promise":2}],24:[function(_dereq_,module,exports){
+},{"./collections":16,"./signal":21,"./utils":23,"es6-promise":3}],25:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -71377,7 +71615,7 @@ var WorkingSetChangeKind = exports.WorkingSetChangeKind;
 
 
 
-},{}],25:[function(_dereq_,module,exports){
+},{}],26:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -71438,68 +71676,74 @@ var CodeHintProvider = (function (_super) {
 
     CodeHintProvider.prototype.getHints = function (implicitChar) {
         var currentFileName = this.editor.document.file.fullPath, position = this.editor.getCursorPos(), deferred = $.Deferred();
-        this.getService().then(function (service) {
-            service.getCompletionAtPosition(currentFileName, position).then(function (result) {
-                deferred.resolve({
-                    hints: result.entries.map(function (entry) {
-                        var text = entry.name, match, suffix, class_type = '';
-
-                        switch (entry.kind) {
-                            case 7 /* KEYWORD */:
-                                switch (entry.name) {
-                                    case 'static':
-                                    case 'public':
-                                    case 'private':
-                                    case 'export':
-                                    case 'get':
-                                    case 'set':
-                                        class_type = 'cm-qualifier';
-                                        break;
-                                    case 'class':
-                                    case 'function':
-                                    case 'module':
-                                    case 'var':
-                                        class_type = 'cm-def';
-                                        break;
-                                    default:
-                                        class_type = 'cm-keyword';
-                                        break;
-                                }
-                                break;
-                            case 5 /* METHOD */:
-                            case 6 /* FUNCTION */:
-                                text += entry.type ? entry.type : '';
-                                break;
-                            default:
-                                text += entry.type ? ' - ' + entry.type : '';
-                                break;
-                        }
-
-                        // highlight the matched portion of each hint
-                        if (result.match) {
-                            match = text.slice(0, result.match.length);
-                            suffix = text.slice(result.match.length);
-                        } else {
-                            match = '';
-                            suffix = text;
-                        }
-
-                        var jqueryObj = $(Mustache.render(HINT_TEMPLATE, {
-                            match: match,
-                            suffix: suffix,
-                            class_type: class_type
-                        }));
-                        jqueryObj.data('entry', entry);
-                        jqueryObj.data('match', result.match);
-                        return jqueryObj;
-                    }),
-                    selectInitial: !!implicitChar
-                });
-            }).catch(function (error) {
-                return deferred.reject(error);
+        if (!this.hasHints(this.editor, implicitChar)) {
+            deferred.resolve({
+                hints: [],
+                selectInitial: false
             });
-        });
+        } else {
+            this.getService().then(function (service) {
+                service.getCompletionAtPosition(currentFileName, position).then(function (result) {
+                    deferred.resolve({
+                        hints: result.entries.map(function (entry) {
+                            var text = entry.name, match, suffix, class_type = '';
 
+                            switch (entry.kind) {
+                                case 7 /* KEYWORD */:
+                                    switch (entry.name) {
+                                        case 'static':
+                                        case 'public':
+                                        case 'private':
+                                        case 'export':
+                                        case 'get':
+                                        case 'set':
+                                            class_type = 'cm-qualifier';
+                                            break;
+                                        case 'class':
+                                        case 'function':
+                                        case 'module':
+                                        case 'var':
+                                            class_type = 'cm-def';
+                                            break;
+                                        default:
+                                            class_type = 'cm-keyword';
+                                            break;
+                                    }
+                                    break;
+                                case 5 /* METHOD */:
+                                case 6 /* FUNCTION */:
+                                    text += entry.type ? entry.type : '';
+                                    break;
+                                default:
+                                    text += entry.type ? ' - ' + entry.type : '';
+                                    break;
+                            }
+
+                            // highlight the matched portion of each hint
+                            if (result.match) {
+                                match = text.slice(0, result.match.length);
+                                suffix = text.slice(result.match.length);
+                            } else {
+                                match = '';
+                                suffix = text;
+                            }
+
+                            var jqueryObj = $(Mustache.render(HINT_TEMPLATE, {
+                                match: match,
+                                suffix: suffix,
+                                class_type: class_type
+                            }));
+                            jqueryObj.data('entry', entry);
+                            jqueryObj.data('match', result.match);
+                            return jqueryObj;
+                        }),
+                        selectInitial: !!implicitChar
+                    });
+                }).catch(function (error) {
+                    return deferred.reject(error);
+                });
+            });
+        }
         return deferred;
     };
 
@@ -71516,7 +71760,7 @@ var CodeHintProvider = (function (_super) {
 
 module.exports = CodeHintProvider;
 
-},{"../commons/completion":16,"./serviceConsumer":35}],26:[function(_dereq_,module,exports){
+},{"../commons/completion":17,"./serviceConsumer":36}],27:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -71642,7 +71886,7 @@ function validateSection(sectionName, config, mustHaveSources, errors) {
 
 module.exports = TypeScriptConfigErrorReporter;
 
-},{}],27:[function(_dereq_,module,exports){
+},{}],28:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -71709,7 +71953,7 @@ var TypeScriptErrorReporter = (function (_super) {
 
 module.exports = TypeScriptErrorReporter;
 
-},{"../commons/immediate":18,"./serviceConsumer":35}],28:[function(_dereq_,module,exports){
+},{"../commons/immediate":19,"./serviceConsumer":36}],29:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -72157,7 +72401,7 @@ var FileSystem = (function () {
 
 module.exports = FileSystem;
 
-},{"../commons/collections":15,"../commons/fileSystem":17,"../commons/signal":20,"es6-promise":2}],29:[function(_dereq_,module,exports){
+},{"../commons/collections":16,"../commons/fileSystem":18,"../commons/signal":21,"es6-promise":3}],30:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -72282,7 +72526,7 @@ function initServices(workerLocation, typeScriptLocation, logLevel) {
 
 module.exports = init;
 
-},{"../commons/logger":19,"../commons/workerBridge":23,"./codeHintProvider":25,"./configErrorReporter":26,"./errorReporter":27,"./fileSystem":28,"./mode":30,"./preferencesManager":31,"./quickEdit":32,"./quickFindDefinition":33,"./quickJump":34,"./workingSet":36}],30:[function(_dereq_,module,exports){
+},{"../commons/logger":20,"../commons/workerBridge":24,"./codeHintProvider":26,"./configErrorReporter":27,"./errorReporter":28,"./fileSystem":29,"./mode":31,"./preferencesManager":32,"./quickEdit":33,"./quickFindDefinition":34,"./quickJump":35,"./workingSet":37}],31:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -72481,7 +72725,7 @@ function typeScriptModeFactory(options, spec) {
 
 module.exports = typeScriptModeFactory;
 
-},{"../commons/logger":19,"typescriptServices":"rW6mcW"}],31:[function(_dereq_,module,exports){
+},{"../commons/logger":20,"typescriptServices":"rW6mcW"}],32:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -72595,7 +72839,7 @@ var TypescriptPreferenceManager = (function () {
 
 module.exports = TypescriptPreferenceManager;
 
-},{"../commons/collections":15,"../commons/logger":19,"../commons/signal":20,"../commons/typeScriptUtils":21,"../commons/utils":22,"es6-promise":2}],32:[function(_dereq_,module,exports){
+},{"../commons/collections":16,"../commons/logger":20,"../commons/signal":21,"../commons/typeScriptUtils":22,"../commons/utils":23,"es6-promise":3}],33:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -72681,7 +72925,7 @@ var TypeScriptQuickEditProvider = (function (_super) {
 
 module.exports = TypeScriptQuickEditProvider;
 
-},{"./serviceConsumer":35}],33:[function(_dereq_,module,exports){
+},{"./serviceConsumer":36}],34:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -72775,7 +73019,7 @@ var TypeScriptQuickFindDefitionProvider = (function (_super) {
 
 module.exports = TypeScriptQuickFindDefitionProvider;
 
-},{"./serviceConsumer":35}],34:[function(_dereq_,module,exports){
+},{"./serviceConsumer":36}],35:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -72858,7 +73102,7 @@ var TypeScriptQuickJumpProvider = (function (_super) {
 
 module.exports = TypeScriptQuickJumpProvider;
 
-},{"./serviceConsumer":35}],35:[function(_dereq_,module,exports){
+},{"./serviceConsumer":36}],36:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -72918,7 +73162,7 @@ var ServiceConsumer = (function () {
 
 module.exports = ServiceConsumer;
 
-},{"es6-promise":2}],36:[function(_dereq_,module,exports){
+},{"es6-promise":3}],37:[function(_dereq_,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -73145,6 +73389,6 @@ var WorkingSet = (function () {
 
 module.exports = WorkingSet;
 
-},{"../commons/collections":15,"../commons/signal":20,"../commons/workingSet":24,"es6-promise":2}]},{},[29])
-(29)
+},{"../commons/collections":16,"../commons/signal":21,"../commons/workingSet":25,"es6-promise":3}]},{},[30])
+(30)
 });

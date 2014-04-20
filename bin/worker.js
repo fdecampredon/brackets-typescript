@@ -72599,6 +72599,8 @@ exports.typeScriptProjectConfigDefault = {
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 'use strict';
+var path = require('path');
+
 /**
 * assign all properties of a list of object to an object
 * @param target the object that will receive properties
@@ -72674,7 +72676,17 @@ function mergeAll(array) {
 exports.mergeAll = mergeAll;
 ;
 
-},{}],27:[function(require,module,exports){
+/**
+* browserify path.resolve is buggy on windows
+*/
+function pathResolve(from, to) {
+    var result = path.resolve(from, to);
+    var index = result.indexOf(from[0]);
+    return result.slice(index);
+}
+exports.pathResolve = pathResolve;
+
+},{"path":2}],27:[function(require,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -73561,7 +73573,7 @@ var LanguageServiceHost = (function (_super) {
     };
 
     LanguageServiceHost.prototype.resolveRelativePath = function (fileName, directory) {
-        return path.resolve(directory, fileName);
+        return utils.pathResolve(directory, fileName);
     };
 
     LanguageServiceHost.prototype.getParentDirectory = function (fileName) {
@@ -73788,6 +73800,8 @@ var collections = require('../commons/collections');
 var fs = require('../commons/fileSystem');
 var ws = require('../commons/workingSet');
 var logger = require('../commons/logger');
+
+var utils = require('../commons/utils');
 
 var LanguageServiceHost = require('./languageServiceHost');
 
@@ -74194,9 +74208,9 @@ var TypeScriptProject = (function () {
         var script = this.languageServiceHost.getScriptSnapshot(fileName), preProcessedFileInfo = this.coreService.getPreProcessedFileInfo(fileName, script), dir = path.dirname(fileName);
 
         return preProcessedFileInfo.referencedFiles.map(function (fileReference) {
-            return path.resolve(dir, fileReference.path);
+            return utils.pathResolve(dir, fileReference.path);
         }).concat(preProcessedFileInfo.importedFiles.map(function (fileReference) {
-            return path.resolve(dir, fileReference.path + '.ts');
+            return utils.pathResolve(dir, fileReference.path + '.ts');
         }));
     };
 
@@ -74293,7 +74307,7 @@ var TypeScriptProject;
 
 module.exports = TypeScriptProject;
 
-},{"../commons/collections":19,"../commons/fileSystem":21,"../commons/logger":22,"../commons/promiseQueue":23,"../commons/workingSet":28,"./languageServiceHost":33,"es6-promise":3,"minimatch":14,"path":2}],36:[function(require,module,exports){
+},{"../commons/collections":19,"../commons/fileSystem":21,"../commons/logger":22,"../commons/promiseQueue":23,"../commons/utils":26,"../commons/workingSet":28,"./languageServiceHost":33,"es6-promise":3,"minimatch":14,"path":2}],36:[function(require,module,exports){
 //   Copyright 2013-2014 François de Campredon
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");

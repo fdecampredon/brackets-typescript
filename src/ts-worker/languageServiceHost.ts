@@ -228,7 +228,7 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
     }
 
     resolveRelativePath(fileName: string, directory: string): string {
-        return path.resolve(directory, fileName);
+        return utils.pathResolve(directory, fileName);
     }
 
     getParentDirectory(fileName: string): string {
