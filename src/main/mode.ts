@@ -204,7 +204,7 @@ function getStyleForToken(token:Token, textBefore:string):string {
 				case 'void':
 				case 'bool':
 				case 'boolean':
-					return "variable";
+					return "variable-2";
 				case 'static':
 				case 'public':
 				case 'private':
@@ -222,7 +222,12 @@ function getStyleForToken(token:Token, textBefore:string):string {
 			}
 
 		case TokenClass.Identifier:
-			return "variable";
+			// Show types (indentifiers in PascalCase) as variable-2, other types (camelCase) as variable
+			if (token.string.charAt(0).toLowerCase() != token.string.charAt(0)) {
+				return "variable-2";
+			} else {
+				return "variable";
+			}
 		case TokenClass.Punctuation: 
 			return "bracket";
 		case TokenClass.Whitespace:
