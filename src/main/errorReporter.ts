@@ -55,10 +55,10 @@ class TypeScriptErrorReporter extends ServiceConsumer<IErrorService> implements 
                             });
                         }
                     );
-                })    
-            })
+                });    
+            });
         }).promise();
     }
 }
 
-export = TypeScriptErrorReporter
+export = TypeScriptErrorReporter;

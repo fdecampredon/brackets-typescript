@@ -36,8 +36,8 @@ export class StringSet {
      */
     constructor(array?: string[]) {
         this.map = Object.create(null);
-        if (array) { 
-            for (var i = 0, l= array.length; i < l;i ++) {
+        if (array) {
+            for (var i = 0, l = array.length; i < l; i ++) {
                 this.add(array[i]);
             }
         }
@@ -108,7 +108,7 @@ export class StringMap<T> {
     constructor(obj?: {[index: string]: T}) {
         this.map = Object.create(null);
         this.mascot = <T>{};
-        if (obj) { 
+        if (obj) {
             Object.keys(obj).forEach(key => this.map[key] = obj[key]);
         }
     }
@@ -172,11 +172,11 @@ export class StringMap<T> {
      * return an array containing the entries of the map
      */
     get entries(): MapEntry<T>[] {
-        return Object.keys(this.map).map(key => { 
-            return { 
-                key: key, 
-                value: this.map[key] 
-            } 
+        return Object.keys(this.map).map(key => {
+            return {
+                key: key,
+                value: this.map[key]
+            };
         });
     }
     

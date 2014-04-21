@@ -12,14 +12,13 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-'use strict'
+'use strict';
 
 
 import es6Promise = require('es6-promise');
 import Promise = es6Promise.Promise;
 import path = require('path');
-import PromiseQueue = require('../commons/promiseQueue')
-import signal = require('../commons/signal');
+import PromiseQueue = require('../commons/promiseQueue');
 import ws = require('../commons/workingSet');
 import fs = require('../commons/fileSystem');
 import TypeScriptPreferenceManager = require('../commons/preferencesManager');
@@ -29,7 +28,6 @@ import tsUtils = require('../commons/typeScriptUtils');
 import utils = require('../commons/utils');
 import logger = require('../commons/logger');
 import TypeScriptProject = require('./project');
-import Services = TypeScript.Services;
 
 //--------------------------------------------------------------------------
 //
@@ -150,14 +148,14 @@ class TypeScriptProjectManager {
     getProjectForFile(fileName: string): Promise<TypeScriptProject> {
         return this.queue.then((): any => {
             var projects = this.projectMap.values,
-                project : TypeScriptProject = null;
+                project: TypeScriptProject = null;
             //first we check for a project that have tha file as source 
             projects.some(tsProject => {
                 if (tsProject.getProjectFileKind(fileName) === TypeScriptProject.ProjectFileKind.SOURCE) {
                     project = tsProject;
                     return true;
                 }
-            })     
+            });     
 
             
             //then we check if a project has a file referencing the given file
@@ -218,7 +216,7 @@ class TypeScriptProjectManager {
     /**
      * dispose every projects created by the ProjectManager
      */
-    private disposeProjects():void {
+    private disposeProjects(): void {
         var projectMap = this.projectMap;
         projectMap.keys.forEach(path =>  {
             projectMap.get(path).dispose();
@@ -250,9 +248,9 @@ class TypeScriptProjectManager {
             this.projectMap.set(projectId, project);
         }, () => {
             if (logger.fatal()) {
-                logger.log('could not create project:' + projectId)
+                logger.log('could not create project:' + projectId);
             }
-        })
+        });
     }
 
     
@@ -278,16 +276,16 @@ class TypeScriptProjectManager {
                     } else {
                         promises.push(project.update(config));
                     } 
-                })
+                });
                 
                 Object.keys(configs).forEach(projectId => {
                     if (!this.projectMap.has(projectId)) {
-                        promises.push(this.createProjectFromConfig(projectId, configs[projectId]))
+                        promises.push(this.createProjectFromConfig(projectId, configs[projectId]));
                     }
-                })
+                });
             });
         });
-    }
+    };
 }
 
 module TypeScriptProjectManager {

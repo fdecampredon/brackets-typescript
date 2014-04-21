@@ -101,7 +101,7 @@ declare module brackets {
          * @param path The path to resolve
          * @param callback Callback resolved  with a FileSystemError string or with the entry for the provided path.
          */
-        resolve(path: string, callback:(err: string, entry: FileSystemEntry, stat: FileSystemStats) => any): void;
+        resolve(path: string, callback: (err: string, entry: FileSystemEntry, stat: FileSystemStats) => any): void;
         
         
          /**
@@ -190,8 +190,8 @@ declare module brackets {
     
     /**
      * This is an abstract representation of a FileSystem entry, and the base class for the File and Directory classes. 
-     * FileSystemEntry objects are never created directly by client code. Use FileSystem.getFileForPath(), FileSystem.getDirectoryForPath(), 
-     * or Directory.getContents() to create the entry.
+     * FileSystemEntry objects are never created directly by client code. Use FileSystem.getFileForPath(), 
+     * FileSystem.getDirectoryForPath(), or Directory.getContents() to create the entry.
      */
     interface FileSystemEntry {
         fullPath: string;
@@ -228,7 +228,7 @@ declare module brackets {
          * @param {string} newFullPath New path & name for this entry.
          * @param {function (?string)=} callback Callback with a single FileSystemError string parameter.
          */
-        rename(newFullPath:string, callback?: (err: string) => any):void;
+        rename(newFullPath: string, callback?: (err: string) => any): void;
         
         
         /**
@@ -274,7 +274,8 @@ declare module brackets {
          *          and their stat errors. If there are no stat errors then the last
          *          parameter shall remain undefined.
          */
-        getContents(callback: (err: string, files: FileSystemEntry[], stats: FileSystemStats, errors: { [path: string]: string; }) => any): void 
+        getContents(callback: (err: string, files: FileSystemEntry[], 
+            stats: FileSystemStats, errors: { [path: string]: string; }) => any): void; 
     
         
         /**
@@ -305,7 +306,7 @@ declare module brackets {
          * @param options Currently unused.
          * @param callback Callback that is passed the FileSystemError string or the file's new stats.
          */
-        write(data: string, options? : {}, callback?: (err: string, stat: FileSystemStats) => any ) : void;
+        write(data: string, options?: {}, callback?: (err: string, stat: FileSystemStats) => any ): void;
         
         
         
@@ -422,7 +423,7 @@ declare module brackets {
          *
          * @return {$.Promise} Promise that is resolved with an Array of File objects.
          */
-        getAllFiles(filter?: (file: File) => boolean, includeWorkingSet?: boolean):JQueryPromise<File[]>;
+        getAllFiles(filter?: (file: File) => boolean, includeWorkingSet?: boolean): JQueryPromise<File[]>;
         
         /*
          TODO 
@@ -700,7 +701,7 @@ declare module brackets {
          *     (Note that this is a higher level of batching than batchOperation(), which already batches all
          *     edits within it for undo. Origin batching works across operations.)
          */
-        replaceRange(text: string, start: CodeMirror.Position, end?: CodeMirror.Position, origin? :string):void;
+        replaceRange(text: string, start: CodeMirror.Position, end?: CodeMirror.Position, origin?: string): void;
         
         /**
          * Returns the text of the given line (excluding any line ending characters)
@@ -754,14 +755,14 @@ declare module brackets {
      *    $(editorInstance).on("eventname", handler);
      */
     interface Editor {
-        _codeMirror: CodeMirror.Editor
-        document:Document;
-        getCursorPos():CodeMirror.Position;
+        _codeMirror: CodeMirror.Editor;
+        document: Document;
+        getCursorPos(): CodeMirror.Position;
         getModeForSelection(): string;
         getSelection(boolean: boolean): {
             start: CodeMirror.Position;
             end: CodeMirror.Position
-        }
+        };
         setCursorPos(line: number, ch: number, center: boolean, expandTabs: boolean): void ;
     }
     
@@ -769,7 +770,7 @@ declare module brackets {
     interface EditorManager {
         registerInlineEditProvider(provider: InlineEditProvider, priority?: number): void; 
         registerInlineDocsProvider(provider: InlineDocsProvider, priority?: number): void;
-        registerJumpToDefProvider(provider:JumpDoDefProvider): void;
+        registerJumpToDefProvider(provider: JumpDoDefProvider): void;
         getFocusedEditor(): Editor; 
         /**
          * Returns the current active editor (full-sized OR inline editor). This editor may not 
@@ -778,7 +779,7 @@ declare module brackets {
          * @see getFocusedEditor()
          * @returns {?Editor}
          */
-        getActiveEditor():Editor;
+        getActiveEditor(): Editor;
         getCurrentFullEditor(): Editor;
     }
     
@@ -868,7 +869,7 @@ declare module brackets {
          * @param options Specific location in which to set the value or the context to use when setting the value
          * @return true if a value was set
          */
-        set(id:string, value: any, options?: {location: any; context?: any; }): boolean;
+        set(id: string, value: any, options?: {location: any; context?: any; }): boolean;
         
         
         /**
@@ -990,9 +991,9 @@ declare module brackets {
     }
     
     interface CodeHintProvider {
-        hasHints(editor:Editor, implicitChar:string): boolean;
-        getHints(implicitChar:string): JQueryDeferred<HintResult>;
-        insertHint(hint: any):void;
+        hasHints(editor: Editor, implicitChar: string): boolean;
+        getHints(implicitChar: string): JQueryDeferred<HintResult>;
+        insertHint(hint: any): void;
     }
     
     
@@ -1019,8 +1020,8 @@ declare module brackets {
     
     interface InspectionProvider {
         name: string;
-        scanFile?(content: string, path: string):{ errors: LintingError[];  aborted: boolean };
-        scanFileAsync?(content: string, path: string):JQueryPromise<{ errors: LintingError[];  aborted: boolean }>; 
+        scanFile?(content: string, path: string): { errors: LintingError[];  aborted: boolean };
+        scanFileAsync?(content: string, path: string): JQueryPromise<{ errors: LintingError[];  aborted: boolean }>; 
     }
     
     
@@ -1080,16 +1081,17 @@ declare module brackets {
         /**
          * performs an action when a result is chosen.
          */
-        itemSelect:  (result: S) => void;
+        itemSelect: (result: S) => void;
         /**
          * takes a query string and an item string and returns 
          * a <LI> item to insert into the displayed search results. Optional.
          */
         resultsFormatter?: (result: S) => string;
+        
         /**
          * options to pass along to the StringMatcher (see StringMatch.StringMatcher for available options). 
          */
-        matcherOptions? : StringMatcherOptions;
+        matcherOptions?: StringMatcherOptions;
         /**
          * if provided, the label to show before the query field. Optional.
          */
@@ -1102,8 +1104,8 @@ declare module brackets {
     }
     
     interface StringMatcher {
-        match(target:string, query: string):{
-            ranges:{ text: string; matched: boolean; includesLastSegment: boolean}[];
+        match(target: string, query: string): {
+            ranges: { text: string; matched: boolean; includesLastSegment: boolean}[];
             matchGoodness: number; 
             scoreDebug: any;
         }
@@ -1135,21 +1137,21 @@ declare module brackets {
     module MultiRangeInlineEditor {
         class MultiRangeInlineEditor implements InlineWidget {
             constructor(ranges: MultiRangeInlineEditorRange[]);
-            load(editor: Editor): void
+            load(editor: Editor): void;
         }
     }
     
     interface MultiRangeInlineEditorRange {
         name: string;
-        document : brackets.Document;
-        lineStart:number;
-        lineEnd:number;
+        document: brackets.Document;
+        lineStart: number;
+        lineEnd: number;
     }
     
-    function getModule(module: 'filesystem/FileSystem'): FileSystem
+    function getModule(module: 'filesystem/FileSystem'): FileSystem;
     function getModule(module: 'document/DocumentManager'): brackets.DocumentManager;
     function getModule(module: 'project/ProjectManager'): brackets.ProjectManager;
-    function getModule(module: 'editor/CodeHintManager'):CodeHintManager;
+    function getModule(module: 'editor/CodeHintManager'): CodeHintManager;
     function getModule(module: 'editor/EditorManager'): EditorManager;
     function getModule(module: 'editor/MultiRangeInlineEditor'): typeof MultiRangeInlineEditor;
     function getModule(module: 'language/CodeInspection'): CodeInspection;

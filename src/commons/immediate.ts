@@ -81,7 +81,7 @@ if (typeof window.setImmediate !== 'undefined') {
             uidHelper++;
             setImmediateQueue.push({
                 handle: uidHelper,
-                callBack : typeof expression === 'string' ? new Function(expression): expression,
+                callBack : typeof expression === 'string' ? new Function(expression) : expression,
                 parameters: args
             });
             window.postMessage(sentinel, '*');
@@ -90,7 +90,7 @@ if (typeof window.setImmediate !== 'undefined') {
         clearImmediate(handle: number): void {
             canceledImmediate[handle] = true;
         }
-    }
+    };
     
     Object.freeze(immediateImpl);
 }

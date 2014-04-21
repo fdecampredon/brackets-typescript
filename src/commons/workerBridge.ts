@@ -48,7 +48,7 @@ enum Type {
 
 interface Resolver {
     resolve(result: any): any;
-    reject(error: any):any;
+    reject(error: any): any;
 }
 
 /**
@@ -59,7 +59,7 @@ interface Resolver {
  * @param baseKeys
  */
 function createProxyDescriptor(services: any, signals: { [index: string]: signal.Signal<any> }, baseKeys: string[] = []) {
-    if (baseKeys.length> 5) {
+    if (baseKeys.length > 5) {
         return {};
     } 
     return utils.getEnumerablePropertyNames(services)
@@ -73,20 +73,20 @@ function createProxyDescriptor(services: any, signals: { [index: string]: signal
                     descriptor[key] = Type.SIGNAL;
                     signals[keys.join('.')] = value;
                 } else if (!Array.isArray(value)) {
-                    descriptor[key] = createProxyDescriptor(value, signals, keys)
+                    descriptor[key] = createProxyDescriptor(value, signals, keys);
                 }
             }
             return descriptor;
         }, {});
 }
 
-var uidHelper = 0
+var uidHelper = 0;
 /**
  * create a query factory for a proxied service method
  */
 function newQuery(chain: string[], sendMessage: (args: any) => void, resolverMap: collections.StringMap<Resolver>): any {
     return (...args: any []) => {
-        var uid = "operation" + (uidHelper++);
+        var uid = 'operation' + (uidHelper++);
         sendMessage({
             operation: Operation.REQUEST,
             chain: chain,
@@ -99,7 +99,7 @@ function newQuery(chain: string[], sendMessage: (args: any) => void, resolverMap
                 reject: reject
             });
         });
-    }
+    };
 }
 
 
@@ -117,7 +117,7 @@ function createProxy(descriptor: any, sendMessage: (args: any) => void,
             } else if (value === Type.SIGNAL) {
                 proxy[key] = new signal.Signal();
             } else if (typeof value === 'object') {
-                proxy[key] = createProxy(descriptor[key], sendMessage, resolverMap, keys)
+                proxy[key] = createProxy(descriptor[key], sendMessage, resolverMap, keys);
             }
             return proxy;
         }, {});
@@ -138,7 +138,7 @@ class WorkerBridge {
     /**
      * deffered tracking sate
      */
-    private initResolver: Resolver
+    private initResolver: Resolver;
     
     /**
      * @private
@@ -149,7 +149,7 @@ class WorkerBridge {
     /**
      * build proxy of the bridge
      */
-    proxy: any
+    proxy: any;
     
     constructor(
         /**
@@ -166,7 +166,7 @@ class WorkerBridge {
         this.services = services;
         return new Promise((resolve, reject) => {
             var target = this.target;
-            target.onmessage = this.messageHandler
+            target.onmessage = this.messageHandler;
 
             var signals: { [index: string]: signal.Signal<any> } = {};
             target.postMessage({
@@ -183,8 +183,8 @@ class WorkerBridge {
                         operation: Operation.SIGNAL, 
                         chain: key.split('.') , 
                         value: value
-                    })
-                }
+                    });
+                };
                 signal.add(handler);
                 return { 
                     signal: signal, 
@@ -193,7 +193,7 @@ class WorkerBridge {
             });    
             
             this.initResolver = {resolve: resolve, reject: reject};
-        })
+        });
 
     }
     
@@ -210,7 +210,7 @@ class WorkerBridge {
      */
     private messageHandler = (message: WorkerBridge.Message) =>  {
         var data = message.data;
-        switch(data.operation) {
+        switch (data.operation) {
             case Operation.EXPOSE:
                 this.proxy = createProxy(
                     data.descriptor,  
@@ -242,7 +242,7 @@ class WorkerBridge {
                     this.target.postMessage({
                         operation: Operation.ERROR,
                         chain: data.chain,
-                        errorMessage: error instanceof Error? error.message : error,
+                        errorMessage: error instanceof Error ? error.message : error,
                         uid: data.uid
                     });
                 });
@@ -250,14 +250,14 @@ class WorkerBridge {
                 break;
 
             case Operation.RESPONSE:
-                var deferred = this.resolverMap.get(data.uid);
-                deferred.resolve(data.result);
+                var responseDeferred = this.resolverMap.get(data.uid);
+                responseDeferred.resolve(data.result);
                 this.resolverMap.delete(data.uid);
                 break;
 
             case Operation.ERROR:
-                var deferred = this.resolverMap.get(data.uid);
-                deferred.reject(new Error(data.errorMessage));
+                var errorDeferred = this.resolverMap.get(data.uid);
+                errorDeferred.reject(new Error(data.errorMessage));
                 this.resolverMap.delete(data.uid);
                 break;
                 
@@ -269,7 +269,7 @@ class WorkerBridge {
                 }
                 signal.dispatch(data.value);
         }
-    }
+    };
 }
 
 

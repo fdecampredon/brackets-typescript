@@ -23,17 +23,17 @@ export class FileSystem {
         root.setParent(null);
     }
     
-    private listeners:  { [event : string]: {(...rest: any[]): any }[] } = {};
+    private listeners:  { [event: string]: {(...rest: any[]): any }[] } = {};
     
     getFileForPath(path: string): File {
-        var result = this.getEntryForFile(path, 'file')
+        var result = this.getEntryForFile(path, 'file');
         if (!result) {
             result = new File({
-                name: path.substr(path.lastIndexOf('/') +1), 
+                name: path.substr(path.lastIndexOf('/') + 1), 
                 content : null
             });
             result.fullPath = path;
-            result.parentPath = path.substr(0, path.lastIndexOf('/'))
+            result.parentPath = path.substr(0, path.lastIndexOf('/'));
             result.id = path;
         }
         
@@ -45,10 +45,10 @@ export class FileSystem {
     on(event: string, handler: (...rest: any[]) => any): void {
         var listeners = this.listeners[event];
         if (listeners && listeners.indexOf(handler) !== -1) {
-            return
+            return;
         }
         if (!listeners) {
-            listeners = this.listeners[event]= []
+            listeners = this.listeners[event] = [];
         }
         listeners.push(handler);
     }
@@ -68,7 +68,7 @@ export class FileSystem {
     dispatch(event: string, ...args: any[]) {
         var listeners = this.listeners[event];
         if (!listeners) {
-            return
+            return;
         }
         listeners.forEach(listerner => listerner.apply(null, [{}].concat(args)));
     }
@@ -95,19 +95,19 @@ export class FileSystem {
         var newEntry: FileSystemEntry;
         if (entry.isFile) {
             newEntry = new File({
-                name: newPath.substr(newPath.lastIndexOf("/") + 1),
+                name: newPath.substr(newPath.lastIndexOf('/') + 1),
                 content: (<File>entry).content
             });
         } else {
             newEntry = new Directory({
-                name: newPath.substr(newPath.lastIndexOf("/", newPath.length - 2) + 1),
+                name: newPath.substr(newPath.lastIndexOf('/', newPath.length - 2) + 1),
                 children: (<Directory>entry).children
             });
         }
         dir.remove(entry);
         dir.add(newEntry);
         newEntry.setParent(dir);
-        this.dispatch('rename',path, newPath);
+        this.dispatch('rename', path, newPath);
     }
     
 
@@ -119,28 +119,27 @@ export class FileSystem {
             throw new Error('unknown dir : \'' + path + '\'');
         }
         dir.remove(entry);
-        this.dispatch('change', dir)
+        this.dispatch('change', dir);
     }
     
-    addEntry(entry:FileSystemEntry) {
+    addEntry(entry: FileSystemEntry) {
         var dir = this.getEntryForFile(entry.parentPath, 'directory');
         if (!dir) {
             throw new Error('unknown dir : \'' + entry.parentPath + '\'');
         }
         dir.add(entry);
-        this.dispatch('change', dir)
+        this.dispatch('change', dir);
     }
     
-    getEntryForFile(path: string, type: 'directory'): Directory
-    getEntryForFile(path: string, type: 'file'): File
-    getEntryForFile(path: string, type: string): FileSystemEntry
-    getEntryForFile(path: string, type: string): FileSystemEntry
-    {
+    getEntryForFile(path: string, type: 'directory'): Directory;
+    getEntryForFile(path: string, type: 'file'): File;
+    getEntryForFile(path: string, type: string): FileSystemEntry;
+    getEntryForFile(path: string, type: string): FileSystemEntry {
         var result: FileSystemEntry;
         this.root.visit(entry => {
-            if(entry.fullPath === path ) {
+            if (entry.fullPath === path ) {
                 if (type === 'file' && !entry.isFile) {
-                    return false
+                    return false;
                 } else if (type === 'directory' && !entry.isDirectory) {
                     return false;
                 }
@@ -148,7 +147,7 @@ export class FileSystem {
                 return false;
             }
             return true;
-        }, null, () => 0)
+        }, null, () => 0);
         return result;
     }
     
@@ -158,13 +157,13 @@ export function d(options: DirectoryOptions) {
     return new Directory(options);
 }
 
-export function f(options: FileOptions, fullPath?: string, parentPath? : string) {
+export function f(options: FileOptions, fullPath?: string, parentPath?: string) {
     var file = new File(options);
     if (typeof fullPath !== 'undefined') {
         file.id = file.fullPath = fullPath;
     }
     if (typeof parentPath !== 'undefined') {
-        file.parentPath = parentPath
+        file.parentPath = parentPath;
     }
     return file;
 }
@@ -191,7 +190,7 @@ export class FileSystemEntry implements brackets.FileSystemEntry {
     
     
     exists(callback: (err: string, exist: boolean) => any): void {
-        callback(null, true)
+        callback(null, true);
     }
     
     
@@ -201,7 +200,7 @@ export class FileSystemEntry implements brackets.FileSystemEntry {
     }
     
 
-    rename(newFullPath:string, callback?: (err: string) => any):void {
+    rename(newFullPath: string, callback?: (err: string) => any): void {
         callback(null);
     }
     unlink(callback?: (err: string) => any): void {
@@ -215,17 +214,17 @@ export class FileSystemEntry implements brackets.FileSystemEntry {
     visit(visitor: (entry: brackets.FileSystemEntry) => boolean, options: {failFast?: boolean; maxDepth?: number; maxEntries?: number},
         callbak: (err: string) => any): void {
             this.internalVisit(visitor);
-            callbak(null)
+            callbak(null);
     }
     
     private internalVisit(visitor: (entry: brackets.FileSystemEntry) => boolean): boolean {
         if (!visitor(this)) {
-            return false
+            return false;
         }
         if (this.isDirectory) {
-            var result: boolean
+            var result: boolean;
             (<Directory>this).getContents((err: string, files: FileSystemEntry[]) => {
-                result = files.every(file => file.internalVisit(visitor))
+                result = files.every(file => file.internalVisit(visitor));
             });
             return result;
         } else {
@@ -236,7 +235,7 @@ export class FileSystemEntry implements brackets.FileSystemEntry {
 
 export interface FileOptions {
     name: string;
-    content : string;
+    content: string;
 }
 
 
@@ -249,7 +248,7 @@ export class File extends FileSystemEntry implements brackets.File {
         this.isDirectory = false;
         this.isFile = true;
         if (!options) {
-            throw new  Error('options manadatory')
+            throw new  Error('options manadatory');
         }
         this.name = options.name;
         this.content = options.content;
@@ -268,7 +267,7 @@ export class File extends FileSystemEntry implements brackets.File {
             if (this.content) {
                 callback(null, this.content, null);
             } else {
-                callback(FILE_NOT_FOUND, null, null)
+                callback(FILE_NOT_FOUND, null, null);
             }
         }, 0);
     }
@@ -281,7 +280,7 @@ export class File extends FileSystemEntry implements brackets.File {
      * @param options Currently unused.
      * @param callback Callback that is passed the FileSystemError string or the file's new stats.
      */
-    write(data: string, options? : {}, callback?: (err: string, stat: brackets.FileSystemStats) => any ) : void {
+    write(data: string, options?: {}, callback?: (err: string, stat: brackets.FileSystemStats) => any ): void {
         
     }
     
@@ -290,17 +289,17 @@ export class File extends FileSystemEntry implements brackets.File {
 
 export interface DirectoryOptions {
     name: string;
-    children : FileSystemEntry[];
+    children: FileSystemEntry[];
 }
 
 export class Directory extends FileSystemEntry implements brackets.Directory {
-    children : FileSystemEntry[];
+    children: FileSystemEntry[];
     constructor(options: DirectoryOptions) {
         super();
         this.isDirectory = true;
         this.isFile = false;
         if (!options) {
-            throw new  Error('options manadatory')
+            throw new  Error('options manadatory');
         }
         this.name = options.name;
         this.fullPath = this.name;
@@ -312,14 +311,16 @@ export class Directory extends FileSystemEntry implements brackets.Directory {
         callback(null, null);
     }
     
-    getContents(callback: (err: string, files: FileSystemEntry[], stats: brackets.FileSystemStats, errors: { [path: string]: string; }) => any) {
-        callback(null, this.children , null, null)
+    getContents(
+        callback: (err: string, files: FileSystemEntry[], stats: brackets.FileSystemStats, errors: { [path: string]: string; }) => any
+    ) {
+        callback(null, this.children , null, null);
     }
     
     remove(entry: FileSystemEntry) {
         var index = this.children.indexOf(entry);
         if (index !== -1) {
-            this.children.splice(index, 1)
+            this.children.splice(index, 1);
         }
     }
     
@@ -332,18 +333,18 @@ export class Directory extends FileSystemEntry implements brackets.Directory {
 export class ProjectManager {
     
     constructor(
-        private fs:FileSystem
-    ){}
+        private fs: FileSystem
+    ) {}
     
     async: boolean = false;
     
-    getAllFiles(filter? : (file: brackets.File) => boolean, includeWorkingSet? : boolean)  {
+    getAllFiles(filter?: (file: brackets.File) => boolean, includeWorkingSet?: boolean)  {
         var deferred = $.Deferred<brackets.File[]>(),
             files: brackets.File[] = [];
         var resolve = () => {
             this.fs.root.visit(entry => {
                 if (entry.isFile) {
-                    files.push(<brackets.File> entry)
+                    files.push(<brackets.File> entry);
                 }
                 return true;
             }, null, () => {
@@ -368,12 +369,12 @@ export class Document {
     getText(useOriginalLineEndings?: boolean): string {
         return this.lines.join('/n');
     }
-    replaceRange(text: string, start: CodeMirror.Position, end?: CodeMirror.Position, origin? :string):void {
+    replaceRange(text: string, start: CodeMirror.Position, end?: CodeMirror.Position, origin?: string): void {
     
     }
 
     getLine(index: number): string {
-        return this.lines[index]
+        return this.lines[index];
     }
 
 }

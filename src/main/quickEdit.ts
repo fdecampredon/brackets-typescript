@@ -35,7 +35,7 @@ class TypeScriptQuickEditProvider extends ServiceConsumer<definition.IDefinition
         if (sel.start.line !== sel.end.line) {
             return null;
         }
-        var deferred = $.Deferred()
+        var deferred = $.Deferred();
         this.getService().then(service => {
             var fileName = hostEditor.document.file.fullPath;
             service.getDefinitionForFile(fileName, pos).then(definitions => {
@@ -44,7 +44,7 @@ class TypeScriptQuickEditProvider extends ServiceConsumer<definition.IDefinition
                 }
 
 
-                definitions.filter(definition => definition.fileName !== fileName || definition.lineStart !== pos.line)
+                definitions.filter(definition => definition.fileName !== fileName || definition.lineStart !== pos.line);
                 if (definitions.length === 0) {
                     deferred.reject();
                 }
@@ -60,21 +60,21 @@ class TypeScriptQuickEditProvider extends ServiceConsumer<definition.IDefinition
                             lineStart: definition.lineStart,  
                             lineEnd: definition.lineEnd,
                             fileName: definition.fileName
-                        })    
+                        });    
                     }));
-                })
+                });
 
-                return $.when.apply($,promises).then(()=> {
+                return $.when.apply($, promises).then(() => {
                     var inlineEditor = new MultiRangeInlineEditor(ranges);
                     inlineEditor.load(hostEditor);
                     deferred.resolve(inlineEditor);
                 });
             }).catch(e => {
-                deferred.reject()
-            })
-        })    
+                deferred.reject();
+            });
+        });    
         return deferred.promise();
-    }
+    };
 }
 
 export = TypeScriptQuickEditProvider;

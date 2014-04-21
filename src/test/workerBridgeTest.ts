@@ -19,7 +19,7 @@
 import WorkerBridge = require('../commons/workerBridge');
 import signal = require('../commons/signal');
 import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;;
+import Promise = es6Promise.Promise;
 
 class FakeWorker {
     private initialized: boolean;
@@ -32,7 +32,7 @@ class FakeWorker {
         
     }
     postMessage(message: any): void {
-        if(!this.initialized) {
+        if (!this.initialized) {
             this.init();
         }
         setTimeout(() => {
@@ -53,11 +53,11 @@ class FakeWorker {
                 if (this.onmessage) {
                     this.onmessage({ data: JSON.parse(JSON.stringify(message)) });
                 }
-            }, 0)
-        }
+            }, 0);
+        };
         
-        var workerContext: any = { postMessage: workerPostMessage }
-        this.source.call( workerContext , workerPostMessage)
+        var workerContext: any = { postMessage: workerPostMessage };
+        this.source.call( workerContext , workerPostMessage);
         this.workerOnMessage = workerContext.onmessage;
         this.initialized = true;
     }
@@ -95,7 +95,7 @@ describe('bridge', function () {
             }
         });
         
-        waitsFor(()=> spy.callCount === 1, 'spy should have been called', 100);
+        waitsFor(() => spy.callCount === 1, 'spy should have been called', 100);
         
     });
     
@@ -107,7 +107,7 @@ describe('bridge', function () {
                 myService: {
                     myMethod: spy
                 }
-            })
+            });
         });
         
         
@@ -115,7 +115,7 @@ describe('bridge', function () {
             services.myService.myMethod();
         });
         
-        waitsFor(()=> spy.callCount === 1, 'spy should have been called', 100);
+        waitsFor(() => spy.callCount === 1, 'spy should have been called', 100);
         
     });
     
@@ -129,16 +129,16 @@ describe('bridge', function () {
                         return 10;
                     }
                 }
-            })
+            });
         });
         
         var serviceResult: number;
         
         createBridge(worker, {}).then(services => {
-            services.myService.myMethod().then( (result:any) => serviceResult = result);
+            services.myService.myMethod().then( (result: any) => serviceResult = result);
         });
         
-        waitsFor(()=> !!serviceResult, 'serviceResult should have been set', 100);
+        waitsFor(() => !!serviceResult, 'serviceResult should have been set', 100);
         runs(function () {
             expect(serviceResult).toBe(10);
         });
@@ -151,21 +151,21 @@ describe('bridge', function () {
             createBridge(this, {
                 myService: {
                     myMethod: function () {
-                        return new Promise(resolve =>{
-                            resolve(10)
-                        })
+                        return new Promise(resolve => {
+                            resolve(10);
+                        });
                     }
                 }
-            })
+            });
         });
         
         var serviceResult: number;
         
         createBridge(worker, {}).then(services => {
-            services.myService.myMethod().then( (result:any) => serviceResult = result);
+            services.myService.myMethod().then( (result: any) => serviceResult = result);
         });
         
-        waitsFor(()=> !!serviceResult, 'serviceResult should have been set', 100);
+        waitsFor(() => !!serviceResult, 'serviceResult should have been set', 100);
         runs(function () {
             expect(serviceResult).toBe(10);
         });
@@ -181,16 +181,16 @@ describe('bridge', function () {
                         return a + b;
                     }
                 }
-            })
+            });
         });
         
         var serviceResult: number;
         
         createBridge(worker, {}).then(services => {
-            services.myService.myMethod(2, 3).then( (result:any) => serviceResult = result);
+            services.myService.myMethod(2, 3).then( (result: any) => serviceResult = result);
         });
         
-        waitsFor(()=> !!serviceResult, 'serviceResult should have been set', 100);
+        waitsFor(() => !!serviceResult, 'serviceResult should have been set', 100);
         runs(function () {
             expect(serviceResult).toBe(5);
         });
@@ -206,7 +206,7 @@ describe('bridge', function () {
                         throw new Error('my error message');
                     }
                 }
-            })
+            });
         });
         
         var serviceError: Error;
@@ -215,7 +215,7 @@ describe('bridge', function () {
             services.myService.myMethod().then( undefined, (error: any) => serviceError = error);
         });
         
-        waitsFor(()=> !!serviceError, 'errorMessage should have been set', 100);
+        waitsFor(() => !!serviceError, 'errorMessage should have been set', 100);
         runs(function () {
             expect(serviceError instanceof Error).toBe(true);
             expect(serviceError.message).toBe('my error message');
@@ -231,7 +231,7 @@ describe('bridge', function () {
                         return new Promise((resolve, reject) => reject('my error'));
                     }
                 }
-            })
+            });
         });
         
          var serviceError: Error;
@@ -240,7 +240,7 @@ describe('bridge', function () {
             services.myService.myMethod().then( undefined, (error: any) => serviceError = error);
         });
         
-        waitsFor(()=> !!serviceError, 'errorMessage should have been set', 100);
+        waitsFor(() => !!serviceError, 'errorMessage should have been set', 100);
         runs(function () {
             expect(serviceError instanceof Error).toBe(true);
             expect(serviceError.message).toBe('my error');
@@ -249,27 +249,27 @@ describe('bridge', function () {
     
     
      
-    it('if a service expose a signal, the proxied service should expose a signal that is synchronized with the original service', function () {
+    it('if a service expose a signal, the proxied service should expose a signal that ' +
+            'is synchronized with the original service', function () {
         
-        var workerSignal = new signal.Signal()
         worker = new FakeWorker(function (postMessage) {
             createBridge(this, {
                 signal: new signal.Signal()
-            })
+            });
         });
         
         var exposedSignal: signal.Signal<string>,
-            spy = jasmine.createSpy('onNext')
+            spy = jasmine.createSpy('onNext');
         
         createBridge(worker, {}).then(services => {
-            exposedSignal = services.signal
+            exposedSignal = services.signal;
         });
         
-        waitsFor(()=> !!exposedSignal,  'workerSignal should have been set', 100);
+        waitsFor(() => !!exposedSignal,  'workerSignal should have been set', 100);
         runs(function () {
             exposedSignal.add(spy);
-            exposedSignal.dispatch('hello')
-            exposedSignal.dispatch('world')
+            exposedSignal.dispatch('hello');
+            exposedSignal.dispatch('world');
         });
         waits(100);
         runs(function () {

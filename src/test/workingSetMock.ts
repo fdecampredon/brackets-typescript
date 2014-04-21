@@ -19,7 +19,7 @@
 import ws = require('../commons/workingSet');
 import signal = require('../commons/signal');
 import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;;
+import Promise = es6Promise.Promise;
 
 class WorkingSetMock implements ws.IWorkingSet {
     files: string [] = [];
@@ -45,7 +45,7 @@ class WorkingSetMock implements ws.IWorkingSet {
     
     
     removeFiles(paths: string[]) {
-        this.files = this.files.filter(path => paths.indexOf(path) === -1)
+        this.files = this.files.filter(path => paths.indexOf(path) === -1);
         this.workingSetChanged.dispatch({
             kind: ws.WorkingSetChangeKind.REMOVE,
             paths: paths

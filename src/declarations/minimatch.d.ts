@@ -50,13 +50,15 @@ interface MiniMatchOptions {
 
     
     /** 
-     * When a match is not found by minimatch.match, return a list containing the pattern itself. When set, an empty list is returned if there are no matches.
+     * When a match is not found by minimatch.match, return a list containing the pattern itself. 
+     * When set, an empty list is returned if there are no matches.
      */
     nonull?: boolean;
 
     
     /** 
-     * If set, then patterns without slashes will be matched against the basename of the path if it contains slashes. For example, a?b would match the path /xyz/123/acb, but not /xyz/acb/123.
+     * If set, then patterns without slashes will be matched against the basename of the path if it contains slashes. 
+     * For example, a?b would match the path /xyz/123/acb, but not /xyz/acb/123.
      */
     matchBase?: boolean;
 
@@ -85,7 +87,7 @@ interface MiniMatchStatic {
     filter(pattern: string, options?: MiniMatchOptions): { (path: string): boolean };
 }
 
-declare module "minimatch" {
+declare module 'minimatch' {
     var minimatch: MiniMatchStatic;
     export = minimatch;
 }

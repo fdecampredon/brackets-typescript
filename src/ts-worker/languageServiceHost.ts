@@ -40,7 +40,7 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
      * @param fileName the absolute path of the file
      * @param content the file content
      */
-    addScript(fileName: string, content:string) {
+    addScript(fileName: string, content: string) {
         var script = new ScriptInfo(fileName, content);
         this.fileNameToScript.set(fileName, script);
     }
@@ -75,7 +75,7 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
             script.updateContent(content);
             return;
         }
-        throw new Error("No script with name '" + fileName + "'");
+        throw new Error('No script with name \'' + fileName + '\'');
     }
 
     /**
@@ -93,7 +93,7 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
             return;
         }
 
-        throw new Error("No script with name '" + fileName + "'");
+        throw new Error('No script with name \'' + fileName + '\'');
     }
     
     /**
@@ -105,11 +105,11 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
     setScriptIsOpen(fileName: string, isOpen: boolean) {
         var script = this.fileNameToScript.get(fileName);
         if (script) {
-            script.isOpen = isOpen
+            script.isOpen = isOpen;
             return;
         }
 
-        throw new Error("No script with name '" + fileName + "'");
+        throw new Error('No script with name \'' + fileName + '\'');
     }
     
     /**
@@ -143,7 +143,7 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
     getIndexFromPos(fileName: string, position: CodeMirror.Position): number {
         var script = this.fileNameToScript.get(fileName);
         if (script) {
-            return script.getPositionFromLine(position.line, position.ch)
+            return script.getPositionFromLine(position.line, position.ch);
         }
         return -1;
     }
@@ -161,7 +161,7 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
             return {
                 ch: tsPosition.character,
                 line: tsPosition.line
-            }
+            };
         }
         return null;
     }
@@ -212,11 +212,11 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
     }
 
     getDiagnosticsObject(): TypeScript.Services.ILanguageServicesDiagnostics {
-        return new LanguageServicesDiagnostics("");
+        return new LanguageServicesDiagnostics('');
     }
 
     getLocalizedDiagnosticMessages(): string {
-        return "";
+        return '';
     }
 
     fileExists(s: string) {
@@ -256,7 +256,8 @@ class ScriptInfo {
      * @param isOpen the open status of the script
      * @param byteOrderMark
      */
-    constructor(fileName: string, content: string, isOpen = false, byteOrderMark: TypeScript.ByteOrderMark = TypeScript.ByteOrderMark.None) {
+    constructor(fileName: string, content: string, isOpen = false, 
+                byteOrderMark: TypeScript.ByteOrderMark = TypeScript.ByteOrderMark.None) {
         this.fileName = fileName;
         this.content = content;
         this.isOpen = isOpen;
@@ -320,7 +321,7 @@ class ScriptInfo {
      */
     getLineAndColForPositon(position: number) {
         var lineAndChar = { line: -1, character: -1};
-        this.lineMap.fillLineAndCharacterFromPosition(position, lineAndChar)
+        this.lineMap.fillLineAndCharacterFromPosition(position, lineAndChar);
         return lineAndChar;
     }
     

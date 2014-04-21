@@ -1,4 +1,5 @@
 {
+    "spaceUnits": 4,
     "typescript": {
         "target": "ES5",
         "module": "AMD",

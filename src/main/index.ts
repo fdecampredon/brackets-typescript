@@ -20,7 +20,7 @@ import WorkingSet = require('./workingSet');
 import TypeScriptPreferencesManager = require('./preferencesManager');
 import WorkerBridge = require('../commons/workerBridge');
 import TypeScriptErrorReporter = require('./errorReporter');
-import TypeScriptConfigErrorReporter = require('./configErrorReporter')
+import TypeScriptConfigErrorReporter = require('./configErrorReporter');
 import TypeScriptQuickEditProvider = require('./quickEdit');
 import TypeScriptQuickJumpProvider = require('./quickJump');
 import TypeScriptQuickFindDefitionProvider = require('./quickFindDefinition');
@@ -45,11 +45,11 @@ var LanguageManager = brackets.getModule('language/LanguageManager'),
     EditorManager = brackets.getModule('editor/EditorManager'),
     QuickOpen = brackets.getModule('search/QuickOpen'),
     PreferencesManager = brackets.getModule('preferences/PreferencesManager'),
-    CodeMirror: typeof CodeMirror = brackets.getModule("thirdparty/CodeMirror2/lib/codemirror");
+    CodeMirror: typeof CodeMirror = brackets.getModule('thirdparty/CodeMirror2/lib/codemirror');
 
-var tsErrorReporter : TypeScriptErrorReporter,
+var tsErrorReporter: TypeScriptErrorReporter,
     quickEditProvider: TypeScriptQuickEditProvider,
-    codeHintProvider : CodeHintProvider,
+    codeHintProvider: CodeHintProvider,
     quickJumpProvider: TypeScriptQuickJumpProvider,
     quickFindDefinitionProvider: TypeScriptQuickFindDefitionProvider;
     
@@ -61,7 +61,7 @@ var fileSystem: FileSystem,
     preferencesManager: TypeScriptPreferencesManager,
     bridge: WorkerBridge;
 
-function init(config: { logLevel: string; typeScriptLocation: string; workerLocation: string;}) {
+function init(config: { logLevel: string; typeScriptLocation: string; workerLocation: string; }) {
     logger.setLogLevel(config.logLevel);
     CodeMirror.defineMode('typescript', typeScriptModeFactory); 
 
@@ -84,7 +84,7 @@ function init(config: { logLevel: string; typeScriptLocation: string; workerLoca
     
     //Register quickJump
     quickJumpProvider = new TypeScriptQuickJumpProvider();
-    EditorManager.registerJumpToDefProvider(quickJumpProvider.handleJumpToDefinition)
+    EditorManager.registerJumpToDefProvider(quickJumpProvider.handleJumpToDefinition);
     
       
     //Register error provider

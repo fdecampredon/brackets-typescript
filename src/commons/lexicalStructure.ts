@@ -22,21 +22,21 @@ import Promise = es6Promise.Promise;
 /**
  * Represent a Lexical Structure item
  */
-export interface LexicalStructureItem { 
+export interface LexicalStructureItem {
     /**
      * Name of the item
      */
-    name: string; 
+    name: string;
     
     /**
      * Name of the item container
      */
-    containerName:string; 
+    containerName: string;
     
     /**
      * Position of the item in the file
      */
-    position: CodeMirror.Position; 
+    position: CodeMirror.Position;
 }
 
 /**

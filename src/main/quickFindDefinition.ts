@@ -18,7 +18,6 @@
 
 import ServiceConsumer = require('./serviceConsumer');
 import ls = require('../commons/lexicalStructure');
-import WorkingSet = require('./workingSet')
 
 var EditorManager = brackets.getModule('editor/EditorManager'),
     QuickOpen    = brackets.getModule('search/QuickOpen');
@@ -27,7 +26,7 @@ var EditorManager = brackets.getModule('editor/EditorManager'),
 class Session {
     constructor(
         public items: ls.LexicalStructureItem[]
-    ){}
+    ) {}
 } 
 
 
@@ -38,45 +37,45 @@ class TypeScriptQuickFindDefitionProvider extends ServiceConsumer<ls.ILexicalStr
     
     
     name = 'TypeScriptQuickFindDefitionProvider';
-    languageIds = ["typescript"];    
+    languageIds = ['typescript'];    
     label = 'TypeScript';
     
     match(query: string) {
-        return query.indexOf("@") === 0;
+        return query.indexOf('@') === 0;
     }
     
     search = (request: string, stringMatcher: brackets.StringMatcher) =>  {
-        request = request.slice(request.indexOf("@") + 1, request.length);
+        request = request.slice(request.indexOf('@') + 1, request.length);
         return this.getSession().then(session => {
             return session.items.filter(item => {
                 return !!stringMatcher.match(item.name, request);
             });
         });
-    }
+    };
     
     done = () => {
         this.session = null;
-    }
+    };
     
     itemSelect = (item: TypeScriptQuickFindDefitionProvider.LexicalStructureItem) => {
         this.itemFocus(item);
-    }
+    };
     
     itemFocus = (item: TypeScriptQuickFindDefitionProvider.LexicalStructureItem) => {
         this.setCurrentPosition(item.position);
-    }
+    };
     
     resultsFormatter(item: TypeScriptQuickFindDefitionProvider.LexicalStructureItem) {
         var displayName = QuickOpen.highlightMatch(item.name);
         displayName = item.containerName ? item.containerName + '.' + displayName : displayName;
-        return "<li>" + displayName + "</li>";
+        return '<li>' + displayName + '</li>';
     }
     
     
     private getSession(): JQueryPromise<Session> {
         return $.Deferred(deferred => {
             if (this.session) {
-                deferred.resolve(this.session)
+                deferred.resolve(this.session);
             } else {
                 this.getService().then(lexicalStructureService => {
                     var editor = EditorManager.getActiveEditor(),
@@ -91,14 +90,14 @@ class TypeScriptQuickFindDefitionProvider extends ServiceConsumer<ls.ILexicalStr
     }
     
     private setCurrentPosition(pos: CodeMirror.Position) {
-        EditorManager.getActiveEditor().setCursorPos(pos.line, pos.ch, true, true)
+        EditorManager.getActiveEditor().setCursorPos(pos.line, pos.ch, true, true);
     }
 }
 
 module TypeScriptQuickFindDefitionProvider {
     export interface LexicalStructureItem {
         name: string; 
-        containerName:string;
+        containerName: string;
         position: CodeMirror.Position;
     }
 }

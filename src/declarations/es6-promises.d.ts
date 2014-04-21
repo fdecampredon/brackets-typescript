@@ -3,6 +3,7 @@
 // Definitions by: François de Campredon <https://github.com/fdecampredon/>
 // Definitions: https://github.com/borisyankov/DefinitelyTyped
 
+/*tslint:disable unused*/
 declare module 'es6-promise' {
     export interface Thenable<R> {
         then<U>(onFulfilled: (value: R) => Thenable<U>,  onRejected: (error: any) => Thenable<U>): Thenable<U>;
@@ -19,7 +20,7 @@ declare module 'es6-promise' {
          * For consistency and debugging (eg stack traces), obj should be an instanceof Error. 
          * Any errors thrown in the constructor callback will be implicitly passed to reject().
          */
-        constructor(callback: (resolve : (result: R) => void, reject: (error: any) => void) => void);
+        constructor(callback: (resolve: (result: R) => void, reject: (error: any) => void) => void);
         /**
          * If you call resolve in the body of the callback passed to the constructor, 
          * your promise will be fulfilled/rejected with the outcome of thenable passed to resolve.
@@ -27,14 +28,15 @@ declare module 'es6-promise' {
          * For consistency and debugging (eg stack traces), obj should be an instanceof Error. 
          * Any errors thrown in the constructor callback will be implicitly passed to reject().
          */
-        constructor(callback: (resolve : (thenable: Thenable<R>) => void, reject: (error: any) => void) => void);
+        constructor(callback: (resolve: (thenable: Thenable<R>) => void, reject: (error: any) => void) => void);
 
 
         /**
          * onFulFill is called when/if "promise" resolves. onRejected is called when/if "promise" rejects. 
          * Both are optional, if either/both are omitted the next onFulfilled/onRejected in the chain is called. 
          * Both callbacks have a single parameter , the fulfillment value or rejection reason. 
-         * "then" returns a new promise equivalent to the value you return from onFulfilled/onRejected after being passed through Promise.resolve. 
+         * "then" returns a new promise equivalent to the value you return from onFulfilled/onRejected after 
+         * being passed through Promise.resolve. 
          * If an error is thrown in the callback, the returned promise rejects with that error.
          * 
          * @param onFulFill called when/if "promise" resolves
@@ -45,7 +47,8 @@ declare module 'es6-promise' {
          * onFulFill is called when/if "promise" resolves. onRejected is called when/if "promise" rejects. 
          * Both are optional, if either/both are omitted the next onFulfilled/onRejected in the chain is called. 
          * Both callbacks have a single parameter , the fulfillment value or rejection reason. 
-         * "then" returns a new promise equivalent to the value you return from onFulfilled/onRejected after being passed through Promise.resolve. 
+         * "then" returns a new promise equivalent to the value you return from onFulfilled/onRejected after 
+         * being passed through Promise.resolve. 
          * If an error is thrown in the callback, the returned promise rejects with that error.
          * 
          * @param onFulFill called when/if "promise" resolves
@@ -56,7 +59,8 @@ declare module 'es6-promise' {
          * onFulFill is called when/if "promise" resolves. onRejected is called when/if "promise" rejects. 
          * Both are optional, if either/both are omitted the next onFulfilled/onRejected in the chain is called. 
          * Both callbacks have a single parameter , the fulfillment value or rejection reason. 
-         * "then" returns a new promise equivalent to the value you return from onFulfilled/onRejected after being passed through Promise.resolve. 
+         * "then" returns a new promise equivalent to the value you return from onFulfilled/onRejected after 
+         * being passed through Promise.resolve. 
          * If an error is thrown in the callback, the returned promise rejects with that error.
          * 
          * @param onFulFill called when/if "promise" resolves
@@ -67,7 +71,8 @@ declare module 'es6-promise' {
          * onFulFill is called when/if "promise" resolves. onRejected is called when/if "promise" rejects. 
          * Both are optional, if either/both are omitted the next onFulfilled/onRejected in the chain is called. 
          * Both callbacks have a single parameter , the fulfillment value or rejection reason. 
-         * "then" returns a new promise equivalent to the value you return from onFulfilled/onRejected after being passed through Promise.resolve. 
+         * "then" returns a new promise equivalent to the value you return from onFulfilled/onRejected after 
+         * being passed through Promise.resolve. 
          * If an error is thrown in the callback, the returned promise rejects with that error.
          * 
          * @param onFulFill called when/if "promise" resolves
@@ -105,7 +110,8 @@ declare module 'es6-promise' {
         /**
          * Make a new promise from the thenable. 
          * A thenable is promise-like in as far as it has a "then" method. 
-         * This also creates a new promise if you pass it a genuine JavaScript promise, making it less efficient for casting than Promise.cast.
+         * This also creates a new promise if you pass it a genuine JavaScript promise, 
+         * making it less efficient for casting than Promise.cast.
          */
         function resolve<R>(thenable: Thenable<R>): Promise<R>;
         /**

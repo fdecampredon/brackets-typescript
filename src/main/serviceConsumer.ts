@@ -15,7 +15,7 @@
 'use strict';
 
 import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;;
+import Promise = es6Promise.Promise;
 
 /**
  * a class implementing logic to stack operations until a service 
@@ -31,7 +31,7 @@ class ServiceConsumer<T>   {
     /**
      * internal promise 
      */
-    private promise: Promise<T>
+    private promise: Promise<T>;
     
     /**
      * constructor
@@ -60,7 +60,7 @@ class ServiceConsumer<T>   {
      * reset the injection
      */
     reset() {
-        this.promise = new Promise(resolve => this.serviceResolver = resolve)
+        this.promise = new Promise(resolve => this.serviceResolver = resolve);
     }
 }
 

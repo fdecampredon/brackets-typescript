@@ -22,21 +22,19 @@ import FileSystemMock = require('./fileSystemMock');
 import WorkingSetMock = require('./workingSetMock');
 import utils = require('../commons/typeScriptUtils');
 
-declare var __dirname: string;
 
 describe('TypeScriptProject', function () {
     
     var fileSystemMock: FileSystemMock,
-        typeScriptProjectSpy: jasmine.Spy,
         workingSetMock: WorkingSetMock,
         typeScriptProject: TypeScriptProject;
     
     beforeEach(function () {
         fileSystemMock = new FileSystemMock(),
         workingSetMock = new WorkingSetMock();
-    })
+    });
     
-    var defaultLibLocation =  '/lib.d.ts'
+    var defaultLibLocation =  '/lib.d.ts';
     function createProject(baseDir: string, config: TypeScriptProjectConfig, init = true) {
         typeScriptProject = new TypeScriptProject(
             baseDir, 
@@ -73,8 +71,8 @@ describe('TypeScriptProject', function () {
     
     
     function getProjectFileContent(fileName: string) {
-        var snapshot = typeScriptProject.getLanguageServiceHost().getScriptSnapshot(fileName)
-        return snapshot.getText(0, snapshot.getLength())
+        var snapshot = typeScriptProject.getLanguageServiceHost().getScriptSnapshot(fileName);
+        return snapshot.getText(0, snapshot.getLength());
     }
     describe('initialization', function () {
      
@@ -95,7 +93,7 @@ describe('TypeScriptProject', function () {
                     'src/**/*ts'
                 ]
             });
-            waits(20)
+            waits(20);
             runs(function () {
                  expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/root/file1.ts',
@@ -103,8 +101,7 @@ describe('TypeScriptProject', function () {
                     '/root/project/src/file4.ts',
                     '/root/project/src/dir/file5.ts'
                 ]);    
-            })
-           
+            });
         });
         
         it('should collect every files referenced or imported by files in the source ', function () {
@@ -121,7 +118,7 @@ describe('TypeScriptProject', function () {
                     'src/**/*ts'
                 ]
             });
-            waits(20)
+            waits(20);
             runs(function () {
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file1.ts',
@@ -142,12 +139,12 @@ describe('TypeScriptProject', function () {
             
             
             fileSystemMock.addFile('/src/file1.ts', '');
-            waits(20)
+            waits(20);
             runs(function () {
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file1.ts'
                 ]);
-            })
+            });
         });
         
         
@@ -165,7 +162,7 @@ describe('TypeScriptProject', function () {
             
             fileSystemMock.addFile('/src/file1.ts', 'import test = require("../other/file3")');
             
-            waits(20)
+            waits(20);
             runs(function () {
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file1.ts',
@@ -188,14 +185,13 @@ describe('TypeScriptProject', function () {
             });
             
             fileSystemMock.addFile('/other/file2.ts', '');
-            waits(20)
+            waits(20);
             runs(function () {
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file1.ts',
                     '/other/file2.ts'
                 ]);
-            })
-        
+            });
         });
         
         it('should remove files from project when they are deleted', function () {
@@ -211,12 +207,12 @@ describe('TypeScriptProject', function () {
             });
             
             fileSystemMock.removeFile('/src/file1.ts');
-            waits(20)
+            waits(20);
             runs(function () {
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file2.ts'
                 ]);
-            })
+            });
         });
         
         it('should remove referenced files from the project when a source file referencing it is deleted', function () {
@@ -234,7 +230,7 @@ describe('TypeScriptProject', function () {
             });
             
             fileSystemMock.removeFile('/src/file1.ts');
-            waits(20)
+            waits(20);
             runs(function () {
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file2.ts'
@@ -258,13 +254,13 @@ describe('TypeScriptProject', function () {
             });
             
             fileSystemMock.removeFile('/src/file1.ts');
-            waits(20)
+            waits(20);
             runs(function () {
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file2.ts',
                     '/other/file3.ts'
                 ]);
-            })
+            });
         });
         
         
@@ -282,13 +278,13 @@ describe('TypeScriptProject', function () {
             });
             
             fileSystemMock.removeFile('/other/file3.ts');
-            waits(20)
+            waits(20);
             runs(function () {
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file1.ts',
                     '/src/file2.ts'
                 ]);
-            })
+            });
         });
         
         
@@ -306,16 +302,16 @@ describe('TypeScriptProject', function () {
             });
             
             fileSystemMock.removeFile('/other/file3.ts');
-            fileSystemMock.addFile('/other/file3.ts','');
+            fileSystemMock.addFile('/other/file3.ts', '');
             
-            waits(20)
+            waits(20);
             runs(function () {  
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file1.ts',
                     '/src/file2.ts',
                     '/other/file3.ts'
                 ]);
-            })
+            });
         });
         
         
@@ -357,7 +353,7 @@ describe('TypeScriptProject', function () {
                     '/src/file1.ts',
                     '/other/file2.ts'
                 ]);
-            })
+            });
         });
         
         
@@ -379,7 +375,7 @@ describe('TypeScriptProject', function () {
                 expectToBeEqualArray(typeScriptProject.getProjectFilesSet().values, [
                     '/src/file1.ts'
                 ]); 
-            })
+            });
         });
         
         it('should add the default library if noLib is not specified or false', function () {
@@ -393,7 +389,7 @@ describe('TypeScriptProject', function () {
                     'src/**/*ts'
                 ]
             });
-            waits(20)
+            waits(20);
             runs(function () {
                 expect(typeScriptProject.getProjectFilesSet().has(defaultLibLocation)).toBe(true);
             });
@@ -414,7 +410,7 @@ describe('TypeScriptProject', function () {
             waits(20);
             runs(function () {
                 expect(typeScriptProject.getProjectFilesSet().has(defaultLibLocation)).toBeFalsy();
-            })
+            });
          });
         
         
@@ -443,8 +439,8 @@ describe('TypeScriptProject', function () {
 
             waits(50);
             runs(function () {
-                expect(typeScriptProject.getLanguageService()).toEqual({id: "hello"})
-            })
+                expect(typeScriptProject.getLanguageService()).toEqual({id: 'hello'});
+            });
         });
         
     });
@@ -466,7 +462,7 @@ describe('TypeScriptProject', function () {
                     'src/file1.ts'
                 ]
             });
-            waits(15);
+            waits(20);
         });
         
         function updateProject(config: TypeScriptProjectConfig) {
@@ -474,19 +470,19 @@ describe('TypeScriptProject', function () {
         }
         
         it('should update compilerOptions if compiler options does have changed', function () {
-           expect(typeScriptProject.getLanguageServiceHost().getCompilationSettings().codeGenTarget).toBe(TypeScript.LanguageVersion.EcmaScript5);
-           updateProject({
+            expect(typeScriptProject.getLanguageServiceHost().getCompilationSettings().codeGenTarget)
+                .toBe(TypeScript.LanguageVersion.EcmaScript5);
+            
+            updateProject({
                 target: 'es3',
                 module: 'commonjs',
-                sources : [
-                    'src/file1.ts'
-                ]
+                sources : [ 'src/file1.ts' ]
             });
-            
-            waits(15);
+            waits(20);
             
             runs(function () {
-               expect(typeScriptProject.getLanguageServiceHost().getCompilationSettings().codeGenTarget).toBe(TypeScript.LanguageVersion.EcmaScript3) ;
+                expect(typeScriptProject.getLanguageServiceHost().getCompilationSettings().codeGenTarget)
+                    .toBe(TypeScript.LanguageVersion.EcmaScript3);
             });
         }); 
         
@@ -498,7 +494,7 @@ describe('TypeScriptProject', function () {
                 sources : []
             });
             
-            waits(15);
+            waits(20);
             
             runs(function () {
                 expect(typeScriptProject.getProjectFilesSet().has('/src/file1.ts')).toBeFalsy();
@@ -516,7 +512,7 @@ describe('TypeScriptProject', function () {
                 ]
             });
             
-            waits(15);
+            waits(20);
             
             runs(function () {
                 expect(typeScriptProject.getProjectFilesSet().has('/src/file2.ts')).toBe(true);
@@ -525,7 +521,7 @@ describe('TypeScriptProject', function () {
         
         
         it('should remove project files that are not referenced anymore in the source', function () {
-            expect(typeScriptProject.getProjectFilesSet().has('/src/file3.ts')).toBe(true)
+            expect(typeScriptProject.getProjectFilesSet().has('/src/file3.ts')).toBe(true);
             updateProject({
                 target: 'es3',
                 module: 'commonjs',
@@ -534,7 +530,7 @@ describe('TypeScriptProject', function () {
                 ]
             });
             
-            waits(15);
+            waits(20);
             
             runs(function () {
                 expect(typeScriptProject.getProjectFilesSet().has('/src/file3.ts')).toBeFalsy();
@@ -552,7 +548,7 @@ describe('TypeScriptProject', function () {
                 ]
             });
             
-            waits(15);
+            waits(20);
             
             runs(function () {
                 expect(typeScriptProject.getProjectFilesSet().has('/src/file4.ts')).toBe(true);
@@ -568,7 +564,7 @@ describe('TypeScriptProject', function () {
                 sources : []
             });
             
-            waits(15);
+            waits(20);
             
             runs(function () {
                 expect(typeScriptProject.getProjectFilesSet().has('/lib.d.ts')).toBeFalsy();
@@ -580,7 +576,8 @@ describe('TypeScriptProject', function () {
             workingSetMock.files = [
                 '/src/file1.ts',
                 '/src/file2.ts'
-            ]
+            ];
+            
             updateProject({
                 target: 'es3',
                 module: 'commonjs',
@@ -589,7 +586,7 @@ describe('TypeScriptProject', function () {
                 ]
             });
             
-            waits(15);
+            waits(20);
             
             
             
@@ -600,7 +597,7 @@ describe('TypeScriptProject', function () {
         
         
         it('should reinitialize the project if typeScriptPath has changed', function () {
-            var spy = spyOn(typeScriptProject,'init').andCallThrough();
+            var spy = spyOn(typeScriptProject, 'init').andCallThrough();
             expect(typeScriptProject.getProjectFilesSet().has('/src/file2.ts')).toBeFalsy();
            
             updateProject({
@@ -628,10 +625,10 @@ describe('TypeScriptProject', function () {
                 ]
             });
             
-            waits(20)
+            waits(20);
             runs(function () {
                 expect(typeScriptProject.getProjectFileKind('/src/file1.ts')).toBe(TypeScriptProject.ProjectFileKind.SOURCE);
-            })
+            });
         });
         
         
@@ -647,10 +644,10 @@ describe('TypeScriptProject', function () {
                 ]
             });
             
-            waits(20)
+            waits(20);
             runs(function () {
-                expect(typeScriptProject.getProjectFileKind('/other/file2.ts')).toBe(TypeScriptProject.ProjectFileKind.REFERENCE)
-            })
+                expect(typeScriptProject.getProjectFileKind('/other/file2.ts')).toBe(TypeScriptProject.ProjectFileKind.REFERENCE);
+            });
         });
         
         it('should return \'NONE\' if the file is a nor a part of the project', function () {
@@ -665,10 +662,10 @@ describe('TypeScriptProject', function () {
                 ]
             });
             
-            waits(20)
+            waits(20);
             runs(function () {
                 expect(typeScriptProject.getProjectFileKind('/other/file2.ts')).toBe(TypeScriptProject.ProjectFileKind.NONE);
-            })
+            });
         });
         
     });
@@ -681,20 +678,20 @@ describe('TypeScriptProject', function () {
                 '/src/file2.ts': '',
                 '/src/file3.ts': '',
                 '/src/file4.ts': '',
-                '/src/file5.ts': '',
+                '/src/file5.ts': ''
             });
             
             workingSetMock.files = [
                 '/src/file1.ts',
                 '/src/file2.ts'
-            ]
+            ];
            
             createProject('/', {
                 sources : [
                     'src/**/*ts'
                 ]
             });
-            waits(15)
+            waits(20);
         });
         
         
@@ -703,19 +700,19 @@ describe('TypeScriptProject', function () {
         });
         
         it('should mark as \'open\' every file added to working set', function () {
-            workingSetMock.addFiles(['/src/file3.ts','/src/file4.ts']);
-            waits(20)
+            workingSetMock.addFiles(['/src/file3.ts', '/src/file4.ts']);
+            waits(20);
             runs(function () {
                 testWorkingSetOpenCorrespondance();
-            })
+            });
         });
         
         it('should mark as \'closed\' every file removed from the working set', function () {
             workingSetMock.removeFiles(['/src/file1.ts']);
-            waits(20)
+            waits(20);
             runs(function () {
                 testWorkingSetOpenCorrespondance();
-            })
+            });
         });
         
     });
@@ -730,7 +727,7 @@ describe('TypeScriptProject', function () {
             
             workingSetMock.files = [
                 '/src/file1.ts'
-            ]
+            ];
            
             createProject('/', {
                 sources : [
@@ -811,7 +808,7 @@ describe('TypeScriptProject', function () {
                     }],
                     documentText : 'console.warn(\'hello world\')'
                 });
-            })
+            });
             
             
             waits(20);

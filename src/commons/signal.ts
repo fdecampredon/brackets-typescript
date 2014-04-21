@@ -108,7 +108,6 @@ export class Signal<T> implements ISignal<T> {
      * @params parameter the parameter attached to the event dispatching
      */
     dispatch(parameter?: T): boolean {
-        var indexesToRemove: number[];
         var hasBeenCanceled = this.listeners.every((listener: (parameter: T) => any) =>  {
             var result = listener(parameter);
             return result !== false;

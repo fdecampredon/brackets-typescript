@@ -15,7 +15,7 @@
 'use strict';
 
 import TypeScriptProjectConfig = require('./projectConfig');
-import signal = require('./signal')
+import signal = require('./signal');
 import es6Promise = require('es6-promise');
 import Promise = es6Promise.Promise;
 

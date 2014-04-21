@@ -19,13 +19,12 @@
 import TypeScriptProjectManager = require('../ts-worker/projectManager');
 import TypeScriptProject = require('../ts-worker/project');
 import TypeScriptProjectConfig = require('../commons/projectConfig');
-import fs = require('../commons/fileSystem');
 import utils = require('../commons/utils');
 import collections = require('../commons/collections');
 import signal = require('../commons/signal');
 import FileSystemMock = require('./fileSystemMock');
 import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;;
+import Promise = es6Promise.Promise;
 
 
 describe('TypeScriptProjectManager', function () {
@@ -43,7 +42,7 @@ describe('TypeScriptProjectManager', function () {
             update: jasmine.Spy;
             dispose: jasmine.Spy;
         },
-        projectFactorySpy: jasmine.Spy
+        projectFactorySpy: jasmine.Spy;
     
     function initiProjectManager() {
          typeScriptProjectManager.init('', preferenceManagerMock, fileSystemMock, null, projectFactorySpy);
@@ -54,17 +53,16 @@ describe('TypeScriptProjectManager', function () {
         projectSpy = {
             init: jasmine.createSpy('init').andCallFake(function () {
                 return new Promise(resolve => {
-                    setTimeout(() => resolve(true), 10)
-                })
+                    setTimeout(() => resolve(true), 10);
+                });
             }),
             update: jasmine.createSpy('update').andCallFake(function () {
                 return new Promise(resolve => {
-                    setTimeout(() => resolve(true), 10)
-                })
+                    setTimeout(() => resolve(true), 10);
+                });
             }),
             dispose: jasmine.createSpy('dispose')
         };   
-        var i = 0;
         projectFactorySpy = jasmine.createSpy('newProject').andReturn(projectSpy);
         typeScriptProjectManager = new TypeScriptProjectManager();
        
@@ -79,7 +77,7 @@ describe('TypeScriptProjectManager', function () {
             projectConfigs = {
                 project1: { },
                 project2: { }
-            } 
+            }; 
 
          
             initiProjectManager();
@@ -87,7 +85,7 @@ describe('TypeScriptProjectManager', function () {
             waits(15);
             runs(function () {
                 expect(projectFactorySpy.callCount).toBe(2);
-            })
+            });
             
         });
 
@@ -98,23 +96,23 @@ describe('TypeScriptProjectManager', function () {
 
             projectConfigs = {
                 default: {}
-            }
+            };
 
             initiProjectManager();
             typeScriptProjectManager.dispose();
             waitsFor(() => projectSpy.dispose.callCount === 1, 'dispose should have been called');
             runs(function() {
                 expect(projectSpy.dispose.callCount).toBe(1);
-            })
+            });
         });
-    })
+    });
     
     describe('change handling', function () {
         it('should dispose projects that have no more config when config changes', function () {
             projectConfigs = {
                 project1: {},
                 project2: {}
-            } 
+            }; 
 
          
             initiProjectManager();
@@ -123,7 +121,7 @@ describe('TypeScriptProjectManager', function () {
             runs(function () {
                 projectConfigs = {
                     project1: {}
-                } 
+                }; 
 
                 preferenceManagerMock.configChanged.dispatch();
             });
@@ -131,7 +129,7 @@ describe('TypeScriptProjectManager', function () {
             waits(50);
             runs(function () {
                 expect(projectSpy.dispose.callCount).toBe(1);
-            })    
+            });    
         });
         
         
@@ -139,7 +137,7 @@ describe('TypeScriptProjectManager', function () {
             projectConfigs = {
                 project1: {},
                 project2: {}
-            } 
+            }; 
 
          
             initiProjectManager();
@@ -148,14 +146,14 @@ describe('TypeScriptProjectManager', function () {
                 project1: {},
                 project2: {},
                 project3: {}
-            } 
+            }; 
             
             preferenceManagerMock.configChanged.dispatch();
            
             waits(50);
             runs(function () {
                 expect(projectFactorySpy.callCount).toBe(3);
-            }) 
+            }); 
         });
         
         
@@ -163,7 +161,7 @@ describe('TypeScriptProjectManager', function () {
             projectConfigs = {
                 project1: {},
                 project2: {}
-            } 
+            }; 
 
          
             initiProjectManager();
@@ -173,22 +171,22 @@ describe('TypeScriptProjectManager', function () {
             waits(50);
             runs(function () {
                 expect(projectSpy.update.callCount).toBe(2);
-            })    
+            });    
         });
         
         
-    })
+    });
     
     
     
     describe('getProjectForFiles', function () { 
         beforeEach(function () {
-            var i = 0.
+            var i = 0;
             projectFactorySpy.andCallFake(function () {
                 var project = <any>utils.clone(projectSpy);
                 project.id = i++;
                 project.getProjectFileKind = function (file: string) {
-                    var map: {[index: string]: TypeScriptProject.ProjectFileKind}
+                    var map: {[index: string]: TypeScriptProject.ProjectFileKind};
                     if (project.id === 0) {
                         map = {
                             '/file1.ts': TypeScriptProject.ProjectFileKind.SOURCE,
@@ -209,25 +207,14 @@ describe('TypeScriptProjectManager', function () {
                     return map[file];
                 },
                 project.getProjectFilesSet = () => {
-                    var stringSet = new collections.StringSet()
+                    var stringSet = new collections.StringSet();
                     stringSet.add('/file3.ts');
                     return stringSet;
-                }
+                };
                 return project;
-            })
-            var dirConfig = {
-                module: 'amd',
-                sources: [
-                    './file1.ts'
-                ],
-                outDir: 'bin'
-            }, dir1Config = {
-                module: 'commonjs',
-                sources: [
-                    './file2.ts'
-                ],
-                outFile: 'index.js'
-            };
+            });
+            
+            
 
             projectConfigs = {
                 project1: {
@@ -244,7 +231,8 @@ describe('TypeScriptProjectManager', function () {
                     ],
                     outFile: 'index.js'
                 }
-            }
+            };
+            
             fileSystemMock.setFiles({
                 '/file1.ts': 'import file1 = require("file2")',
                 '/file2.ts': 'import file4 = require("file4")',
@@ -252,7 +240,7 @@ describe('TypeScriptProjectManager', function () {
                 '/file4.ts': ''
             });
             initiProjectManager();
-        })
+        });
         
         it('should return a project that have the file as source if this project exist ', function () {
             var project: any;
@@ -260,16 +248,17 @@ describe('TypeScriptProjectManager', function () {
             waitsFor(() => !!project, 'project should have been found');
             runs(function () {
                 expect(project.id).toBe(1);    
-            })
+            });
         });
         
-        it('should return a project that have the file has reference if this project exist and no project has the file as source', function () {
+        it('should return a project that have the file has reference if this project ' +
+                'exist and no project has the file as source', function () {
             var project: any;
             typeScriptProjectManager.getProjectForFile('/file4.ts').then(proj => project = proj);
             waitsFor(() => !!project, 'project should have been found');
             runs(function () {
                 expect(project.id).toBe(1);    
-            })
+            });
         });
         
         
@@ -279,28 +268,28 @@ describe('TypeScriptProjectManager', function () {
             waitsFor(() => !!project, 'project should have been found');
             runs(function () {
                 expect(project.id).toBe(2);    
-            })
+            });
         });
         
         it('should recreate a temp project if no project has file as source or reference nor the temp project', function () {
             var project: any;
-            typeScriptProjectManager.getProjectForFile('/file5.ts')
+            typeScriptProjectManager.getProjectForFile('/file5.ts');
             typeScriptProjectManager.getProjectForFile('/file5.ts').then(proj => project = proj);
             waitsFor(() => !!project, 'project should have been found');
             runs(function () {
                 expect(project.id).toBe(3);    
-            })
+            });
         });
         
         it('should not recreate a temp project if the temp project has file as source or reference', function () {
             var project: any;
-            typeScriptProjectManager.getProjectForFile('/file3.ts')
+            typeScriptProjectManager.getProjectForFile('/file3.ts');
             typeScriptProjectManager.getProjectForFile('/file3.ts').then(proj => project = proj);
             waitsFor(() => !!project, 'project should have been found');
             runs(function () {
                 expect(project.id).toBe(2);    
-            })
+            });
         });
-    })
+    });
     
-});    
+});

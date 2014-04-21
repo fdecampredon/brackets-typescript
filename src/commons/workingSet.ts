@@ -71,7 +71,7 @@ export interface WorkingSetChangeRecord {
     /**
      * list of paths that has been added or removed from the working set
      */
-    paths : string[];
+    paths: string[];
 }
 
 

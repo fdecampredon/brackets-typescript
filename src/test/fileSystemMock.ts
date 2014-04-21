@@ -19,7 +19,7 @@
 import fs = require('../commons/fileSystem');
 import signal = require('../commons/signal');
 import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;;
+import Promise = es6Promise.Promise;
 
 class FileSystem implements fs.IFileSystem {
     
@@ -34,7 +34,7 @@ class FileSystem implements fs.IFileSystem {
     
     getProjectFiles(forceRefresh?: boolean): Promise<string[]> {
         return new Promise(resolve => {
-            resolve(Object.keys(this.files))
+            resolve(Object.keys(this.files));
         });
     }
     

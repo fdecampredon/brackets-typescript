@@ -1,48 +1,50 @@
+/*tslint:disable unused*/
+
 declare function CodeMirror(host: HTMLElement, options?: CodeMirror.EditorConfiguration): CodeMirror.Editor;
 declare function CodeMirror(callback: (host: HTMLElement) => void , options?: CodeMirror.EditorConfiguration): CodeMirror.Editor;
 
 declare module CodeMirror {
     
     interface CodeMirrorStream {
-        eol() : boolean;
-        sol() : boolean;
-        peek() : string;
-        next() : string;
-        eat(match: string) : string;
-        eat(match: RegExp) : string;
-        eat(match:(char: string) =>boolean) : string;
-        eatWhile(match: string) : string;
-        eatWhile(match: RegExp) : string;
-        eatWhile(match:(char: string) =>boolean) : string;
-        eatSpace() : boolean;
+        eol(): boolean;
+        sol(): boolean;
+        peek(): string;
+        next(): string;
+        eat(match: string): string;
+        eat(match: RegExp): string;
+        eat(match: (char: string) => boolean): string;
+        eatWhile(match: string): string;
+        eatWhile(match: RegExp): string;
+        eatWhile(match: (char: string) => boolean): string;
+        eatSpace(): boolean;
         skipToEnd(): void;
-        skipTo(ch: string) : boolean;
-        match(pattern: string, consume?: boolean, caseFold?: boolean) : boolean;
-        match(pattern: RegExp, consume?: boolean) : string[];
+        skipTo(ch: string): boolean;
+        match(pattern: string, consume?: boolean, caseFold?: boolean): boolean;
+        match(pattern: RegExp, consume?: boolean): string[];
         backUp(n: number): void;
-        column() : number;
-        indentation() : number;
-        current() : string;
+        column(): number;
+        indentation(): number;
+        current(): string;
     
-        pos:number;
-        string:string;
+        pos: number;
+        string: string;
     }
     
     interface CodeMirrorMode<T> {
-        token(stream:CodeMirrorStream, state:T): void
+        token(stream: CodeMirrorStream, state: T): void;
         
-        startState?:() => T;
-        blankLine?:(state : T) => void;
-        copyState?:(state: T) => T;
+        startState?: () => T;
+        blankLine?: (state: T) => void;
+        copyState?: (state: T) => T;
         
-        indent?:(state: T, textAfter : string) => number
+        indent?: (state: T, textAfter: string) => number;
+  
+        lineComment?: string;
+        blockCommentStart?: string;
+        blockCommentEnd?: string;
+        blockCommentLead?: string;
     
-        lineComment? : string;
-        blockCommentStart ? : string;
-        blockCommentEnd ? : string;
-        blockCommentLead ? : string;
-    
-        electricChars ? : string
+        electricChars?: string
         
     }
     
@@ -52,11 +54,11 @@ declare module CodeMirror {
     }
     
     interface CodeMirrorModeFactory<T> {
-        (options:CodeMirror.EditorConfiguration, spec: any):CodeMirrorMode<T>
+        (options: CodeMirror.EditorConfiguration, spec: any): CodeMirrorMode<T>
     }
 
     function defineMode(id: string, modefactory: CodeMirrorModeFactory<any>): void;
-    function defineMIME(mime:string, modeId:string): void;
+    function defineMIME(mime: string, modeId: string): void;
     
     var Pass: any;
 
@@ -120,9 +122,11 @@ declare module CodeMirror {
     function on(marker: TextMarker, eventName: 'beforeCursorEnter', handler: () => void ): void;
     function off(marker: TextMarker, eventName: 'beforeCursorEnter', handler: () => void ): void;
 
-    /** Fired when the range is cleared, either through cursor movement in combination with clearOnEnter or through a call to its clear() method.
-    Will only be fired once per handle. Note that deleting the range through text editing does not fire this event,
-    because an undo action might bring the range back into existence. */
+    /** Fired when the range is cleared, either through cursor movement in combination with clearOnEnter or 
+     * through a call to its clear() method.
+     * Will only be fired once per handle. Note that deleting the range through text editing does not fire this event,
+     * because an undo action might bring the range back into existence. 
+     */
     function on(marker: TextMarker, eventName: 'clear', handler: () => void ): void;
     function off(marker: TextMarker, eventName: 'clear', handler: () => void ): void;
 
@@ -264,7 +268,7 @@ declare module CodeMirror {
             height: any;
             clientWidth: any;
             clientHeight: any;
-        }
+        };
     
         /** Scrolls the given element into view. pos is a { line , ch } position, referring to a given character, null, to refer to the cursor.
         The margin parameter is optional. When given, it indicates the amount of pixels around the given area that should be made visible as well. */
@@ -489,7 +493,7 @@ declare module CodeMirror {
 
         /** Replace the selection with the given string. By default, the new selection will span the inserted text.
         The optional collapse argument can be used to change this � passing "start" or "end" will collapse the selection to the start or end of the inserted text. */
-        replaceSelection(replacement: string, collapse?: string): void
+        replaceSelection(replacement: string, collapse?: string): void;
 
         /** start is a an optional string indicating which end of the selection to return.
         It may be "start" , "end" , "head"(the side of the selection that moves when you press shift + arrow),
@@ -778,7 +782,7 @@ declare module CodeMirror {
         /** Indicates how quickly CodeMirror should poll its input textarea for changes(when focused).
         Most input is captured by events, but some things, like IME input on some browsers, don't generate events that allow CodeMirror to properly detect it.
         Thus, it polls. Default is 100 milliseconds. */
-        pollInterval?: number
+        pollInterval?: number;
 
         /** By default, CodeMirror will combine adjacent tokens into a single span if they have the same class.
         This will result in a simpler DOM tree, and thus perform better. With some kinds of styling(such as rounded corners),
