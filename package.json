@@ -25,6 +25,6 @@
     "istanbulify": "~0.1.0",
     "es6-promise": "~0.1.1",
     "grunt-typescript": "~0.3.0",
-    "grunt-template-jasmine-istanbul": "~0.2.5"
+    "grunt-template-jasmine-istanbul": "~0.2.6"
   }
 }
