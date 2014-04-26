@@ -16,9 +16,8 @@
 
 
 import TypeScriptProjectManager = require('./projectManager');
-import es6Promise = require('es6-promise');
+import Promise = require('bluebird');
 import definition = require('../commons/definition');
-import Promise = es6Promise.Promise;
 
 
 /**

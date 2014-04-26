@@ -18,8 +18,7 @@
 
 import WorkerBridge = require('../commons/workerBridge');
 import signal = require('../commons/signal');
-import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;
+import Promise = require('bluebird');
 
 class FakeWorker {
     private initialized: boolean;

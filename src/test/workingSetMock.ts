@@ -18,8 +18,7 @@
 
 import ws = require('../commons/workingSet');
 import signal = require('../commons/signal');
-import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;
+import Promise = require('bluebird');
 
 class WorkingSetMock implements ws.IWorkingSet {
     files: string [] = [];

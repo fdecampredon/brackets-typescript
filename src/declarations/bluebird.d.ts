@@ -4,15 +4,8 @@
 // Definitions: https://github.com/borisyankov/DefinitelyTyped
 
 /*tslint:disable unused*/
-declare module 'es6-promise' {
-    export interface Thenable<R> {
-        then<U>(onFulfilled: (value: R) => Thenable<U>,  onRejected: (error: any) => Thenable<U>): Thenable<U>;
-        then<U>(onFulfilled: (value: R) => Thenable<U>, onRejected?: (error: any) => U): Thenable<U>;
-        then<U>(onFulfilled: (value: R) => U, onRejected: (error: any) => Thenable<U>): Thenable<U>;
-        then<U>(onFulfilled?: (value: R) => U, onRejected?: (error: any) => U): Thenable<U>;
-    }
-
-    export class Promise<R> implements Thenable<R> {
+declare module 'bluebird' {
+    class Promise<R> implements Promise.Thenable<R> {
         /**
          * If you call resolve in the body of the callback passed to the constructor, 
          * your promise is fulfilled with result object passed to resolve.
@@ -28,7 +21,7 @@ declare module 'es6-promise' {
          * For consistency and debugging (eg stack traces), obj should be an instanceof Error. 
          * Any errors thrown in the constructor callback will be implicitly passed to reject().
          */
-        constructor(callback: (resolve: (thenable: Thenable<R>) => void, reject: (error: any) => void) => void);
+        constructor(callback: (resolve: (thenable: Promise.Thenable<R>) => void, reject: (error: any) => void) => void);
 
 
         /**
@@ -42,7 +35,7 @@ declare module 'es6-promise' {
          * @param onFulFill called when/if "promise" resolves
          * @param onReject called when/if "promise" rejects
          */
-        then<U>(onFulfill: (value: R) => Thenable<U>,  onReject: (error: any) => Thenable<U>): Promise<U>;
+        then<U>(onFulfill: (value: R) => Promise.Thenable<U>,  onReject: (error: any) => Promise.Thenable<U>): Promise<U>;
         /**
          * onFulFill is called when/if "promise" resolves. onRejected is called when/if "promise" rejects. 
          * Both are optional, if either/both are omitted the next onFulfilled/onRejected in the chain is called. 
@@ -54,7 +47,7 @@ declare module 'es6-promise' {
          * @param onFulFill called when/if "promise" resolves
          * @param onReject called when/if "promise" rejects
          */
-        then<U>(onFulfill: (value: R) => Thenable<U>, onReject?: (error: any) => U): Promise<U>;
+        then<U>(onFulfill: (value: R) => Promise.Thenable<U>, onReject?: (error: any) => U): Promise<U>;
         /**
          * onFulFill is called when/if "promise" resolves. onRejected is called when/if "promise" rejects. 
          * Both are optional, if either/both are omitted the next onFulfilled/onRejected in the chain is called. 
@@ -66,7 +59,7 @@ declare module 'es6-promise' {
          * @param onFulFill called when/if "promise" resolves
          * @param onReject called when/if "promise" rejects
          */
-        then<U>(onFulfill: (value: R) => U, onReject: (error: any) => Thenable<U>): Promise<U>;
+        then<U>(onFulfill: (value: R) => U, onReject: (error: any) => Promise.Thenable<U>): Promise<U>;
         /**
          * onFulFill is called when/if "promise" resolves. onRejected is called when/if "promise" rejects. 
          * Both are optional, if either/both are omitted the next onFulfilled/onRejected in the chain is called. 
@@ -86,7 +79,7 @@ declare module 'es6-promise' {
          * 
          * @param onReject called when/if "promise" rejects
          */
-        catch<U>(onReject?: (error: any) => Thenable<U>): Promise<U>;
+        catch<U>(onReject?: (error: any) => Promise.Thenable<U>): Promise<U>;
         /**
          * Sugar for promise.then(undefined, onRejected)
          * 
@@ -95,7 +88,14 @@ declare module 'es6-promise' {
         catch<U>(onReject?: (error: any) => U): Promise<U>;
     }
 
-    export module Promise {
+    module Promise {
+        
+        export interface Thenable<R> {
+            then<U>(onFulfilled: (value: R) => Thenable<U>,  onRejected: (error: any) => Thenable<U>): Thenable<U>;
+            then<U>(onFulfilled: (value: R) => Thenable<U>, onRejected?: (error: any) => U): Thenable<U>;
+            then<U>(onFulfilled: (value: R) => U, onRejected: (error: any) => Thenable<U>): Thenable<U>;
+            then<U>(onFulfilled?: (value: R) => U, onRejected?: (error: any) => U): Thenable<U>;
+        }
 
         /**
          * Returns promise (only if promise.constructor == Promise)
@@ -113,7 +113,7 @@ declare module 'es6-promise' {
          * This also creates a new promise if you pass it a genuine JavaScript promise, 
          * making it less efficient for casting than Promise.cast.
          */
-        function resolve<R>(thenable: Thenable<R>): Promise<R>;
+        function resolve<R>(thenable: Promise.Thenable<R>): Promise<R>;
         /**
          * Make a promise that fulfills to obj. Same as Promise.cast(obj) in this situation.
          */
@@ -135,7 +135,8 @@ declare module 'es6-promise' {
          * Make a Promise that fulfills when any item fulfills, and rejects if any item rejects.
          */
         function race<R>(promises: Promise<R>[]): Promise<R>;
-        
-        
     }
+    
+    
+    export = Promise;
 }

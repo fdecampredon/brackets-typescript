@@ -16,8 +16,7 @@
 
 import path = require('path');
 import minimatch = require('minimatch');
-import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;
+import Promise = require('bluebird');
 import PromiseQueue = require('../commons/promiseQueue');
 import Services = TypeScript.Services;
 

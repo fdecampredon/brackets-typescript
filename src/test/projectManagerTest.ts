@@ -23,9 +23,7 @@ import utils = require('../commons/utils');
 import collections = require('../commons/collections');
 import signal = require('../commons/signal');
 import FileSystemMock = require('./fileSystemMock');
-import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;
-
+import Promise = require('bluebird');
 
 describe('TypeScriptProjectManager', function () {
     var typeScriptProjectManager: TypeScriptProjectManager,

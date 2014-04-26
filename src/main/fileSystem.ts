@@ -18,8 +18,7 @@
 
 import collections = require('../commons/collections');
 import signal = require('../commons/signal');
-import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;
+import Promise = require('bluebird');
 import fs = require('../commons/fileSystem');
 
 

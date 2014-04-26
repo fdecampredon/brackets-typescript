@@ -14,8 +14,7 @@
 
 'use strict';
 
-import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;
+import Promise = require('bluebird');
 import TypeScriptProjectConfig = require('../commons/projectConfig');
 import tsUtils = require('../commons/typeScriptUtils');
 import utils = require('../commons/utils');

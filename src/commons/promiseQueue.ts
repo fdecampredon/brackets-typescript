@@ -15,8 +15,7 @@
 'use strict';
 
 
-import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;
+import Promise = require('bluebird');
 
 /**
  * A simple Promise Queue
