@@ -14,8 +14,7 @@
 
 'use strict';
 
-import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;
+import Promise = require('bluebird');
 import TypeScriptProjectConfig = require('../commons/projectConfig');
 import tsUtils = require('../commons/typeScriptUtils');
 import utils = require('../commons/utils');
@@ -50,7 +49,7 @@ class TypescriptPreferenceManager implements ITypescriptPreferenceManager {
      */
     getProjectsConfig() {
         if (!this.projectConfigs) {
-            this.projectConfigs = this.retriveProjectsConfig()
+            this.projectConfigs = this.retriveProjectsConfig();
         }
         return Promise.cast(this.projectConfigs.toObject()); 
     }
@@ -96,7 +95,7 @@ class TypescriptPreferenceManager implements ITypescriptPreferenceManager {
         
         Object.keys(configs).forEach(projectId => {
             var config: TypeScriptProjectConfig = utils.assign({ },  tsUtils.typeScriptProjectConfigDefault, configs[projectId]);
-            if(!tsUtils.validateTypeScriptProjectConfig(config)) {
+            if (!tsUtils.validateTypeScriptProjectConfig(config)) {
                 if (logger.warning()) {
                     logger.log('invalid config file for brackets-typescript config file');
                 }
@@ -116,7 +115,7 @@ class TypescriptPreferenceManager implements ITypescriptPreferenceManager {
             this.projectConfigs = null;
             this.configChanged.dispatch();
         }
-    }
+    };
 }
 
 export = TypescriptPreferenceManager;

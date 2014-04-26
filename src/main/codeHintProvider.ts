@@ -18,12 +18,11 @@
 
 import ServiceConsumer = require('./serviceConsumer');
 import completion = require('../commons/completion');
-
-var CompletionKind = completion.CompletionKind;
+import CompletionKind = completion.CompletionKind;
 
 var HINT_TEMPLATE = [
     '<span class="cm-s-default">',
-    '   <span style="display: inline-block" class="{{class_type}}">',
+    '   <span style="display: inline-block" class="{{classType}}">',
     '       <span style="font-weight: bold">{{match}}</span>{{suffix}}',
     '   </span>',
     '</span>'
@@ -45,7 +44,7 @@ class CodeHintProvider extends ServiceConsumer<completion.ICompletionService> im
      * @param implicitChar determine whether the hinting request is explicit or implicit, 
      * null if implicit, contains the last character inserted
      */
-    hasHints(editor: brackets.Editor, implicitChar:string): boolean {
+    hasHints(editor: brackets.Editor, implicitChar: string): boolean {
         //TODO we should find a better test here that limits more the implicit request
         if (!implicitChar || /[\w.\($_]/.test(implicitChar)) {
             this.editor = editor;
@@ -54,7 +53,7 @@ class CodeHintProvider extends ServiceConsumer<completion.ICompletionService> im
         return false;
     }
     
-    getHints(implicitChar:string): JQueryDeferred<brackets.HintResult> {
+    getHints(implicitChar: string): JQueryDeferred<brackets.HintResult> {
         var currentFileName: string = this.editor.document.file.fullPath, 
             position = this.editor.getCursorPos(),
             deferred = $.Deferred();
@@ -72,9 +71,9 @@ class CodeHintProvider extends ServiceConsumer<completion.ICompletionService> im
                             var text = entry.name,
                                 match: string,
                                 suffix: string,
-                                class_type= '';
+                                classType = '';
 
-                            switch(entry.kind) {
+                            switch (entry.kind) {
                                 case CompletionKind.KEYWORD:
                                     switch (entry.name) {
                                         case 'static':
@@ -83,16 +82,16 @@ class CodeHintProvider extends ServiceConsumer<completion.ICompletionService> im
                                         case 'export':
                                         case 'get':
                                         case 'set':
-                                            class_type = 'cm-qualifier';
+                                            classType = 'cm-qualifier';
                                             break;
                                         case 'class':
                                         case 'function':
                                         case 'module':
                                         case 'var':
-                                            class_type = 'cm-def';
+                                            classType = 'cm-def';
                                             break;
                                         default:
-                                            class_type = 'cm-keyword';
+                                            classType = 'cm-keyword';
                                             break;
                                     }
                                     break;
@@ -107,28 +106,28 @@ class CodeHintProvider extends ServiceConsumer<completion.ICompletionService> im
 
                             // highlight the matched portion of each hint
                             if (result.match) {
-                                match= text.slice(0, result.match.length);
+                                match = text.slice(0, result.match.length);
                                 suffix  = text.slice(result.match.length);
 
                             } else {
                                 match = '';
-                                suffix = text
+                                suffix = text;
                             }
 
 
                             var jqueryObj = $(Mustache.render(HINT_TEMPLATE, {
                                 match: match,
                                 suffix: suffix,
-                                class_type: class_type
+                                classType: classType
                             })); 
-                            jqueryObj.data('entry', entry)
-                            jqueryObj.data('match', result.match)
+                            jqueryObj.data('entry', entry);
+                            jqueryObj.data('match', result.match);
                             return jqueryObj;
 
                         }),
                         selectInitial: !!implicitChar
-                    })
-                }).catch(error => deferred.reject(error))
+                    });
+                }).catch(error => deferred.reject(error));
             });
         }
         return deferred;
@@ -136,7 +135,7 @@ class CodeHintProvider extends ServiceConsumer<completion.ICompletionService> im
     
     
     
-    insertHint($hintObj: JQuery):void {
+    insertHint($hintObj: JQuery): void {
         var entry: completion.CompletionEntry = $hintObj.data('entry'),
             match: string = $hintObj.data('match'), 
             position = this.editor.getCursorPos(),

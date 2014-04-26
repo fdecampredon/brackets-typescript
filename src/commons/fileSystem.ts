@@ -13,8 +13,7 @@
 //   limitations under the License.
 
 
-import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;
+import Promise = require('bluebird');
 import signal = require('./signal');
 
 
@@ -33,12 +32,12 @@ export interface IFileSystem {
     /**
      * return a promise resolving to the project root folder path
      */
-    getProjectRoot(): Promise<string>
+    getProjectRoot(): Promise<string>;
     
     /**
      * a signal dispatching fine grained change reflecting the change that happens in the working set
      */
-    projectFilesChanged: signal.Signal<FileChangeRecord[]>
+    projectFilesChanged: signal.Signal<FileChangeRecord[]>;
     
     /**
      * return a promise that resolve with an array of string containing all the files of the projects
@@ -103,12 +102,12 @@ export interface FileChangeRecord {
     /**
      * kind of change
      */
-    kind : FileChangeKind;
+    kind: FileChangeKind;
     
     /**
      * name of the file that have changed
      */
-    fileName : string;
+    fileName: string;
 }
 
 

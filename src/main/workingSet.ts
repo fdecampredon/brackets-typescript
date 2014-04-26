@@ -18,8 +18,7 @@
 import signal = require('../commons/signal');
 import collections = require('../commons/collections');
 import ws = require('../commons/workingSet');
-import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;
+import Promise = require('bluebird');
 
 
 
@@ -123,7 +122,7 @@ class WorkingSet implements ws.IWorkingSet  {
      * set working set files
      */
     private setFiles(files: string[]) {
-        this.filesSet.values.forEach(path => this.filesSet.remove(path))
+        this.filesSet.values.forEach(path => this.filesSet.remove(path));
         if (files) {
             files.forEach(path => this.filesSet.add(path));
         }
@@ -142,7 +141,7 @@ class WorkingSet implements ws.IWorkingSet  {
             kind: ws.WorkingSetChangeKind.ADD,
             paths: [file.fullPath]
         });
-    }
+    };
 
     /**
      * handle 'workingSetAddList' event
@@ -158,7 +157,7 @@ class WorkingSet implements ws.IWorkingSet  {
                 paths: paths
             });
         }
-    }
+    };
     
     /**
      * handle 'workingSetRemove' event
@@ -169,7 +168,7 @@ class WorkingSet implements ws.IWorkingSet  {
             kind: ws.WorkingSetChangeKind.REMOVE,
             paths: [file.fullPath]
         });
-    }
+    };
     
     /**
      * handle 'workingSetRemoveList' event
@@ -177,7 +176,7 @@ class WorkingSet implements ws.IWorkingSet  {
     private workingSetRemoveListHandler = (event: any, ...files: brackets.File[]) => {
         var paths = files.map( file => {
             this.filesSet.remove(file.fullPath); 
-            return file.fullPath
+            return file.fullPath;
         });
         if (paths.length > 0) {
             this.workingSetChanged.dispatch({
@@ -185,7 +184,7 @@ class WorkingSet implements ws.IWorkingSet  {
                 paths: paths
             });
         }
-    }
+    };
  
     /**
      * attach events to the activeEditor
@@ -210,7 +209,7 @@ class WorkingSet implements ws.IWorkingSet  {
                 from: change.from,
                 to: change.to,
                 text: change.text && change.text.join('\n'),
-                removed: change.removed ? change.removed.join("\n") : ""
+                removed: change.removed ? change.removed.join('\n') : ''
             }));
             
         if (changeList.length > 0) {
@@ -220,19 +219,15 @@ class WorkingSet implements ws.IWorkingSet  {
                 documentText: document.getText()
             });
         }   
-    }
+    };
     
     /**
      * handle active editor change
      */
     private activeEditorChangeHandler = (event: any, current: brackets.Editor, previous: brackets.Editor) => {
         this.setActiveEditor(current);
-    }
+    };
 
 }
 
 export = WorkingSet;
-
-
-
-    

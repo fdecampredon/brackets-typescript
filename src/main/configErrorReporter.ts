@@ -23,23 +23,27 @@
 //
 //--------------------------------------------------------------------------
 
-var BRACKETS_CONFIG_FILE_NAME = '.brackets.json'
+var BRACKETS_CONFIG_FILE_NAME = '.brackets.json';
 
 function isBracketsPreferenceFile(path: string): boolean {
     return path && path.substr(path.lastIndexOf('/') + 1, path.length) === BRACKETS_CONFIG_FILE_NAME;
 }
+
+
 
 /**
  * brackets Error message type
  */
 var Type = {
     /** Unambiguous error, such as a syntax error */
-    ERROR: "problem_type_error",
+    ERROR: 'problem_type_error',
     /** Maintainability issue, probable error / bad smell, etc. */
-    WARNING: "problem_type_warning",
+    WARNING: 'problem_type_warning',
     /** Inspector unable to continue, code too complex for static analysis, etc. Not counted in error/warning tally. */
-    META: "problem_type_meta"
+    META: 'problem_type_meta'
 };
+
+
 
 /**
  * TypeScript Inspection Provider
@@ -54,7 +58,7 @@ class TypeScriptConfigErrorReporter implements brackets.InspectionProvider {
     /**
      * scan file
      */
-    scanFile(content: string, path: string) : { errors: brackets.LintingError[];  aborted: boolean; } {
+    scanFile(content: string, path: string): { errors: brackets.LintingError[];  aborted: boolean; } {
         if (!isBracketsPreferenceFile(path)) {
             return null;
         }
@@ -65,7 +69,7 @@ class TypeScriptConfigErrorReporter implements brackets.InspectionProvider {
             return {
                 errors: [],
                 aborted: true
-            }
+            };
         }
         
         var typescript = data.typescript;
@@ -73,7 +77,7 @@ class TypeScriptConfigErrorReporter implements brackets.InspectionProvider {
             return {
                 errors: [],
                 aborted: false
-            }
+            };
         }
         
         var errors: string[] = [];
@@ -93,7 +97,7 @@ class TypeScriptConfigErrorReporter implements brackets.InspectionProvider {
         }
         
         return {
-            errors: errors.map(message =>({
+            errors: errors.map(message => ({
                 message: message,
                 type: Type.ERROR,
                 pos: {line: -1, ch: -1}
@@ -104,15 +108,15 @@ class TypeScriptConfigErrorReporter implements brackets.InspectionProvider {
 }
 
 function validateSection(sectionName: string, config: any, mustHaveSources: boolean, errors: string[] ) {
-    var prefix = sectionName? sectionName + ': ' : '';
+    var prefix = sectionName ? sectionName + ': ' : '';
     if (config.target && ['es3', 'es5'].indexOf(config.target.toLowerCase()) === -1) {
-        errors.push('the target section has invalid value authorized values are \'es3\' or \'es5\'');
+        errors.push(prefix + 'the target section has invalid value authorized values are \'es3\' or \'es5\'');
     }
     if (config.module && ['none', 'amd', 'commonjs'].indexOf(config.module.toLowerCase()) === -1) {
-        errors.push('the module section has invalid value authorized values are \'none\', \'amd\' or \'commonjs\'');
+        errors.push(prefix + 'the module section has invalid value authorized values are \'none\', \'amd\' or \'commonjs\'');
     }
     if (config.sourceRoot && typeof config.sourceRoot !== 'string') {
-        errors.push('the sourceRoot section must be a string');
+        errors.push(prefix + 'the sourceRoot section must be a string');
     }
     if (mustHaveSources) {
         if (
@@ -120,7 +124,7 @@ function validateSection(sectionName: string, config: any, mustHaveSources: bool
             !Array.isArray(config.sources) || 
             !config.sources.every((pattern: string) => typeof pattern === 'string')
         ) {
-            errors.push('invalid sources section it must be an array of string');
+            errors.push(prefix + 'invalid sources section it must be an array of string');
         }  
     } 
       

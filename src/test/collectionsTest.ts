@@ -21,13 +21,14 @@ describe('StringSet', function () {
     var stringSet: collections.StringSet;
     beforeEach(function () {
         stringSet = new collections.StringSet();
-    })
+    });
+    
     it('should have constructor takes an array of string as argument and add every element of this array to the Set', function () {
         stringSet = new collections.StringSet(['hello', 'world']);
         expect(stringSet.has('hello')).toBe(true);
         expect(stringSet.has('world')).toBe(true);
         expect(stringSet.has('bla')).toBe(false);
-    })
+    });
     
     it('should allow to add/remove string from the set and check presence', function () {
         stringSet.add('hello');
@@ -60,7 +61,8 @@ describe('StringMap', function () {
         stringMap = new collections.StringMap();
     });
     
-    it('should have a constructor that takes an object has parameter and and each pair property/value of this object has entry of the map', function () {
+    it('should have a constructor that takes an object has parameter and and each pair' + 
+            'property/value of this object has entry of the map', function () {
         stringMap = new collections.StringMap({ 'foo' : 'bar', 'hello' : 'world' });
         expect(stringMap.get('hello')).toBe('world');
         expect(stringMap.get('foo')).toBe('bar');
@@ -98,12 +100,12 @@ describe('StringMap', function () {
     
     it('should provide a properties \'keys\' returning an array of map key', function () {
         stringMap = new collections.StringMap({ 'foo' : 'bar', 'hello' : 'world' });
-        expect(stringMap.keys.sort()).toEqual(['foo','hello']);
+        expect(stringMap.keys.sort()).toEqual(['foo', 'hello']);
     });
     
     it('should provide a properties \'values\' returning an array of map key', function () {
         stringMap = new collections.StringMap({ 'foo' : 'bar', 'hello' : 'world' });
-        expect(stringMap.values.sort()).toEqual(['bar','world']);
+        expect(stringMap.values.sort()).toEqual(['bar', 'world']);
     });
     
     it('should provide a properties \'entries\' returning an array of map entrie', function () {

@@ -64,4 +64,4 @@ interface TypeScriptProjectConfig {
     noImplicitAny?: boolean;
 }
 
-export = TypeScriptProjectConfig
+export = TypeScriptProjectConfig;

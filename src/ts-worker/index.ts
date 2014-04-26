@@ -12,7 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-'use strict'
+'use strict';
 
 // inject global in the worker
 global.TypeScript = require('typescriptServices');
@@ -27,7 +27,6 @@ import CompletionService = require('./completionService');
 import LexicalStructureService = require('./lexicalStructureService');
 import WorkerBridge = require('../commons/workerBridge');
 import logger = require('../commons/logger');
-import path = require('path');
 
 //instantiate the different service 
 var projectManager = new TypeScriptProjectManager(),
@@ -49,11 +48,16 @@ bridge.init({
         proxy.getLogLevel().then((logLevel: string) => {  
             self.console = proxy.console;
             logger.setLogLevel(logLevel);
-            projectManager.init(location, proxy.preferencesManager, proxy.fileSystem, proxy.workingSet, TypeScriptProject.newProject).then(( )=>{
+            projectManager.init(
+                location, 
+                proxy.preferencesManager, 
+                proxy.fileSystem, proxy.workingSet, 
+                TypeScriptProject.newProject
+            ).then(() => {
                 if (logger.information()) {
-                    logger.log('TSWorker : initilialization complete')
+                    logger.log('TSWorker : initilialization complete');
                 }
-            })
+            });
         });
-    })
+    });
 });

@@ -12,12 +12,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-'use strict'
+'use strict';
 
 
 import TypeScriptProjectManager = require('./projectManager');
-import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;
+import Promise = require('bluebird');
 import ls = require('../commons/lexicalStructure');
 
 /**

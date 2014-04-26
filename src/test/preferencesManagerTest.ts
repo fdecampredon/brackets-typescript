@@ -23,10 +23,10 @@ describe('TypescriptPreferenceManager', function () {
         preferences: any,
         bracketsPrefManagerMock = {
             get() {
-                return preferences    
+                return preferences;    
             },
             on(type: string, callback: () => void) {
-                this.callback = callback
+                this.callback = callback;
             },
             notifyChange() {
                 this.callback(null, { ids: ['typescript']});
@@ -38,7 +38,7 @@ describe('TypescriptPreferenceManager', function () {
     });
     afterEach(function () {
         tsPrefManager.dispose();
-    })
+    });
     
     function expectProjectConfig(compareValue: any) {
         var configs: any;
@@ -59,7 +59,7 @@ describe('TypescriptPreferenceManager', function () {
         preferences = {
             sources: ['src/'],
             target: 'es5'
-        }
+        };
         expectProjectConfig({
             default: {
                 sources: ['src/'],
@@ -73,7 +73,7 @@ describe('TypescriptPreferenceManager', function () {
     
     
     it('should retrieve no project config if the config is not valid', function () {
-        preferences = { hello:'world' };
+        preferences = { hello: 'world' };
         expectProjectConfig({});
     });
     
@@ -116,8 +116,8 @@ describe('TypescriptPreferenceManager', function () {
         var configChangeSpy = jasmine.createSpy('configChangeSpy');
         tsPrefManager.configChanged.add(configChangeSpy);
         preferences = {
-            sources:['src']
-        }
+            sources: ['src']
+        };
         bracketsPrefManagerMock.notifyChange();
         expect(configChangeSpy).toHaveBeenCalled();
         tsPrefManager.dispose();

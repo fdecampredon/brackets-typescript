@@ -15,8 +15,7 @@
 'use strict';
 
 
-import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;
+import Promise = require('bluebird');
 
 /**
  * A simple Promise Queue
@@ -41,7 +40,7 @@ class PromiseQueue {
     constructor() {
         this.promise = new Promise(resolve => {
             this.initializer = resolve;    
-        })
+        });
     }
     
     /**
@@ -49,7 +48,7 @@ class PromiseQueue {
      * 
      * @param val the value passed as initialial result
      */
-    init<T>(val: Promise<T>):Promise<T>
+    init<T>(val: Promise<T>): Promise<T>;
     
     /**
      * initialize the queue subsequent call reset the queue
@@ -69,11 +68,11 @@ class PromiseQueue {
     /**
      * enqueue an action
      */
-    then<T>(action: () => Promise<T>):Promise<T>
+    then<T>(action: () => Promise<T>): Promise<T>;
     /**
      * enqueue an action
      */
-    then<T>(action: () => T): Promise<T>
+    then<T>(action: () => T): Promise<T>;
     /**
      * enqueue an action
      */
@@ -81,7 +80,7 @@ class PromiseQueue {
         return this.promise = this.promise.then(
             () => action(), 
             () => action()
-        )
+        );
     }
 }
 

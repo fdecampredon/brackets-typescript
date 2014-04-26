@@ -20,8 +20,8 @@ import ServiceConsumer = require('./serviceConsumer');
 import definition = require('../commons/definition');
 
 var EditorManager = brackets.getModule('editor/EditorManager'),
-    Commands = brackets.getModule("command/Commands"),
-    CommandManager = brackets.getModule("command/CommandManager");
+    Commands = brackets.getModule('command/Commands'),
+    CommandManager = brackets.getModule('command/CommandManager');
 
 class TypeScriptQuickJumpProvider extends ServiceConsumer<definition.IDefinitionService> {
     
@@ -42,7 +42,7 @@ class TypeScriptQuickJumpProvider extends ServiceConsumer<definition.IDefinition
                     deferred.reject();
                 }
 
-                definitions.filter(definition => definition.fileName !== fileName || definition.lineStart !== pos.line)
+                definitions.filter(definition => definition.fileName !== fileName || definition.lineStart !== pos.line);
                 if (definitions.length === 0) {
                     deferred.reject();
                 }
@@ -66,7 +66,7 @@ class TypeScriptQuickJumpProvider extends ServiceConsumer<definition.IDefinition
             }, () => deferred.reject()); 
         });
         return deferred.promise();
-    }
+    };
 }
 
 export = TypeScriptQuickJumpProvider;

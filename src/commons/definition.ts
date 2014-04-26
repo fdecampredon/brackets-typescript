@@ -1,6 +1,4 @@
-import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;
-
+import Promise = require('bluebird');
 
 /**
  * Represent definition info of a symbol
@@ -14,7 +12,7 @@ export interface DefinitionInfo {
     /**
      * line at which the symbol definition start
      */
-    lineStart : number;
+    lineStart: number;
     
     /**
      * charachter at which the symbol definition start
@@ -24,7 +22,7 @@ export interface DefinitionInfo {
     /**
      * line at which the symbol definition end
      */
-    lineEnd : number;
+    lineEnd: number;
     
     /**
      * charachter at which the symbol definition end

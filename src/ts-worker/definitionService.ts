@@ -12,13 +12,12 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-'use strict'
+'use strict';
 
 
 import TypeScriptProjectManager = require('./projectManager');
-import es6Promise = require('es6-promise');
-import definition = require('../commons/definition')
-import Promise = es6Promise.Promise;
+import Promise = require('bluebird');
+import definition = require('../commons/definition');
 
 
 /**
@@ -59,9 +58,9 @@ class DefinitionService implements definition.IDefinitionService {
                     lineEnd : endPos.line,
                     charEnd : endPos.ch,
                     fileName: definition.fileName
-                }
+                };
             });
-        }).catch(() => [])
+        }).catch(() => []);
     }
 }
 

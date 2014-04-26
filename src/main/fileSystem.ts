@@ -18,8 +18,7 @@
 
 import collections = require('../commons/collections');
 import signal = require('../commons/signal');
-import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;;
+import Promise = require('bluebird');
 import fs = require('../commons/fileSystem');
 
 
@@ -97,7 +96,7 @@ class FileSystem implements fs.IFileSystem {
     getProjectFiles(): Promise<string[]> {
         return new Promise(resolve => {
             this.addToInitializatioStack(() => resolve(this.filesPath));
-        })
+        });
     }
       
     /**
@@ -109,7 +108,7 @@ class FileSystem implements fs.IFileSystem {
         return new Promise((resolve, reject) => {
             this.addToInitializatioStack(() => {
                 if (this.filesContent.has(path)) {
-                    resolve(this.filesContent.get(path))
+                    resolve(this.filesContent.get(path));
                 } else {
                     var file = this.nativeFileSystem.getFileForPath(path);
                     if (file.isDirectory) {
@@ -127,7 +126,7 @@ class FileSystem implements fs.IFileSystem {
                     });
                 }
             });    
-        })
+        });
     }
     
     /**
@@ -163,7 +162,7 @@ class FileSystem implements fs.IFileSystem {
      */
     private init() {
         this.projectManager.getAllFiles().then((files: brackets.File[]) => {
-            this.filesPath = files? files.map(file => file.fullPath) : [];
+            this.filesPath = files ? files.map(file => file.fullPath) : [];
             this.initialized = true;
             this.resolveInitializationStack();
         });
@@ -178,7 +177,7 @@ class FileSystem implements fs.IFileSystem {
         if (this.initialized) {
             callback();
         } else {
-            this.initializationStack.push(callback)
+            this.initializationStack.push(callback);
         }
     }
     
@@ -201,7 +200,7 @@ class FileSystem implements fs.IFileSystem {
             }, {} , (err) => {
                 resolve(files);
             });
-        })
+        });
     }
 
     /**
@@ -209,7 +208,7 @@ class FileSystem implements fs.IFileSystem {
      * @param text
      */
     private normalizeText(text: string) {
-        return text.replace(/\r\n/g, "\n");
+        return text.replace(/\r\n/g, '\n');
     }
     
     //-------------------------------
@@ -219,7 +218,7 @@ class FileSystem implements fs.IFileSystem {
     /**
      * handle project workspaces changes
      */
-    private changesHandler = (event: any, file? : brackets.FileSystemEntry) => {
+    private changesHandler = (event: any, file?: brackets.FileSystemEntry) => {
         if (!file) {
             // a refresh event
             var oldPathsSet = new collections.StringSet(),
@@ -249,7 +248,7 @@ class FileSystem implements fs.IFileSystem {
                         promises.push(new Promise((resolve, reject) => {
                             file.read({}, (err: string, content: string) => {
                                 if (!err) {
-                                    this.filesContent.set(file.fullPath, content)
+                                    this.filesContent.set(file.fullPath, content);
                                 }
                                 if (err || content !== oldFilesContent.get(file.fullPath)) {
                                     fileUpdated.push(file.fullPath);
@@ -265,7 +264,7 @@ class FileSystem implements fs.IFileSystem {
                 
                 oldPaths.forEach(path => {
                     if (!newPathsSet.has(path)) {
-                        fileDeleted.push(path)
+                        fileDeleted.push(path);
                     }
                 });
                 
@@ -302,7 +301,7 @@ class FileSystem implements fs.IFileSystem {
                 });
                 
             }, () => {
-                this.reset()
+                this.reset();
             });
             
         } else if (file.isFile) {
@@ -319,16 +318,15 @@ class FileSystem implements fs.IFileSystem {
                 // if the file content has been cached update the cache
                 this.filesContent.delete(file.fullPath);
                 this.readFile(file.fullPath).then((content) => {
-                    this.filesContent.set(file.fullPath, content)
+                    this.filesContent.set(file.fullPath, content);
                 }).catch().then(dispatchUpdate);
             } else {
-                dispatchUpdate()
+                dispatchUpdate();
             }
             
-       } else if(file.isDirectory) { 
+       } else if (file.isDirectory) { 
             // a directory content has been changed need to make diff between cache an directory
-            var directory = <brackets.Directory> file,
-                children: brackets.FileSystemEntry;
+            var directory = <brackets.Directory> file;
            
             directory.getContents((err: string, files: brackets.FileSystemEntry[]) => {
                 if (err) {
@@ -340,7 +338,7 @@ class FileSystem implements fs.IFileSystem {
                 
                 //collect all the paths in the cache
                 this.filesPath.forEach(path  => {
-                    var index = path.indexOf(directory.fullPath)
+                    var index = path.indexOf(directory.fullPath);
                     if (index !== -1) {
                         var index2 = path.indexOf('/', index + directory.fullPath.length);
                         if (index2 === -1) {
@@ -361,8 +359,9 @@ class FileSystem implements fs.IFileSystem {
                     newFiles[file.fullPath] = file;
                 });
                 
-                var changes: fs.FileChangeRecord[] = [];
-                for (var path in oldFiles) {
+                var changes: fs.FileChangeRecord[] = [],
+                    path: string;
+                for (path in oldFiles) {
                     if (!newFiles.hasOwnProperty(path) && oldFiles.hasOwnProperty(path)) {
                         //for each files that has been deleted add a DELETE record
                         oldFiles[path].forEach(path => {
@@ -379,8 +378,8 @@ class FileSystem implements fs.IFileSystem {
                     }
                 }
                 
-                var promises: Promise<any>[] = []
-                for (var path in newFiles) {
+                var promises: Promise<any>[] = [];
+                for (path in newFiles) {
                     if (newFiles.hasOwnProperty(path) && !oldFiles.hasOwnProperty(path))  {
                         //if a file has been added just add a ADD record
                         if (newFiles[path].isFile) {
@@ -399,8 +398,8 @@ class FileSystem implements fs.IFileSystem {
                                         kind: fs.FileChangeKind.ADD,
                                         fileName : file.fullPath
                                     });     
-                                })        
-                            }))
+                                });        
+                            }));
                         }
                     }
                 };
@@ -412,18 +411,18 @@ class FileSystem implements fs.IFileSystem {
                     }  
                 }, () => {
                     //in case of error reset
-                    this.reset()
+                    this.reset();
                 });
             });
         }
-    }
+    };
     
     
     /**
      * handle file renaming event
      */
-    private renameHandler = (event: any, oldPath : string, newPath: string) => {
-        var isDirectory = oldPath[oldPath.length -1] === '/';
+    private renameHandler = (event: any, oldPath: string, newPath: string) => {
+        var isDirectory = oldPath[oldPath.length - 1] === '/';
         var changes: fs.FileChangeRecord[];
         if (isDirectory) {
             changes = [];
@@ -439,7 +438,7 @@ class FileSystem implements fs.IFileSystem {
         if (changes.length > 0) {
             this._projectFilesChanged.dispatch(changes);
         }
-    }
+    };
     
     /**
      * dispatch events when a file has been renamed

@@ -12,12 +12,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-'use strict'
+'use strict';
 
 
 import TypeScriptProjectManager = require('./projectManager');
-import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;
+import Promise = require('bluebird');
 import IErrorService = require('../commons/errorService');
 
 /**
@@ -25,11 +24,11 @@ import IErrorService = require('../commons/errorService');
  */
 var Type = {
     /** Unambiguous error, such as a syntax error */
-    ERROR: "problem_type_error",
+    ERROR: 'problem_type_error',
     /** Maintainability issue, probable error / bad smell, etc. */
-    WARNING: "problem_type_warning",
+    WARNING: 'problem_type_warning',
     /** Inspector unable to continue, code too complex for static analysis, etc. Not counted in error/warning tally. */
-    META: "problem_type_meta"
+    META: 'problem_type_meta'
 };
 
 /**
@@ -69,8 +68,8 @@ class ErrorService implements IErrorService {
             return { 
                 errors: [], 
                 aborted: false
-            }    
-        })
+            };    
+        });
     }
     
     /**
@@ -83,9 +82,9 @@ class ErrorService implements IErrorService {
         }
         return diagnostics.map(diagnostic => {
             var info = diagnostic.info(),
-                type: string
+                type: string;
             
-            switch(info.category) {
+            switch (info.category) {
                 case TypeScript.DiagnosticCategory.Error:
                     type = Type.ERROR;
                     break;

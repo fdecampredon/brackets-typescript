@@ -1,4 +1,4 @@
-declare module "path" {
+declare module 'path' {
     export function normalize(p: string): string;
     export function join(...paths: any[]): string;
     export function resolve(from: string, to: string): string;

@@ -12,16 +12,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-'use strict'
+'use strict';
 
 import path = require('path');
 import minimatch = require('minimatch');
-import es6Promise = require('es6-promise');
-import Promise = es6Promise.Promise;;
-import PromiseQueue = require('../commons/promiseQueue')
+import Promise = require('bluebird');
+import PromiseQueue = require('../commons/promiseQueue');
 import Services = TypeScript.Services;
 
-import signal = require('../commons/signal');
 import collections = require('../commons/collections');
 import fs = require('../commons/fileSystem');
 import ws = require('../commons/workingSet');
@@ -160,8 +158,8 @@ class TypeScriptProject {
             
             return Promise.all(promises)
                 .then(() => this.collectFiles())
-                .then(() => this.updateWorkingSet())
-        })
+                .then(() => this.updateWorkingSet());
+        });
     }
     
     /**
@@ -222,7 +220,7 @@ class TypeScriptProject {
                 TypeScriptProject.ProjectFileKind.REFERENCE
             ;
         } else {
-            return TypeScriptProject.ProjectFileKind.NONE
+            return TypeScriptProject.ProjectFileKind.NONE;
         }
     }
     
@@ -240,7 +238,7 @@ class TypeScriptProject {
             return Promise.cast({
                 factory: new Services.TypeScriptServicesFactory(),
                 libLocation: this.defaultLibLocation
-            })
+            });
         } else {
             var typescriptServicesFile = path.join(typescriptPath, 'typescriptServices.js');
             
@@ -252,18 +250,18 @@ class TypeScriptProject {
                 return {
                     factory: new typeScript.Services.TypeScriptServicesFactory(),
                     libLocation: path.join(typescriptPath, 'lib.d.ts')
-                }
+                };
             })
             //TODO instead of silently returning default we should handle this error in project
             //manager and return an error in the linter
             .catch(() => {
                 if (logger.error()) {
-                    logger.log('could not retrieve typescript compiler at path: ' + typescriptPath)
+                    logger.log('could not retrieve typescript compiler at path: ' + typescriptPath);
                 }
                 return {
                     factory: new Services.TypeScriptServicesFactory(),
                     libLocation: this.defaultLibLocation
-                }
+                };
             });
         }
     }
@@ -271,7 +269,7 @@ class TypeScriptProject {
     /**
      * create Typescript compilation settings from config file
      */
-    private createCompilationSettings() : TypeScript.CompilationSettings {
+    private createCompilationSettings(): TypeScript.CompilationSettings {
         var compilationSettings = new TypeScript.CompilationSettings(),
             moduleType = this.config.module.toLowerCase();
         
@@ -288,11 +286,11 @@ class TypeScriptProject {
             moduleType === 'none' ? 
                 TypeScript.ModuleGenTarget.Unspecified : 
                 moduleType === 'amd' ?
-                    TypeScript.ModuleGenTarget.Asynchronous:
+                    TypeScript.ModuleGenTarget.Asynchronous :
                     TypeScript.ModuleGenTarget.Synchronous
             ;
         
-        return compilationSettings
+        return compilationSettings;
     }
     
     /**
@@ -356,7 +354,7 @@ class TypeScriptProject {
                     promises.push(this.addFile(referencedFile));
                     this.addReference(fileName, referencedFile);
                 });
-                return Promise.all(promises)
+                return Promise.all(promises);
             }, (): any => {
                 this.projectFilesSet.remove(fileName);
             });
@@ -405,7 +403,7 @@ class TypeScriptProject {
      */
     private getReferencedOrImportedFiles(fileName: string): string[] {
         if (!this.projectFilesSet.has(fileName)) {
-            return []
+            return [];
         }
         var script = this.languageServiceHost.getScriptSnapshot(fileName),
             preProcessedFileInfo = this.coreService.getPreProcessedFileInfo(fileName, script),
@@ -428,7 +426,7 @@ class TypeScriptProject {
         if (!this.references.has(referencedPath)) {
             this.references.set(referencedPath, new collections.StringSet());
         }
-        this.references.get(referencedPath).add(fileName)
+        this.references.get(referencedPath).add(fileName);
     }
     
     /**
@@ -496,8 +494,8 @@ class TypeScriptProject {
                         break;
                 }
             });
-        })
-    }
+        });
+    };
     
     /**
      * handle changes in the workingSet
@@ -522,7 +520,7 @@ class TypeScriptProject {
                     break;
             }
         });
-    }
+    };
     
     /**
      * handle document edition
@@ -548,7 +546,7 @@ class TypeScriptProject {
                 if (mustUpdate || this.languageServiceHost.getScriptContent(record.path) !== record.documentText) {
                     if (logger.warning()) {
                         if (mustUpdate) {
-                            logger.log('TypeScriptProject: inconsistent change descriptor: ' + JSON.stringify(lastChange))
+                            logger.log('TypeScriptProject: inconsistent change descriptor: ' + JSON.stringify(lastChange));
                         } else {
                             logger.log('TypeScriptProject: text different before and after change');
                         }
@@ -559,7 +557,7 @@ class TypeScriptProject {
                 this.updateReferences(record.path, oldPaths);
             }
         });
-    }
+    };
 }
 
 

@@ -18,21 +18,20 @@
 
 import WorkingSet = require('../main/workingSet');
 import ws = require('../commons/workingSet');
-import signal = require('../commons/signal');
 
 describe('WorkingSet', function (): void {
     var workingSetFiles: string[],
         documentManagerMock = {
             getWorkingSet() {
-                return workingSetFiles.map(file => { return { fullPath: file }});
+                return workingSetFiles.map(file => ({ fullPath: file }));
             },
             addFile(path: string) {
-                workingSetFiles.push(path)
+                workingSetFiles.push(path);
                 $(this).triggerHandler('workingSetAdd', { fullPath: path });
             },
             addFiles(paths: string[]) {
-                workingSetFiles = workingSetFiles.concat(paths)
-                $(this).triggerHandler('workingSetAddList', paths.map(path => { return { fullPath: path }}));
+                workingSetFiles = workingSetFiles.concat(paths);
+                $(this).triggerHandler('workingSetAddList', paths.map(path => ({ fullPath: path })));
             },
             removeFile(path: string) {
                 var index = workingSetFiles.indexOf(path);
@@ -43,7 +42,7 @@ describe('WorkingSet', function (): void {
             },
             removeFiles(paths: string[]) {
                 workingSetFiles = workingSetFiles.filter(path => paths.indexOf(path) === -1);
-                $(this).triggerHandler('workingSetRemoveList', paths.map(path => { return { fullPath: path }}))
+                $(this).triggerHandler('workingSetRemoveList', paths.map(path => ({ fullPath: path })));
             }
             
         },
@@ -53,9 +52,9 @@ describe('WorkingSet', function (): void {
                 return currentEditor;
             },
             setActiveEditor(editor:  brackets.Editor) {
-                var previous = currentEditor
+                var previous = currentEditor;
                 currentEditor = editor;
-                $(this).triggerHandler("activeEditorChange", [currentEditor, previous]);
+                $(this).triggerHandler('activeEditorChange', [currentEditor, previous]);
             }
         },
         workingSet: WorkingSet;
@@ -70,11 +69,11 @@ describe('WorkingSet', function (): void {
         currentEditor = <brackets.Editor>{
             document : {
                 file: {fullPath : '/path/file1.ts'},
-                getText() { return 'hello world'}
+                getText() { return 'hello world'; }
             }
         };
         workingSet = new WorkingSet(<any>documentManagerMock, <any>editorManagerMock );
-    })
+    });
     
     afterEach(function () {
         workingSet.dispose();
@@ -82,12 +81,12 @@ describe('WorkingSet', function (): void {
     
     function expectWorkingSetFilesMatch() {
         var files: string[];
-        workingSet.getFiles().then(result => files = result)
-        waitsFor(() => !!files, 'files should have been set')
+        workingSet.getFiles().then(result => files = result);
+        waitsFor(() => !!files, 'files should have been set');
 
         runs(function () {
             expect(files).toEqual(workingSetFiles);
-        })
+        });
     }
     
     describe('files', function () {
@@ -97,7 +96,7 @@ describe('WorkingSet', function (): void {
     });
     
     describe('workingSetChanged', function () {
-        var spy = jasmine.createSpy('workingSetChangedHandler')
+        var spy = jasmine.createSpy('workingSetChangedHandler');
         
         beforeEach(function () {
            workingSet.workingSetChanged.add(spy);
@@ -164,7 +163,7 @@ describe('WorkingSet', function (): void {
         
         
        it('should notify when a document has been edited', function () {
-            var doc = currentEditor.document
+            var doc = currentEditor.document;
                
             $(doc).triggerHandler('change', [doc, [{
                 from : {
@@ -175,7 +174,7 @@ describe('WorkingSet', function (): void {
                     ch: 0,
                     line: 0,
                 },
-                text : ['\'use strict\'','console.log(\'Hello World\')'],
+                text : ['\'use strict\'', 'console.log(\'Hello World\')'],
                 removed : ['']
             }, {
                 from : {
@@ -203,7 +202,7 @@ describe('WorkingSet', function (): void {
                     },
                     text: '\'use strict\'\nconsole.log(\'Hello World\')',
                     removed: ''
-                },{
+                }, {
                     from : {
                         ch: 8,
                         line: 1

@@ -20,7 +20,7 @@ import LanguageServiceHost = require('../ts-worker/languageServiceHost');
 import utils = require('../commons/utils');
 
 describe('LanguageServiceHost', function () {
-    var languageServiceHost: LanguageServiceHost
+    var languageServiceHost: LanguageServiceHost;
     beforeEach(function () {
         languageServiceHost = new LanguageServiceHost();
     });
@@ -35,7 +35,7 @@ describe('LanguageServiceHost', function () {
             expect(languageServiceHost.getCompilationSettings()).toNotBe(compilationSettings);
             expect(utils.clone(languageServiceHost.getCompilationSettings())).toEqual(compilationSettings);
         });
-    })
+    });
     
     describe('Script Management', function () {
         it('should allows to add and remove script', function () {
@@ -52,7 +52,7 @@ describe('LanguageServiceHost', function () {
         it('should allows to update script content', function () {
             languageServiceHost.addScript('file1.ts', 'hello world');
             languageServiceHost.updateScript('file1.ts', 'foo bar');
-            var snapshot = languageServiceHost.getScriptSnapshot('file1.ts')
+            var snapshot = languageServiceHost.getScriptSnapshot('file1.ts');
             expect(snapshot.getText(0, snapshot.getLength())).toBe('foo bar');
             expect(languageServiceHost.getScriptVersion('file1.ts')).toBe(2);
         });
@@ -86,7 +86,7 @@ describe('LanguageServiceHost', function () {
             languageServiceHost.addScript('file1.ts', 'hello world');
             languageServiceHost.editScript('file1.ts', 6, 11, 'bar');
             languageServiceHost.editScript('file1.ts', 0, 5, 'foo');
-            var snapshot = languageServiceHost.getScriptSnapshot('file1.ts')
+            var snapshot = languageServiceHost.getScriptSnapshot('file1.ts');
             expect(snapshot.getText(0, snapshot.getLength())).toBe('foo bar');
             expect(languageServiceHost.getScriptVersion('file1.ts')).toBe(3);
             expect(snapshot.getTextChangeRangeSinceVersion(1).newLength()).toBe(7);
@@ -131,8 +131,8 @@ describe('LanguageServiceHost', function () {
             expect(languageServiceHost.fileExists('file1.ts')).toBe(false);
             
             expect(languageServiceHost.directoryExists('anyDirectory')).toBe(true);
-            expect(languageServiceHost.resolveRelativePath('../file1.ts', '/dir1/dir2/')).toBe('/dir1/file1.ts')
-            expect(languageServiceHost.getParentDirectory('/dir1/file1.ts')).toBe('/dir1')
+            expect(languageServiceHost.resolveRelativePath('../file1.ts', '/dir1/dir2/')).toBe('/dir1/file1.ts');
+            expect(languageServiceHost.getParentDirectory('/dir1/file1.ts')).toBe('/dir1');
         
         });
         
@@ -152,9 +152,9 @@ describe('LanguageServiceHost', function () {
         it('should returns diagnostic object', function () {
             //TODO I don't really know what are the spec here
             expect(languageServiceHost.getDiagnosticsObject()).toNotBe(null);
-            expect(languageServiceHost.getLocalizedDiagnosticMessages()).toBe("");
+            expect(languageServiceHost.getLocalizedDiagnosticMessages()).toBe('');
         
         });
         
-    })
+    });
 });
