@@ -24,6 +24,7 @@ import TypeScriptProject = require('./project');
 import ErrorService = require('./errorService');
 import DefinitionService = require('./definitionService');
 import CompletionService = require('./completionService');
+import FormattingService= require('./formattingService');
 import LexicalStructureService = require('./lexicalStructureService');
 import WorkerBridge = require('../commons/workerBridge');
 import logger = require('../commons/logger');
@@ -34,6 +35,7 @@ var projectManager = new TypeScriptProjectManager(),
     completionService = new CompletionService(projectManager),
     definitionService = new DefinitionService(projectManager),
     lexicalStructureService = new LexicalStructureService(projectManager),
+    formattingService = new FormattingService(projectManager),
     bridge = new WorkerBridge(<any>self);
 
 //expose the worker services
@@ -41,7 +43,8 @@ bridge.init({
     errorService: errorService,
     completionService: completionService,
     definitionService: definitionService,
-    lexicalStructureService: lexicalStructureService
+    lexicalStructureService: lexicalStructureService,
+    formattingService: formattingService
 }).then(proxy => {
     //inject main services into worker components
     proxy.getTypeScriptLocation().then( (location: string) => {

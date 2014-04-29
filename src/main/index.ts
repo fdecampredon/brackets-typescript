@@ -25,6 +25,7 @@ import TypeScriptQuickEditProvider = require('./quickEdit');
 import TypeScriptQuickJumpProvider = require('./quickJump');
 import TypeScriptQuickFindDefitionProvider = require('./quickFindDefinition');
 import CodeHintProvider = require('./codeHintProvider');
+import FormattingManager = require('./formattingManager');
 import typeScriptModeFactory = require('./mode');
 
 
@@ -45,13 +46,16 @@ var LanguageManager = brackets.getModule('language/LanguageManager'),
     EditorManager = brackets.getModule('editor/EditorManager'),
     QuickOpen = brackets.getModule('search/QuickOpen'),
     PreferencesManager = brackets.getModule('preferences/PreferencesManager'),
-    CodeMirror: typeof CodeMirror = brackets.getModule('thirdparty/CodeMirror2/lib/codemirror');
+    CommandManager = brackets.getModule('command/CommandManager'),
+    CodeMirror: typeof CodeMirror = brackets.getModule('thirdparty/CodeMirror2/lib/codemirror'),
+    Menus = brackets.getModule('command/Menus');
 
 var tsErrorReporter: TypeScriptErrorReporter,
     quickEditProvider: TypeScriptQuickEditProvider,
     codeHintProvider: CodeHintProvider,
     quickJumpProvider: TypeScriptQuickJumpProvider,
-    quickFindDefinitionProvider: TypeScriptQuickFindDefitionProvider;
+    quickFindDefinitionProvider: TypeScriptQuickFindDefitionProvider,
+    formattingManager: FormattingManager;
     
     
  
@@ -95,7 +99,12 @@ function init(config: { logLevel: string; typeScriptLocation: string; workerLoca
     //Register quickFindDefinitionProvider
     quickFindDefinitionProvider = new TypeScriptQuickFindDefitionProvider();
     QuickOpen.addQuickOpenPlugin(quickFindDefinitionProvider);
-
+    
+    //Register formatting command
+    formattingManager = new FormattingManager();
+    CommandManager.register(FormattingManager.FORMAT_LABEL, FormattingManager.FORMAT_COMMAND_ID, formattingManager.format);
+    var contextMenu = Menus.getContextMenu(Menus.ContextMenuIds.EDITOR_MENU);
+    contextMenu.addMenuItem(FormattingManager.FORMAT_COMMAND_ID);
     
     initServices(config.workerLocation, config.typeScriptLocation, config.logLevel);
     
@@ -111,6 +120,7 @@ function disposeServices() {
     workingSet.dispose();
     preferencesManager.dispose();
     
+    formattingManager.reset();
     tsErrorReporter.reset();
     codeHintProvider.reset();
     quickEditProvider.reset();
@@ -143,6 +153,7 @@ function initServices(workerLocation: string, typeScriptLocation: string, logLev
         quickEditProvider.setService(proxy.definitionService);
         quickJumpProvider.setService(proxy.definitionService);
         quickFindDefinitionProvider.setService(proxy.lexicalStructureService);
+        formattingManager.setService(proxy.formattingService);
     });
 }
 
