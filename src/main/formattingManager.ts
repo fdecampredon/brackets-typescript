@@ -40,7 +40,7 @@ class FormattingManager extends ServiceConsumer<IFormatingService> {
             InsertSpaceBeforeAndAfterBinaryOperators: true,
             InsertSpaceAfterKeywordsInControlFlowStatements: true,
             InsertSpaceAfterFunctionKeywordForAnonymousFunctions: true,
-            InsertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis: true,
+            InsertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis: false,
             PlaceOpenBraceOnNewLineForFunctions: false,
             PlaceOpenBraceOnNewLineForControlBlocks: false
         };
