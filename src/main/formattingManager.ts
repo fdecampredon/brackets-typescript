@@ -48,6 +48,11 @@ class FormattingManager extends ServiceConsumer<IFormatingService> {
             startPos = currentRange ? currentRange.start : undefined,
             endPos = currentRange ? currentRange.end : undefined;
         
+        if (startPos && endPos && startPos.line === endPos.line && startPos.ch === endPos.ch) {
+            startPos = endPos = undefined;    
+        }
+        
+        
         this.getService().then(service => {
             service.getFormatingForFile(editor.document.file.fullPath, options, startPos, endPos).then(textEdits => {
                 if (EditorManager.getCurrentFullEditor() !== editor) {

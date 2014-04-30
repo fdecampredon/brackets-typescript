@@ -57,7 +57,7 @@ class FormattingService implements IFormattingService {
             
             var result = languageService.getFormattingEditsForRange(fileName, minChar, limChar, options);
             
-            return result && result.map(editRange => ({
+            return result && result.reverse().map(editRange => ({
                 text: editRange.text,
                 startPos: languageServiceHost.indexToPosition(fileName, editRange.minChar),
                 endPos: languageServiceHost.indexToPosition(fileName, editRange.limChar)
