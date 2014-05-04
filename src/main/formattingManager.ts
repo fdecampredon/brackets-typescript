@@ -29,7 +29,7 @@ class FormattingManager extends ServiceConsumer<IFormatingService> {
             return;
         }
         var useTabs = Editor.getUseTabChar();
-        
+
         var options: TypeScript.Services.FormatCodeOptions = {
             IndentSize: Editor.getSpaceUnits(),
             TabSize: Editor.getTabSize(),
@@ -47,26 +47,28 @@ class FormattingManager extends ServiceConsumer<IFormatingService> {
         var currentRange = editor.getSelection(true),
             startPos = currentRange ? currentRange.start : undefined,
             endPos = currentRange ? currentRange.end : undefined;
-        
+
         if (startPos && endPos && startPos.line === endPos.line && startPos.ch === endPos.ch) {
-            startPos = endPos = undefined;    
+            startPos = endPos = undefined;
         }
-        
-        
+
+
         this.getService().then(service => {
             service.getFormatingForFile(editor.document.file.fullPath, options, startPos, endPos).then(textEdits => {
                 if (EditorManager.getCurrentFullEditor() !== editor) {
                     return;
                 }
-                textEdits.forEach(edit => {
-                    editor.document.replaceRange(edit.text, edit.startPos, edit.endPos);
-                });
+                editor.document.setText(
+                    textEdits.reduce((text: string, edit: TypeScript.Services.TextEdit) => {
+                        return text.substr(0, edit.minChar) + edit.text + text.substr(edit.limChar);
+                    }, editor.document.getText())
+                );
             });
         });
     };
-    
+
     static FORMAT_COMMAND_ID = 'fdecampred.brackets-typescript.format';
-    
+
     static FORMAT_LABEL = 'Format';
 }
 

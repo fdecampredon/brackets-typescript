@@ -40,7 +40,7 @@ class FormattingService implements IFormattingService {
      * @return a promise resolving to a formating range info
      */
     getFormatingForFile(fileName: string, options: TypeScript.Services.FormatCodeOptions,
-            startPos?: CodeMirror.Position, endPos?: CodeMirror.Position): Promise<IFormattingService.TextEdit[]> {
+            startPos?: CodeMirror.Position, endPos?: CodeMirror.Position): Promise<TypeScript.Services.TextEdit[]> {
         return this.projectManager.getProjectForFile(fileName).then(project => {
             
             var languageServiceHost = project.getLanguageServiceHost(),
@@ -57,11 +57,7 @@ class FormattingService implements IFormattingService {
             
             var result = languageService.getFormattingEditsForRange(fileName, minChar, limChar, options);
             
-            return result && result.reverse().map(editRange => ({
-                text: editRange.text,
-                startPos: languageServiceHost.indexToPosition(fileName, editRange.minChar),
-                endPos: languageServiceHost.indexToPosition(fileName, editRange.limChar)
-            }));
+            return result && result.reverse();
         });
     }
 }

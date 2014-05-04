@@ -709,6 +709,13 @@ declare module brackets {
          */
         getLine(index: number): string;
         
+        /**
+         * Sets the contents of the document. Treated as an edit. Line endings will be rewritten to
+         * match the document's current line-ending style.
+         * @param text The text to replace the contents of the document with.
+         */
+        setText(text: string): void;
+        
         //TODO imcomplete
     }
     
