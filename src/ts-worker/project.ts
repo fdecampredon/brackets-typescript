@@ -318,6 +318,7 @@ class TypeScriptProject {
             var promises: Promise<any>[] = [];
             files.forEach(fileName => {
                 if (this.isProjectSourceFile(fileName) && !this.projectFilesSet.has(fileName)) {
+                    console.log(fileName);
                     promises.push(this.addFile(fileName, false));
                 }
             });
