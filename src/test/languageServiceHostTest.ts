@@ -136,22 +136,15 @@ describe('LanguageServiceHost', function () {
         
         });
         
-         it('byteordermark should be None', function () {
-            languageServiceHost.addScript('file1.ts', 'hello world');
-            expect(languageServiceHost.getScriptByteOrderMark('file1.ts')).toBe(TypeScript.ByteOrderMark.None);
-        });
-        
         
         it('should provide default value when there is no script', function () {
             expect(languageServiceHost.getScriptSnapshot('file1.ts')).toBeNull();
             expect(languageServiceHost.getScriptVersion('file1.ts')).toBe(0);
             expect(languageServiceHost.getScriptIsOpen('file1.ts')).toBe(false);
-            expect(languageServiceHost.getScriptByteOrderMark('file1.ts')).toBe(TypeScript.ByteOrderMark.None);
         });
         
         it('should returns diagnostic object', function () {
             //TODO I don't really know what are the spec here
-            expect(languageServiceHost.getDiagnosticsObject()).toNotBe(null);
             expect(languageServiceHost.getLocalizedDiagnosticMessages()).toBe('');
         
         });

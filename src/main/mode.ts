@@ -14,16 +14,6 @@
 
 'use strict';
 
-// TODO If we could not depends of TypeScript here, or at least extract just the part we are interested in
-// We could avoid bundling the entire TypeScript Service with use
-// see : https://github.com/fdecampredon/brackets-typescript/issues/13
-
-
-declare var require: any;
-var TypeScript: typeof TypeScript = require('typescriptServices');
-
-
-
 class FormattingOptions {
     constructor(public useTabs: boolean,
                 public spacesPerTab: number,
@@ -40,12 +30,11 @@ class FormattingOptions {
 }
 
 import logger = require('../commons/logger');
-import Services = TypeScript.Services;
 import Formatting = TypeScript.Services.Formatting;
 
 class Token {
 	string: string;
-	classification: Services.TokenClass;
+	classification: ts.TokenClass;
 	length: number;
 	position: number;
 }
@@ -53,7 +42,7 @@ class Token {
 
 class LineDescriptor {
 	tokenMap: { [position: number]: Token };
-	eolState: Services.EndOfLineState = Services.EndOfLineState.Start;
+	eolState: ts.EndOfLineState = ts.EndOfLineState.Start;
     text: string = '';
 
 	clone(): LineDescriptor {
@@ -108,7 +97,7 @@ class TypeScriptMode implements CodeMirror.CodeMirrorMode<LineDescriptor> {
 
 
 	indent(lineDescriptor: LineDescriptor , textAfter: string): number {
-		if (lineDescriptor.eolState !== Services.EndOfLineState.Start) {
+		if (lineDescriptor.eolState !== ts.EndOfLineState.Start) {
             //strange bug preven CodeMirror.Pass
             return <number>(<any>CodeMirror).Pass;
 		}
@@ -153,18 +142,18 @@ class TypeScriptMode implements CodeMirror.CodeMirrorMode<LineDescriptor> {
     private getSyntaxTree(text: string) {
         return TypeScript.Parser.parse(
             'script', 
-            TypeScript.SimpleText.fromString(text), 
-            false, 
-            new TypeScript.ParseOptions(TypeScript.LanguageVersion.EcmaScript5, true)
+            TypeScript.SimpleText.fromString(text),
+            ts.ScriptTarget.ES5,
+            false
         );
     }
 }
 
 
 
-var classifier: Services.Classifier = new Services.TypeScriptServicesFactory().createClassifier(new logger.LogingClass());
+var classifier: ts.Classifier = ts.createClassifier(new logger.LogingClass());
 
-function getClassificationsForLine(text: string, eolState: Services.EndOfLineState ) {
+function getClassificationsForLine(text: string, eolState: ts.EndOfLineState ) {
 	var classificationResult = classifier.getClassificationsForLine(text, eolState),
 		currentPosition = 0,
 		tokens: Token[]  = [];
@@ -188,7 +177,7 @@ function getClassificationsForLine(text: string, eolState: Services.EndOfLineSta
 }
 
 function getStyleForToken(token: Token, textBefore: string): string {
-	var TokenClass = Services.TokenClass;
+	var TokenClass = ts.TokenClass;
 	switch (token.classification) {
 		case TokenClass.NumberLiteral:
 			return 'number';

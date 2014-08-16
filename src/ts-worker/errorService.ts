@@ -14,8 +14,8 @@
 
 'use strict';
 
-
 import TypeScriptProjectManager = require('./projectManager');
+import LanguageServiceHost = require('./languageServiceHost');
 import Promise = require('bluebird');
 import IErrorService = require('../commons/errorService');
 
@@ -53,11 +53,11 @@ class ErrorService implements IErrorService {
         return this.projectManager.getProjectForFile(fileName).then(project => {
             var languageService = project.getLanguageService(),
                 syntacticDiagnostics = languageService.getSyntacticDiagnostics(fileName),
-                errors = this.diagnosticToError(syntacticDiagnostics);
+                errors = this.diagnosticToError(project.getLanguageServiceHost(), syntacticDiagnostics);
             
             if (errors.length === 0) {
                 var semanticDiagnostic = languageService.getSemanticDiagnostics(fileName);
-                errors = this.diagnosticToError(semanticDiagnostic);
+                errors = this.diagnosticToError(project.getLanguageServiceHost(), semanticDiagnostic);
             }
             
             return { 
@@ -76,39 +76,32 @@ class ErrorService implements IErrorService {
      * convert TypeScript Diagnostic to brackets error format
      * @param diagnostics
      */
-    private diagnosticToError(diagnostics: TypeScript.Diagnostic[]): brackets.LintingError[] {
+    private diagnosticToError(languageServiceHost: LanguageServiceHost, diagnostics: ts.Diagnostic[]): brackets.LintingError[] {
         if (!diagnostics) {
             return [];
         }
         return diagnostics.map(diagnostic => {
-            var info = diagnostic.info(),
-                type: string;
+            var type: string;
             
-            switch (info.category) {
-                case TypeScript.DiagnosticCategory.Error:
+            switch (diagnostic.category) {
+                case ts.DiagnosticCategory.Error:
                     type = Type.ERROR;
                     break;
-                case TypeScript.DiagnosticCategory.Warning:
+                case ts.DiagnosticCategory.Warning:
                     type = Type.WARNING;
                     break;
-                case TypeScript.DiagnosticCategory.NoPrefix:
+                case ts.DiagnosticCategory.NoPrefix:
                     type = Type.ERROR;
                     break;
-                case TypeScript.DiagnosticCategory.Message:
+                case ts.DiagnosticCategory.Message:
                     type = Type.META;
                     break;
             }
             
             return {
-                pos: {
-                    line: diagnostic.line(),
-                    ch: diagnostic.character()
-                },
-                endpos: {
-                    line: diagnostic.line(),
-                    ch: diagnostic.character() + diagnostic.length()
-                },
-                message: diagnostic.message(),
+                pos: languageServiceHost.indexToPosition(diagnostic.file.filename, diagnostic.start),
+                endpos: languageServiceHost.indexToPosition(diagnostic.file.filename, diagnostic.start + diagnostic.length),
+                message: diagnostic.messageText,
                 type: type
             };
         });

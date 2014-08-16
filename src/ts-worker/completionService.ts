@@ -19,7 +19,7 @@ import TypeScriptProjectManager = require('./projectManager');
 import completion = require('../commons/completion');
 import logger = require('../commons/logger');
 
-var ScriptElementKind = TypeScript.Services.ScriptElementKind;
+var ScriptElementKind = ts.ScriptElementKind;
 
 /**
  * implementation of the ICompletionService
@@ -44,7 +44,8 @@ class CompletionService implements completion.ICompletionService {
     getCompletionAtPosition(fileName: string, position: CodeMirror.Position): Promise<completion.CompletionResult> {
         return this.projectManager.getProjectForFile(fileName).then(project => {
             
-            var languageService = project.getLanguageService(),
+            var documentRegistry = project.getDocumentRegistry(),
+                languageService = project.getLanguageService(),
                 languageServiceHost = project.getLanguageServiceHost(),
                 index = languageServiceHost.getIndexFromPos(fileName, position),
                 completionInfo = languageService.getCompletionsAtPosition(fileName, index, true),
@@ -55,18 +56,25 @@ class CompletionService implements completion.ICompletionService {
                 return { entries: [], match: '' };
             }
             
-             var sourceUnit = languageService.getSyntaxTree(fileName).sourceUnit(),
-                 currentToken = sourceUnit.findTokenOnLeft(index),
+             var sourceUnit = documentRegistry.acquireDocument(
+                    fileName,
+                    languageServiceHost.getCompilationSettings(),
+                    languageServiceHost.getScriptSnapshot(fileName),
+                    languageServiceHost.getScriptVersion(fileName),
+                    languageServiceHost.getScriptIsOpen(fileName),
+                    project.getReferencedOrImportedFiles(fileName)
+                 ).getSourceUnit(),
+                 currentToken = TypeScript.Syntax.findTokenOnLeft(sourceUnit, index),
                  match: string;
                  
-            if (currentToken && this.isValidTokenKind(currentToken.token().tokenKind)) {
-                match = currentToken.token().fullText();
-                if (currentToken.element().leadingTrivia()) {
-                    match = match.substr(currentToken.element().leadingTriviaWidth());
+            if (currentToken && this.isValidTokenKind(currentToken.kind())) {
+                match = currentToken.fullText();
+                if (currentToken.leadingTrivia()) {
+                    match = match.substr(currentToken.leadingTriviaWidth());
                 }
                 
-                if (currentToken.element().trailingTrivia()) {
-                    match = match.substr(0, match.length - currentToken.element().trailingTriviaWidth());
+                if (currentToken.trailingTrivia()) {
+                    match = match.substr(0, match.length - currentToken.trailingTriviaWidth());
                 }
                 
                 typeScriptEntries = typeScriptEntries.filter(entry => {
