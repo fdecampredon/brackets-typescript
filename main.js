@@ -1,7 +1,7 @@
 /*jslint vars: true, plusplus: true, devel: true, nomen: true, regexp: true, indent: 4, maxerr: 50 */
 /*global define, $, brackets, window, Worker */
 
-define(['text!config.json', './third_party/typescript/typescriptServices'], function (configText) {
+define(['require', 'text!config.json', './third_party/typescript/typescriptServices'], function (require, configText) {
     'use strict';
     
     var AppInit = brackets.getModule('utils/AppInit'),
