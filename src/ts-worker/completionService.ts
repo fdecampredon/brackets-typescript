@@ -61,8 +61,7 @@ class CompletionService implements completion.ICompletionService {
                     languageServiceHost.getCompilationSettings(),
                     languageServiceHost.getScriptSnapshot(fileName),
                     languageServiceHost.getScriptVersion(fileName),
-                    languageServiceHost.getScriptIsOpen(fileName),
-                    project.getReferencedOrImportedFiles(fileName)
+                    languageServiceHost.getScriptIsOpen(fileName)
                  ).getSourceUnit(),
                  currentToken = TypeScript.Syntax.findTokenOnLeft(sourceUnit, index),
                  match: string;

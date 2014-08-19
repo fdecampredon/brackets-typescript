@@ -90,9 +90,6 @@ class ErrorService implements IErrorService {
                 case ts.DiagnosticCategory.Warning:
                     type = Type.WARNING;
                     break;
-                case ts.DiagnosticCategory.NoPrefix:
-                    type = Type.ERROR;
-                    break;
                 case ts.DiagnosticCategory.Message:
                     type = Type.META;
                     break;
