@@ -19,15 +19,19 @@ import collections = require('../commons/collections');
 import path = require('path');
 import utils = require('../commons/utils');
 
+var cancellationToken: ts.CancellationToken = {
+    isCancellationRequested: () => false
+};
+
 /**
  * ILanguage Service host implementation
  */
-class LanguageServiceHost extends logger.LogingClass implements TypeScript.Services.ILanguageServiceHost {
+class LanguageServiceHost extends logger.LogingClass implements ts.LanguageServiceHost {
     
     /**
      * compilationSettings
      */
-    private compilationSettings: TypeScript.CompilationSettings;
+    private compilationSettings: ts.CompilerOptions;
   
     /**
      * a map associating file absolute path to ScriptInfo
@@ -117,7 +121,7 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
      * 
      * @param the settings to be applied to the host
      */
-    setCompilationSettings(settings: TypeScript.CompilationSettings ): void{
+    setCompilationSettings(settings: ts.CompilerOptions ): void{
         this.compilationSettings = Object.freeze(utils.clone(settings));
     }
     
@@ -171,7 +175,7 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
     // ILanguageServiceShimHost implementation
     //
 
-    getCompilationSettings(): TypeScript.CompilationSettings {
+    getCompilationSettings(): ts.CompilerOptions {
         return this.compilationSettings; 
     }
 
@@ -203,18 +207,6 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
         return false;
     }
 
-    getScriptByteOrderMark(fileName: string): TypeScript.ByteOrderMark {
-        var script = this.fileNameToScript.get(fileName);
-        if (script) {
-            return script.byteOrderMark;
-        }
-        return TypeScript.ByteOrderMark.None;
-    }
-
-    getDiagnosticsObject(): TypeScript.Services.ILanguageServicesDiagnostics {
-        return new LanguageServicesDiagnostics('');
-    }
-
     getLocalizedDiagnosticMessages(): string {
         return '';
     }
@@ -234,8 +226,11 @@ class LanguageServiceHost extends logger.LogingClass implements TypeScript.Servi
     getParentDirectory(fileName: string): string {
         return path.dirname(fileName);
     }
+    
+    getCancellationToken() {
+        return cancellationToken;
+    }
 }
-
 
 /**
  * Manage a script in the language service host
@@ -247,21 +242,17 @@ class ScriptInfo {
     fileName: string;
     content: string;
     isOpen: boolean;
-    byteOrderMark: TypeScript.ByteOrderMark;
     
 
     /**
      * @param fileName the absolute path of the file
      * @param content the content of the file
      * @param isOpen the open status of the script
-     * @param byteOrderMark
      */
-    constructor(fileName: string, content: string, isOpen = false, 
-                byteOrderMark: TypeScript.ByteOrderMark = TypeScript.ByteOrderMark.None) {
+    constructor(fileName: string, content: string, isOpen = false) {
         this.fileName = fileName;
         this.content = content;
         this.isOpen = isOpen;
-        this.byteOrderMark = byteOrderMark;
         this.setContent(content);
     }
     
@@ -384,16 +375,5 @@ class ScriptSnapshot implements TypeScript.IScriptSnapshot {
         return TypeScript.TextChangeRange.collapseChangesAcrossMultipleVersions(entries);
     }
 }
-
-
-class LanguageServicesDiagnostics implements TypeScript.Services.ILanguageServicesDiagnostics {
-
-    constructor(private destination: string) { }
-
-    log(content: string): void {
-        //Imitates the LanguageServicesDiagnostics object when not in Visual Studio
-    }
-}
-
 
 export = LanguageServiceHost;

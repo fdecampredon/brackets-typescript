@@ -15,9 +15,8 @@
 'use strict';
 
 // inject global in the worker
-global.TypeScript = require('typescriptServices');
+importScripts('../third_party/typescript/typescriptServices.js');
 global.window = self;
-
 
 import TypeScriptProjectManager = require('./projectManager');
 import TypeScriptProject = require('./project');

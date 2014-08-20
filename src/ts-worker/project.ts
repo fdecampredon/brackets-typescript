@@ -68,7 +68,7 @@ class TypeScriptProject {
     /**
      * TypeScript CoreServices instance used by these project 
      */
-    private coreService: Services.CoreServices;
+    private coreService: ts.CoreServicesShim;
     
     /**
      * Language Service host instance managed by this service
@@ -76,9 +76,14 @@ class TypeScriptProject {
     private languageServiceHost: LanguageServiceHost;
     
     /**
+     * Document Registry used for caching documents
+     */
+    private documentRegistry: ts.DocumentRegistry;
+    
+    /**
      * LanguageService managed by this project
      */
-    private languageService: Services.ILanguageService;
+    private languageService: ts.LanguageService;
     
     /**
      * Map path to content
@@ -119,10 +124,11 @@ class TypeScriptProject {
         return this.queue.init(
             this.getTypeScriptInfosForPath(this.config.typescriptPath).then(typeScriptInfo => {
                 this.libLocation = typeScriptInfo.libLocation;
-                this.coreService = typeScriptInfo.factory.createCoreServices({ logger: new logger.LogingClass()});
+                this.coreService = typeScriptInfo.factory.createCoreServicesShim(new logger.LogingClass());
                 this.languageServiceHost = new LanguageServiceHost();
                 this.languageServiceHost.setCompilationSettings(this.createCompilationSettings());
-                this.languageService = typeScriptInfo.factory.createPullLanguageService(this.languageServiceHost);
+                this.documentRegistry = ts.createDocumentRegistry();
+                this.languageService = ts.createLanguageService(this.languageServiceHost, this.documentRegistry);
 
                 return this.collectFiles();
                 
@@ -175,6 +181,10 @@ class TypeScriptProject {
     //  exposed services
     //-------------------------------
     
+    getDocumentRegistry(): ts.DocumentRegistry {
+        return this.documentRegistry;
+    }
+    
     /**
      * return the language service host of the project
      */
@@ -185,14 +195,14 @@ class TypeScriptProject {
     /**
      * return the core service used by the project
      */
-    getCoreService(): Services.CoreServices {
+    getCoreService(): ts.CoreServicesShim {
         return this.coreService;
     }
     
     /**
      * return the languageService used by the project
      */
-    getLanguageService(): Services.ILanguageService {
+    getLanguageService(): ts.LanguageService {
         return this.languageService;
     }
     
@@ -269,25 +279,25 @@ class TypeScriptProject {
     /**
      * create Typescript compilation settings from config file
      */
-    private createCompilationSettings(): TypeScript.CompilationSettings {
-        var compilationSettings = new TypeScript.CompilationSettings(),
+    private createCompilationSettings(): ts.CompilerOptions {
+        var compilationSettings: ts.CompilerOptions = {},
             moduleType = this.config.module.toLowerCase();
         
         compilationSettings.noLib = this.config.noLib;
         compilationSettings.noImplicitAny = this.config.noImplicitAny;
         compilationSettings.sourceRoot = this.config.sourceRoot;
         
-        compilationSettings.codeGenTarget = 
+        compilationSettings.target = 
             this.config.target.toLowerCase() === 'es3' ? 
-                TypeScript.LanguageVersion.EcmaScript3 : 
-                TypeScript.LanguageVersion.EcmaScript5;
+                ts.ScriptTarget.ES3 : 
+                ts.ScriptTarget.ES5;
         
-        compilationSettings.moduleGenTarget = 
+        compilationSettings.module = 
             moduleType === 'none' ? 
-                TypeScript.ModuleGenTarget.Unspecified : 
+                ts.ModuleKind.None : 
                 moduleType === 'amd' ?
-                    TypeScript.ModuleGenTarget.Asynchronous :
-                    TypeScript.ModuleGenTarget.Synchronous
+                    ts.ModuleKind.AMD :
+                    ts.ModuleKind.CommonJS
             ;
         
         return compilationSettings;
@@ -402,12 +412,13 @@ class TypeScriptProject {
      * for a given file retrives the file referenced or imported by this file
      * @param path
      */
-    private getReferencedOrImportedFiles(fileName: string): string[] {
+    public getReferencedOrImportedFiles(fileName: string): string[] {
         if (!this.projectFilesSet.has(fileName)) {
             return [];
         }
         var script = this.languageServiceHost.getScriptSnapshot(fileName),
-            preProcessedFileInfo = this.coreService.getPreProcessedFileInfo(fileName, script),
+            preProcessedFileInfoString = this.coreService.getPreProcessedFileInfo(fileName, script),
+            preProcessedFileInfo: TypeScript.IPreProcessedFileInfo = JSON.parse(preProcessedFileInfoString).result,
             dir = path.dirname(fileName);
         
         return preProcessedFileInfo.referencedFiles.map(fileReference => {
@@ -563,7 +574,7 @@ class TypeScriptProject {
 
 
 interface TypeScriptInfo {
-    factory: Services.TypeScriptServicesFactory;
+    factory: ts.TypeScriptServicesFactory;
     libLocation: string;
 }
 

@@ -30,7 +30,7 @@ class FormattingManager extends ServiceConsumer<IFormatingService> {
         }
         var useTabs = Editor.getUseTabChar();
 
-        var options: TypeScript.Services.FormatCodeOptions = {
+        var options: ts.FormatCodeOptions = {
             IndentSize: Editor.getSpaceUnits(),
             TabSize: Editor.getTabSize(),
             NewLineCharacter: '\n',
@@ -59,7 +59,7 @@ class FormattingManager extends ServiceConsumer<IFormatingService> {
                     return;
                 }
                 editor.document.setText(
-                    textEdits.reduce((text: string, edit: TypeScript.Services.TextEdit) => {
+                    textEdits.reduce((text: string, edit: ts.TextEdit) => {
                         return text.substr(0, edit.minChar) + edit.text + text.substr(edit.limChar);
                     }, editor.document.getText())
                 );

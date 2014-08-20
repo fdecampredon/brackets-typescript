@@ -95,7 +95,7 @@ export function setLogLevel(level: string): void {
 /**
  * base class reusing the logger for typescript 
  */
-export class LogingClass {
+export class LogingClass implements ts.Logger {
     information = information;
     debug = debug;
     warning = warning;

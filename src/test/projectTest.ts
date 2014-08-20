@@ -421,8 +421,7 @@ describe('TypeScriptProject', function () {
                         Services: {\
                             TypeScriptServicesFactory: function () { \
                                 return { \
-                                    createCoreServices: function () { return {} }, \
-                                    createPullLanguageService: function () {  return { id:\'hello\'} }\
+                                    createCoreServicesShim: function () { return { id: \'hello\' } }\
                                 }\
                             }\
                         }\
@@ -439,7 +438,7 @@ describe('TypeScriptProject', function () {
 
             waits(50);
             runs(function () {
-                expect(typeScriptProject.getLanguageService()).toEqual({id: 'hello'});
+                expect(typeScriptProject.getCoreService()).toEqual({id: 'hello'});
             });
         });
         
@@ -470,8 +469,8 @@ describe('TypeScriptProject', function () {
         }
         
         it('should update compilerOptions if compiler options does have changed', function () {
-            expect(typeScriptProject.getLanguageServiceHost().getCompilationSettings().codeGenTarget)
-                .toBe(TypeScript.LanguageVersion.EcmaScript5);
+            expect(typeScriptProject.getLanguageServiceHost().getCompilationSettings().target)
+                .toBe(ts.ScriptTarget.ES5);
             
             updateProject({
                 target: 'es3',
@@ -481,8 +480,8 @@ describe('TypeScriptProject', function () {
             waits(20);
             
             runs(function () {
-                expect(typeScriptProject.getLanguageServiceHost().getCompilationSettings().codeGenTarget)
-                    .toBe(TypeScript.LanguageVersion.EcmaScript3);
+                expect(typeScriptProject.getLanguageServiceHost().getCompilationSettings().target)
+                    .toBe(ts.ScriptTarget.ES3);
             });
         }); 
         
