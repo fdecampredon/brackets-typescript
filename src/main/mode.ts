@@ -32,6 +32,10 @@ class FormattingOptions {
 import logger = require('../commons/logger');
 import Formatting = TypeScript.Services.Formatting;
 
+// exposing SourceFileObject.createSourceFileObject
+var createSourceFileObject: (filename: string, scriptSnapshot: TypeScript.IScriptSnapshot, languageVersion: ts.ScriptTarget) => ts.SourceFile =
+    (<any>ts.getNodeConstructor(ts.SyntaxKind.SourceFile).prototype.constructor).createSourceFileObject;
+
 class Token {
     string: string;
     classification: ts.TokenClass;
@@ -139,13 +143,16 @@ class TypeScriptMode implements CodeMirror.CodeMirrorMode<LineDescriptor> {
        
     }
     
-    private getSyntaxTree(text: string) {
-        return TypeScript.Parser.parse(
-            'script', 
-            TypeScript.SimpleText.fromString(text),
-            ts.ScriptTarget.ES5,
-            false
+    private createSourceFile(text: string) {
+        return createSourceFileObject(
+            'script',
+            TypeScript.ScriptSnapshot.fromString(text),
+            ts.ScriptTarget.ES5
         );
+    }
+
+    private getSyntaxTree(text: string) {
+        return this.createSourceFile(text).getSyntaxTree();
     }
 }
 
