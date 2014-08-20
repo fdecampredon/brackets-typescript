@@ -2172,6 +2172,8 @@ declare module ts {
         LastKeyword,
         FirstFutureReservedWord,
         LastFutureReservedWord,
+        FirstTypeNode,
+        LastTypeNode,
         FirstPunctuation,
         LastPunctuation,
     }
@@ -2470,19 +2472,17 @@ declare module ts {
         getTypeCount(): number;
         checkProgram(): void;
         emitFiles(): EmitResult;
-        getSymbolOfNode(node: Node): Symbol;
         getParentOfSymbol(symbol: Symbol): Symbol;
         getTypeOfSymbol(symbol: Symbol): Type;
-        getDeclaredTypeOfSymbol(symbol: Symbol): Type;
         getPropertiesOfType(type: Type): Symbol[];
         getPropertyOfType(type: Type, propetyName: string): Symbol;
         getSignaturesOfType(type: Type, kind: SignatureKind): Signature[];
         getIndexTypeOfType(type: Type, kind: IndexKind): Type;
         getReturnTypeOfSignature(signature: Signature): Type;
-        resolveEntityName(location: Node, name: EntityName, meaning: SymbolFlags): Symbol;
         getSymbolsInScope(location: Node, meaning: SymbolFlags): Symbol[];
         getSymbolInfo(node: Node): Symbol;
-        getTypeOfExpression(node: Expression, contextualType?: Type, contextualMapper?: TypeMapper): Type;
+        getTypeOfNode(node: Node): Type;
+        getApparentType(type: Type): ApparentType;
         typeToString(type: Type, enclosingDeclaration?: Node, flags?: TypeFormatFlags): string;
         symbolToString(symbol: Symbol, enclosingDeclaration?: Node, meaning?: SymbolFlags): string;
         getAugmentedPropertiesOfApparentType(type: Type): Symbol[];
@@ -6687,7 +6687,7 @@ declare module TypeScript.ASTHelpers {
     function getEnclosingModuleDeclaration(ast: ISyntaxElement): ModuleDeclarationSyntax;
     function getModuleDeclarationFromNameAST(ast: ISyntaxElement): ModuleDeclarationSyntax;
     function isLastNameOfModule(ast: ModuleDeclarationSyntax, astName: ISyntaxElement): boolean;
-    function getNameOfIdenfierOrQualifiedName(name: ISyntaxElement): string;
+    function getNameOfIdentifierOrQualifiedName(name: ISyntaxElement): string;
     function getModuleNames(name: ISyntaxElement, result?: ISyntaxToken[]): ISyntaxToken[];
 }
 declare module TypeScript {
