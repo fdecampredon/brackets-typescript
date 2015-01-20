@@ -15,18 +15,17 @@
 'use strict';
 
 import Promise = require('bluebird');
-import TypeScriptProjectConfig = require('../commons/projectConfig');
-import tsUtils = require('../commons/typeScriptUtils');
-import utils = require('../commons/utils');
-import logger = require('../commons/logger');
-import collections = require('../commons/collections');
-import signal = require('../commons/signal');
-import ITypescriptPreferenceManager = require('../commons/preferencesManager');
+import ps = require('typescript-project-services');
+import TypeScriptProjectConfig = ps.TypeScriptProjectConfig;
+import tsUtils = require('./typeScriptUtils');
+import utils = require('./utils');
+import collections = require('./collections');
+import signal = require('./signal');
 
 /**
  * Implementation of the ITypescriptPreferenceManager
  */
-class TypescriptPreferenceManager implements ITypescriptPreferenceManager {
+class TypescriptPreferenceManager {
     /**
      * @prama prefManager brackets PreferenceManager module
      */
@@ -96,9 +95,10 @@ class TypescriptPreferenceManager implements ITypescriptPreferenceManager {
         Object.keys(configs).forEach(projectId => {
             var config: TypeScriptProjectConfig = utils.assign({ },  tsUtils.typeScriptProjectConfigDefault, configs[projectId]);
             if (!tsUtils.validateTypeScriptProjectConfig(config)) {
-                if (logger.warning()) {
-                    logger.log('invalid config file for brackets-typescript config file');
-                }
+//                if (logger.warning()) {
+//                    logger.log('invalid config file for brackets-typescript config file');
+//                }
+                console.warn('invalid config file for brackets-typescript config file')
             } else {
                 result.set(projectId, config);
             }

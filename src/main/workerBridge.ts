@@ -22,7 +22,6 @@
 //--------------------------------------------------------------------------
 
 import utils = require('./utils');
-import collections = require('./collections');
 import signal = require('./signal');
 import Promise = require('bluebird');
 
@@ -83,7 +82,7 @@ var uidHelper = 0;
 /**
  * create a query factory for a proxied service method
  */
-function newQuery(chain: string[], sendMessage: (args: any) => void, resolverMap: collections.StringMap<Resolver>): any {
+function newQuery(chain: string[], sendMessage: (args: any) => void, resolverMap: {[index: string]: Resolver}): any {
     return (...args: any []) => {
         var uid = 'operation' + (uidHelper++);
         sendMessage({
@@ -93,10 +92,10 @@ function newQuery(chain: string[], sendMessage: (args: any) => void, resolverMap
             uid: uid
         });
         return new Promise((resolve, reject) => {
-            resolverMap.set(uid, {
+            resolverMap[uid] = {
                 resolve: resolve,
                 reject: reject
-            });
+            };
         });
     };
 }
@@ -106,7 +105,7 @@ function newQuery(chain: string[], sendMessage: (args: any) => void, resolverMap
  * create proxy from proxy descriptor
  */
 function createProxy(descriptor: any, sendMessage: (args: any) => void, 
-        resolverMap: collections.StringMap<Resolver>, baseKeys: string[] = []): any {
+        resolverMap: {[index: string]: Resolver}, baseKeys: string[] = []): any {
     return Object.keys(descriptor)
         .reduce((proxy: any, key: string) => {
             var value = descriptor[key],
@@ -132,7 +131,7 @@ class WorkerBridge {
     /**
      * stack of deferred bound to a requres
      */
-    private resolverMap = new collections.StringMap<Resolver>();
+    private resolverMap: {[index: string]: Resolver} = {};
     
     /**
      * deffered tracking sate
@@ -249,15 +248,15 @@ class WorkerBridge {
                 break;
 
             case Operation.RESPONSE:
-                var responseDeferred = this.resolverMap.get(data.uid);
+                var responseDeferred = this.resolverMap[data.uid];
                 responseDeferred.resolve(data.result);
-                this.resolverMap.delete(data.uid);
+                delete this.resolverMap[data.uid];
                 break;
 
             case Operation.ERROR:
-                var errorDeferred = this.resolverMap.get(data.uid);
+                var errorDeferred = this.resolverMap[data.uid];
                 errorDeferred.reject(new Error(data.errorMessage));
-                this.resolverMap.delete(data.uid);
+                this.resolverMap[data.uid];
                 break;
                 
             default:

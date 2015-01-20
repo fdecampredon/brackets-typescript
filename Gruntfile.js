@@ -30,8 +30,8 @@ module.exports = function (grunt) {
     var istanbulify = require('istanbulify');
     
     grunt.initConfig({
-        source: ['src/declarations/*.d.ts', 'src/commons/**/*.ts', 'src/main/**/*.ts'],
-        workerSource: ['src/declarations/*.d.ts', 'src/commons/**/*.ts', 'src/ts-worker/**/*.ts'],
+        source: ['src/declarations/*.d.ts',  'src/main/**/*.ts'],
+        workerSource: ['src/declarations/**/*.d.ts',  'src/ts-worker/**/*.ts'],
         testSource: ['src/declarations/*.d.ts', 'src/test-declarations/*.d.ts',  'src/test/**/*.ts'],
         tmpFolder: 'tmp',
         localBinFolder : 'built/',
@@ -106,15 +106,6 @@ module.exports = function (grunt) {
             worker: {
                 files: {
                     'built/worker.js': ['tmp/ts-worker/index.js']
-                },
-                options: {
-                    shim: {
-                        typescriptServices: {
-                            path: 'third_party/typescript/typescriptServices.js',
-                            exports: 'TypeScript'
-                        }
-                    },
-                    noParse: ['third_party/typescript/typescriptServices.js'] 
                 }
             },
             
@@ -129,17 +120,17 @@ module.exports = function (grunt) {
             }
         },
         
-        tslint: {
-            options: {
-                configuration: grunt.file.readJSON('tslint.json')
-            },
-            all: {
-                src: [
-                    'src/**/*.ts',
-                    '!src/declarations/typescriptServices.d.ts'
-                ]
-            }
-        },
+//        tslint: {
+//            options: {
+//                configuration: grunt.file.readJSON('tslint.json')
+//            },
+//            all: {
+//                src: [
+//                    'src/**/*.ts',
+//                    '!src/declarations/typescriptServices.d.ts'
+//                ]
+//            }
+//        },
         
         
         jasmine: {

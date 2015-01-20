@@ -17,8 +17,7 @@
 //TODO that part of the application is not well tested and just 'work' it needs to be refactored
 
 import ServiceConsumer = require('./serviceConsumer');
-import immediate = require('../commons/immediate');
-import IErrorService =  require('../commons/errorService');
+import immediate = require('./immediate');
 
 
 //--------------------------------------------------------------------------
@@ -30,7 +29,7 @@ import IErrorService =  require('../commons/errorService');
 /**
  * TypeScript Inspection Provider
  */
-class TypeScriptErrorReporter extends ServiceConsumer<IErrorService> implements brackets.InspectionProvider {
+class TypeScriptErrorReporter extends ServiceConsumer implements brackets.InspectionProvider {
     
     /**
      * name of the error reporter
@@ -46,7 +45,10 @@ class TypeScriptErrorReporter extends ServiceConsumer<IErrorService> implements 
                 this.getService().then(service => {
                     service.getErrorsForFile(path).then(
                         result => {
-                            deferred.resolve(result);
+                            deferred.resolve({
+                                errors: result,
+                                aborted: false
+                            });
                         },
                         () => {
                             deferred.resolve({ 

@@ -14,7 +14,8 @@
 
 'use strict';
 
-import TypeScriptProjectConfig = require('./projectConfig');
+import ps = require('typescript-project-services');
+import TypeScriptProjectConfig = ps.TypeScriptProjectConfig;
 
 /**
  * helper function that valid a config file

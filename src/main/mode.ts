@@ -39,7 +39,6 @@ class FormattingOptions {
     );
 }
 
-import logger = require('../commons/logger');
 import Services = TypeScript.Services;
 import Formatting = TypeScript.Services.Formatting;
 
@@ -162,7 +161,14 @@ class TypeScriptMode implements CodeMirror.CodeMirrorMode<LineDescriptor> {
 
 
 
-var classifier: Services.Classifier = new Services.TypeScriptServicesFactory().createClassifier(new logger.LogingClass());
+var classifier: Services.Classifier = new Services.TypeScriptServicesFactory().createClassifier({
+    information: () => false,
+    debug: () => false,
+    warning: () => false,
+    error: () => false,
+    fatal: () => false,
+    log: string => console.log(string)
+});
 
 function getClassificationsForLine(text: string, eolState: Services.EndOfLineState ) {
 	var classificationResult = classifier.getClassificationsForLine(text, eolState),

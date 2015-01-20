@@ -16,8 +16,8 @@
 
 'use strict';
 
-import fs = require('../commons/fileSystem');
-import signal = require('../commons/signal');
+import fs = require('../main/fileSystem');
+import signal = require('../main/signal');
 import Promise = require('bluebird');
 
 class FileSystem implements fs.IFileSystem {

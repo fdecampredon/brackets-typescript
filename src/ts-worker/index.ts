@@ -15,52 +15,28 @@
 'use strict';
 
 // inject global in the worker
-global.TypeScript = require('typescriptServices');
 global.window = self;
 
 
-import TypeScriptProjectManager = require('./projectManager');
-import TypeScriptProject = require('./project');
-import ErrorService = require('./errorService');
-import DefinitionService = require('./definitionService');
-import CompletionService = require('./completionService');
-import FormattingService = require('./formattingService');
-import LexicalStructureService = require('./lexicalStructureService');
-import WorkerBridge = require('../commons/workerBridge');
-import logger = require('../commons/logger');
+import projectService = require('typescript-project-services');
+import WorkerBridge = require('../main/workerBridge');
+import Promise = require('bluebird');
 
-//instantiate the different service 
-var projectManager = new TypeScriptProjectManager(),
-    errorService = new ErrorService(projectManager),
-    completionService = new CompletionService(projectManager),
-    definitionService = new DefinitionService(projectManager),
-    lexicalStructureService = new LexicalStructureService(projectManager),
-    formattingService = new FormattingService(projectManager),
-    bridge = new WorkerBridge(<any>self);
+var bridge = new WorkerBridge(<any>self);
 
 //expose the worker services
-bridge.init({
-    errorService: errorService,
-    completionService: completionService,
-    definitionService: definitionService,
-    lexicalStructureService: lexicalStructureService,
-    formattingService: formattingService
-}).then(proxy => {
-    //inject main services into worker components
-    proxy.getTypeScriptLocation().then( (location: string) => {
-        proxy.getLogLevel().then((logLevel: string) => {  
-            self.console = proxy.console;
-            logger.setLogLevel(logLevel);
-            projectManager.init(
-                location, 
-                proxy.preferencesManager, 
-                proxy.fileSystem, proxy.workingSet, 
-                TypeScriptProject.newProject
-            ).then(() => {
-                if (logger.information()) {
-                    logger.log('TSWorker : initilialization complete');
-                }
-            });
-        });
-    });
+bridge.init(projectService).then(proxy => {
+    self.console = proxy.console;
+    return Promise.all([
+        proxy.getTypeScriptLocation(),
+        proxy.preferencesManager.getProjectsConfig()
+    ])
+    .then(result => {
+        projectService.init({
+            defaultTypeScriptLocation: <any>result[0],
+            fileSystem: proxy.fileSystem,
+            workingSet: proxy.workingSet,
+            projectConfigs: <any>result[1]
+        });     
+    })
 });

@@ -16,18 +16,47 @@
 'use strict';
 
 
-import collections = require('../commons/collections');
-import signal = require('../commons/signal');
+import signal = require('./signal');
 import Promise = require('bluebird');
-import fs = require('../commons/fileSystem');
+import collections = require('./collections');
 
+import ps = require('typescript-project-services');
+import IFileSystem = ps.IFileSystem;
+import FileChangeRecord = ps.FileChangeRecord;
+
+
+
+/**
+ * enum representing the kind change possible in the fileSysem
+ */
+ enum FileChangeKind {
+    /**
+     * a file has been added
+     */
+    ADD,
+    
+    /**
+     * a file has been updated
+     */
+    UPDATE,
+    
+    /**
+     * a file has been deleted
+     */
+    DELETE,
+    
+    /**
+     * the project files has been reset 
+     */
+    RESET
+}
 
 
 
 /**
  * IFileSystem implementations
  */
-class FileSystem implements fs.IFileSystem {
+class FileSystem implements IFileSystem {
     //-------------------------------
     //  constructor
     //-------------------------------
@@ -70,7 +99,7 @@ class FileSystem implements fs.IFileSystem {
     private initializationStack: { (): void }[] = [];
     
  
-    private _projectFilesChanged = new signal.Signal<fs.FileChangeRecord[]>();
+    private _projectFilesChanged = new signal.Signal<FileChangeRecord[]>();
     
     //-------------------------------
     //  IFileSystem implementation
@@ -86,7 +115,7 @@ class FileSystem implements fs.IFileSystem {
     /**
      * a signal dispatching fine grained change reflecting the change that happens in the working set
      */
-    get projectFilesChanged(): signal.Signal<fs.FileChangeRecord[]> {
+    get projectFilesChanged(): signal.Signal<FileChangeRecord[]> {
         return this._projectFilesChanged;
     }
     
@@ -134,11 +163,11 @@ class FileSystem implements fs.IFileSystem {
      */
     reset(): void {
         this.initialized = false;
-        this.filesContent.clear();
+        this.filesContent = Object.create(null);
         this.filesPath.length = 0;
         this.init();
         this._projectFilesChanged.dispatch([{
-            kind: fs.FileChangeKind.RESET,
+            kind: FileChangeKind.RESET,
             fileName: null
         }]);
     }
@@ -270,25 +299,25 @@ class FileSystem implements fs.IFileSystem {
                 
                 Promise.all(promises).then(() => {
                     
-                    var changes: fs.FileChangeRecord[] = [];
+                    var changes: FileChangeRecord[] = [];
                     
                     fileDeleted.forEach(path => {
                         changes.push({
-                            kind: fs.FileChangeKind.DELETE,
+                            kind: FileChangeKind.DELETE,
                             fileName: path
                         });
                     });
                     
                     fileAdded.forEach(path => {
                         changes.push({
-                            kind: fs.FileChangeKind.ADD,
+                            kind: FileChangeKind.ADD,
                             fileName: path
                         });
                     });
                     
                     fileUpdated.forEach(path => {
                         changes.push({
-                            kind: fs.FileChangeKind.UPDATE,
+                            kind: FileChangeKind.UPDATE,
                             fileName: path
                         });
                     });
@@ -309,7 +338,7 @@ class FileSystem implements fs.IFileSystem {
             
             var dispatchUpdate = () => {
                 this._projectFilesChanged.dispatch([{
-                   kind: fs.FileChangeKind.UPDATE,
+                   kind: FileChangeKind.UPDATE,
                    fileName: file.fullPath
                 }]);
             };
@@ -359,7 +388,7 @@ class FileSystem implements fs.IFileSystem {
                     newFiles[file.fullPath] = file;
                 });
                 
-                var changes: fs.FileChangeRecord[] = [],
+                var changes: FileChangeRecord[] = [],
                     path: string;
                 for (path in oldFiles) {
                     if (!newFiles.hasOwnProperty(path) && oldFiles.hasOwnProperty(path)) {
@@ -370,7 +399,7 @@ class FileSystem implements fs.IFileSystem {
                                 this.filesPath.splice(index, 1);
                                 this.filesContent.delete(path);
                                 changes.push({
-                                    kind: fs.FileChangeKind.DELETE,
+                                    kind: FileChangeKind.DELETE,
                                     fileName : path
                                 });
                             }
@@ -385,7 +414,7 @@ class FileSystem implements fs.IFileSystem {
                         if (newFiles[path].isFile) {
                             this.filesPath.push(path);
                             changes.push({
-                                kind: fs.FileChangeKind.ADD,
+                                kind: FileChangeKind.ADD,
                                 fileName : path
                             });   
                         } else {
@@ -395,7 +424,7 @@ class FileSystem implements fs.IFileSystem {
                                 files.forEach(file => {
                                     this.filesPath.push(file.fullPath);
                                     changes.push({
-                                        kind: fs.FileChangeKind.ADD,
+                                        kind: FileChangeKind.ADD,
                                         fileName : file.fullPath
                                     });     
                                 });        
@@ -423,7 +452,7 @@ class FileSystem implements fs.IFileSystem {
      */
     private renameHandler = (event: any, oldPath: string, newPath: string) => {
         var isDirectory = oldPath[oldPath.length - 1] === '/';
-        var changes: fs.FileChangeRecord[];
+        var changes: FileChangeRecord[];
         if (isDirectory) {
             changes = [];
             this.filesPath.concat().forEach(path => {
@@ -454,10 +483,10 @@ class FileSystem implements fs.IFileSystem {
                 this.filesContent.set(newPath, content);
             }
             return [{
-                kind: fs.FileChangeKind.DELETE,
+                kind: FileChangeKind.DELETE,
                 fileName: oldPath
             }, {
-                kind: fs.FileChangeKind.ADD,
+                kind: FileChangeKind.ADD,
                 fileName: newPath
             }];
         }

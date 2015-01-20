@@ -17,12 +17,11 @@
 //TODO that part of the application is not well tested and just 'work' it needs to be refactored
 
 import ServiceConsumer = require('./serviceConsumer');
-import definition = require('../commons/definition');
 
 var DocumentManager = brackets.getModule('document/DocumentManager'),
     MultiRangeInlineEditor = brackets.getModule('editor/MultiRangeInlineEditor').MultiRangeInlineEditor;
 
-class TypeScriptQuickEditProvider extends ServiceConsumer<definition.IDefinitionService> {
+class TypeScriptQuickEditProvider extends ServiceConsumer {
     
     
     typeScriptInlineEditorProvider = (hostEditor: brackets.Editor, pos: CodeMirror.Position): JQueryPromise<brackets.InlineWidget> => {
@@ -38,7 +37,7 @@ class TypeScriptQuickEditProvider extends ServiceConsumer<definition.IDefinition
         var deferred = $.Deferred();
         this.getService().then(service => {
             var fileName = hostEditor.document.file.fullPath;
-            service.getDefinitionForFile(fileName, pos).then(definitions => {
+            service.getDefinitionAtPosition(fileName, pos).then(definitions => {
                 if (!definitions || definitions.length === 0) {
                     deferred.reject();
                 }

@@ -15,22 +15,23 @@
 'use strict';
 
 import Promise = require('bluebird');
+import TypeScriptProjectService = require('typescript-project-services');
 
 /**
  * a class implementing logic to stack operations until a service 
  * has been injected
  */
-class ServiceConsumer<T>   {
+class ServiceConsumer   {
     
     /**
      * callback that resolve the internal promise 
      */
-    private serviceResolver: (t: T) => void;
+    private serviceResolver: (t: typeof TypeScriptProjectService) => void;
     
     /**
      * internal promise 
      */
-    private promise: Promise<T>;
+    private promise: Promise<typeof TypeScriptProjectService>;
     
     /**
      * constructor
@@ -44,14 +45,14 @@ class ServiceConsumer<T>   {
      * 
      * @param service the injected service
      */
-    setService(service: T) {
+    setService(service: typeof TypeScriptProjectService) {
         this.serviceResolver(service);
     }
     
     /**
      * @return a promise that will be resolved when the service get injected
      */
-    getService(): Promise<T> {
+    getService(): Promise<typeof TypeScriptProjectService> {
         return this.promise;    
     }
     

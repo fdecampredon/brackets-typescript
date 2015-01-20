@@ -17,8 +17,9 @@
 //TODO that part of the application is not well tested and just 'work' it needs to be refactored
 
 import ServiceConsumer = require('./serviceConsumer');
-import completion = require('../commons/completion');
-import CompletionKind = completion.CompletionKind;
+import TypeScriptProjectService = require('typescript-project-services');
+
+
 
 var HINT_TEMPLATE = [
     '<span class="cm-s-default">',
@@ -32,7 +33,7 @@ var HINT_TEMPLATE = [
 /**
  * basic implementation
  */
-class CodeHintProvider extends ServiceConsumer<completion.ICompletionService> implements brackets.CodeHintProvider {
+class CodeHintProvider extends ServiceConsumer implements brackets.CodeHintProvider {
     
     
     private editor: brackets.Editor;
@@ -72,8 +73,8 @@ class CodeHintProvider extends ServiceConsumer<completion.ICompletionService> im
                                 match: string,
                                 suffix: string,
                                 classType = '';
-
-                            switch (entry.kind) {
+                            //TODO
+                            /*switch (entry.kind) {
                                 case CompletionKind.KEYWORD:
                                     switch (entry.name) {
                                         case 'static':
@@ -102,7 +103,7 @@ class CodeHintProvider extends ServiceConsumer<completion.ICompletionService> im
                                 default:
                                     text += entry.type ? ' - ' + entry.type : ''; 
                                     break;
-                            }
+                            }*/
 
                             // highlight the matched portion of each hint
                             if (result.match) {
@@ -136,7 +137,7 @@ class CodeHintProvider extends ServiceConsumer<completion.ICompletionService> im
     
     
     insertHint($hintObj: JQuery): void {
-        var entry: completion.CompletionEntry = $hintObj.data('entry'),
+        var entry: any= $hintObj.data('entry'),
             match: string = $hintObj.data('match'), 
             position = this.editor.getCursorPos(),
             startPos = !match ? 

@@ -14,18 +14,17 @@
 
 'use strict';
 
-import logger = require('../commons/logger');
 import FileSystem = require('./fileSystem');
 import WorkingSet = require('./workingSet');
 import TypeScriptPreferencesManager = require('./preferencesManager');
-import WorkerBridge = require('../commons/workerBridge');
+import WorkerBridge = require('./workerBridge');
 import TypeScriptErrorReporter = require('./errorReporter');
 import TypeScriptConfigErrorReporter = require('./configErrorReporter');
 import TypeScriptQuickEditProvider = require('./quickEdit');
 import TypeScriptQuickJumpProvider = require('./quickJump');
-import TypeScriptQuickFindDefitionProvider = require('./quickFindDefinition');
+//import TypeScriptQuickFindDefitionProvider = require('./quickFindDefinition');
 import CodeHintProvider = require('./codeHintProvider');
-import FormattingManager = require('./formattingManager');
+//import FormattingManager = require('./formattingManager');
 import typeScriptModeFactory = require('./mode');
 
 
@@ -53,10 +52,11 @@ var LanguageManager = brackets.getModule('language/LanguageManager'),
 var tsErrorReporter: TypeScriptErrorReporter,
     quickEditProvider: TypeScriptQuickEditProvider,
     codeHintProvider: CodeHintProvider,
-    quickJumpProvider: TypeScriptQuickJumpProvider,
-    quickFindDefinitionProvider: TypeScriptQuickFindDefitionProvider,
-    formattingManager: FormattingManager;
-    
+    quickJumpProvider: TypeScriptQuickJumpProvider
+//    ,
+//    quickFindDefinitionProvider: TypeScriptQuickFindDefitionProvider,
+//    formattingManager: FormattingManager;
+//    
     
  
 var fileSystem: FileSystem,
@@ -66,7 +66,6 @@ var fileSystem: FileSystem,
     bridge: WorkerBridge;
 
 function init(config: { logLevel: string; typeScriptLocation: string; workerLocation: string; }) {
-    logger.setLogLevel(config.logLevel);
     CodeMirror.defineMode('typescript', typeScriptModeFactory); 
 
     //Register the language extension
@@ -97,15 +96,15 @@ function init(config: { logLevel: string; typeScriptLocation: string; workerLoca
     CodeInspection.register('json', new TypeScriptConfigErrorReporter());
     
     //Register quickFindDefinitionProvider
-    quickFindDefinitionProvider = new TypeScriptQuickFindDefitionProvider();
-    QuickOpen.addQuickOpenPlugin(quickFindDefinitionProvider);
+//    quickFindDefinitionProvider = new TypeScriptQuickFindDefitionProvider();
+//    QuickOpen.addQuickOpenPlugin(quickFindDefinitionProvider);
     
     //Register formatting command
-    formattingManager = new FormattingManager();
-    CommandManager.register(FormattingManager.FORMAT_LABEL, FormattingManager.FORMAT_COMMAND_ID, formattingManager.format);
-    var contextMenu = Menus.getContextMenu(Menus.ContextMenuIds.EDITOR_MENU);
-    contextMenu.addMenuItem(FormattingManager.FORMAT_COMMAND_ID);
-    
+//    formattingManager = new FormattingManager();
+//    CommandManager.register(FormattingManager.FORMAT_LABEL, FormattingManager.FORMAT_COMMAND_ID, formattingManager.format);
+//    var contextMenu = Menus.getContextMenu(Menus.ContextMenuIds.EDITOR_MENU);
+//    contextMenu.addMenuItem(FormattingManager.FORMAT_COMMAND_ID);
+//    
     initServices(config.workerLocation, config.typeScriptLocation, config.logLevel);
     
     $(ProjectManager).on('beforeProjectClose beforeAppClose', disposeServices);
@@ -120,12 +119,12 @@ function disposeServices() {
     workingSet.dispose();
     preferencesManager.dispose();
     
-    formattingManager.reset();
+//    formattingManager.reset();
     tsErrorReporter.reset();
     codeHintProvider.reset();
     quickEditProvider.reset();
     quickJumpProvider.reset();
-    quickFindDefinitionProvider.reset();
+//    quickFindDefinitionProvider.reset();
 }
 
 
@@ -143,17 +142,14 @@ function initServices(workerLocation: string, typeScriptLocation: string, logLev
         preferencesManager: preferencesManager,
         getTypeScriptLocation: function () {
             return typeScriptLocation;
-        },
-        getLogLevel: function () {
-            return logLevel;
         }
-    }).then(proxy => {
-        tsErrorReporter.setService(proxy.errorService);
-        codeHintProvider.setService(proxy.completionService);
-        quickEditProvider.setService(proxy.definitionService);
-        quickJumpProvider.setService(proxy.definitionService);
-        quickFindDefinitionProvider.setService(proxy.lexicalStructureService);
-        formattingManager.setService(proxy.formattingService);
+    }).then(tsProjectService => {
+        tsErrorReporter.setService(tsProjectService);
+        codeHintProvider.setService(tsProjectService);
+        quickEditProvider.setService(tsProjectService);
+        quickJumpProvider.setService(tsProjectService);
+//        quickFindDefinitionProvider.setService(proxy.lexicalStructureService);
+//        formattingManager.setService(proxy.formattingService);
     });
 }
 

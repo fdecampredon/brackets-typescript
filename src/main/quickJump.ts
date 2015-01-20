@@ -17,13 +17,12 @@
 //TODO that part of the application is not well tested and just 'work' it needs to be refactored
 
 import ServiceConsumer = require('./serviceConsumer');
-import definition = require('../commons/definition');
 
 var EditorManager = brackets.getModule('editor/EditorManager'),
     Commands = brackets.getModule('command/Commands'),
     CommandManager = brackets.getModule('command/CommandManager');
 
-class TypeScriptQuickJumpProvider extends ServiceConsumer<definition.IDefinitionService> {
+class TypeScriptQuickJumpProvider extends ServiceConsumer {
     
     handleJumpToDefinition = (): JQueryPromise<boolean> => {
         var editor = EditorManager.getFocusedEditor();
@@ -37,7 +36,7 @@ class TypeScriptQuickJumpProvider extends ServiceConsumer<definition.IDefinition
             deferred = $.Deferred();
         
         this.getService().then(service => {
-            service.getDefinitionForFile(fileName, pos).then(definitions => {
+            service.getDefinitionAtPosition(fileName, pos).then(definitions => {
                 if (!definitions || definitions.length === 0) {
                     deferred.reject();
                 }

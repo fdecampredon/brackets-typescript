@@ -13,18 +13,22 @@
     "brackets": ">=0.38.0"
   },
   "devDependencies": {
-    "minimatch": "~0.2.14",
+    "bluebird": "~1.2.3",
     "grunt": "~0.4.1",
-    "matchdep": "~0.1.2",
-    "grunt-contrib-clean": "~0.5.0",
-    "grunt-contrib-jasmine": "~0.5.2",
-    "grunt-contrib-copy": "~0.4.1",
-    "grunt-tslint": "~0.4.1",
-    "grunt-contrib-compress": "~0.5.3",
     "grunt-browserify": "~1.3.0",
-    "istanbulify": "~0.1.0",
-    "grunt-typescript": "~0.3.0",
+    "grunt-contrib-clean": "~0.5.0",
+    "grunt-contrib-compress": "~0.5.3",
+    "grunt-contrib-copy": "~0.4.1",
+    "grunt-contrib-jasmine": "~0.5.2",
     "grunt-template-jasmine-istanbul": "~0.2.6",
-    "bluebird": "~1.2.3"
+    "grunt-tslint": "~0.4.1",
+    "grunt-typescript": "~0.3.0",
+    "istanbulify": "~0.1.0",
+    "jest": "^0.1.37",
+    "matchdep": "~0.1.2",
+    "minimatch": "~0.2.14"
+  },
+  "dependencies": {
+    "typescript-project-services": "^0.1.0"
   }
 }

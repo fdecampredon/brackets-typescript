@@ -15,10 +15,27 @@
 'use strict';
 
 
-import signal = require('../commons/signal');
-import collections = require('../commons/collections');
-import ws = require('../commons/workingSet');
+import signal = require('./signal');
+import collections = require('./collections');
 import Promise = require('bluebird');
+
+
+import ps = require('typescript-project-services');
+import IWorkingSet = ps.IWorkingSet;
+import WorkingSetChangeRecord = ps.WorkingSetChangeRecord;
+import DocumentChangeRecord = ps.DocumentChangeRecord;
+import DocumentChangeDescriptor = ps.DocumentChangeDescriptor;
+
+
+
+/**
+ * enum listing the change kind that occur in a working set
+ */
+enum WorkingSetChangeKind {
+    ADD,
+    REMOVE
+}
+
 
 
 
@@ -26,7 +43,7 @@ import Promise = require('bluebird');
 /**
  * implementation of the IWorkingSet
  */
-class WorkingSet implements ws.IWorkingSet  {
+class WorkingSet implements IWorkingSet  {
     
     //-------------------------------
     //  constructor
@@ -55,12 +72,12 @@ class WorkingSet implements ws.IWorkingSet  {
     /**
      * internal signal for workingSetChanged
      */
-    private _workingSetChanged = new signal.Signal<ws.WorkingSetChangeRecord>();
+    private _workingSetChanged = new signal.Signal<WorkingSetChangeRecord>();
     
     /**
      * internal signal for documentEdited
      */
-    private _documentEdited = new signal.Signal<ws.DocumentChangeRecord>();
+    private _documentEdited = new signal.Signal<DocumentChangeRecord>();
     
         
     /**
@@ -138,7 +155,7 @@ class WorkingSet implements ws.IWorkingSet  {
     private workingSetAddHandler = (event: any, file: brackets.File) => {
         this.filesSet.add(file.fullPath);
         this.workingSetChanged.dispatch({
-            kind: ws.WorkingSetChangeKind.ADD,
+            kind: WorkingSetChangeKind.ADD,
             paths: [file.fullPath]
         });
     };
@@ -153,7 +170,7 @@ class WorkingSet implements ws.IWorkingSet  {
         });
         if (paths.length > 0) {
             this.workingSetChanged.dispatch({
-                kind: ws.WorkingSetChangeKind.ADD,
+                kind: WorkingSetChangeKind.ADD,
                 paths: paths
             });
         }
@@ -165,7 +182,7 @@ class WorkingSet implements ws.IWorkingSet  {
     private workingSetRemoveHandler = (event: any, file: brackets.File) => {
         this.filesSet.remove(file.fullPath);
         this.workingSetChanged.dispatch({
-            kind: ws.WorkingSetChangeKind.REMOVE,
+            kind: WorkingSetChangeKind.REMOVE,
             paths: [file.fullPath]
         });
     };
@@ -180,7 +197,7 @@ class WorkingSet implements ws.IWorkingSet  {
         });
         if (paths.length > 0) {
             this.workingSetChanged.dispatch({
-                kind: ws.WorkingSetChangeKind.REMOVE,
+                kind: WorkingSetChangeKind.REMOVE,
                 paths: paths
             });
         }
@@ -204,7 +221,7 @@ class WorkingSet implements ws.IWorkingSet  {
      * handle 'change' on document
      */
     private documentChangesHandler = (event: any, document: brackets.Document, changes: CodeMirror.EditorChange[]) => {
-        var changeList: ws.DocumentChangeDescriptor[] = 
+        var changeList: DocumentChangeDescriptor[] = 
             changes.map(change => ({
                 from: change.from,
                 to: change.to,

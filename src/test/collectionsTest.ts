@@ -16,7 +16,7 @@
 
 'use strict';
 
-import collections = require('../commons/collections');
+import collections = require('../main/collections');
 describe('StringSet', function () {
     var stringSet: collections.StringSet;
     beforeEach(function () {
