@@ -154,7 +154,7 @@ declare module 'typescript-project-services' {
          */
         projectConfigs: { [projectId: string]: TypeScriptProjectConfig; };
     }
-
+    
 
     /**
      * Project Configuration
@@ -495,31 +495,9 @@ declare module 'typescript-project-services' {
     export function getFormatingForFile(fileName: string, options: any, startPos?: Position, endPos?: Position): Promise<TextEdit[]>
     
     
-
-
-    /**
-     * Represent an entry in a completion proposal list
-     */
-    export interface CompletionEntry {
-        /**
-         * the name of the entry (aka: the text to insert)
-         */
-        name: string;
-
-        /**
-         * type of the symbol of the entry
-         */
-        type: string;
-
-        /**
-         * the entry kind
-         */
-        kind: number;
-
-        /**
-         * JSDoc contents corresponding to this entry
-         */
-        doc: string;
+    interface SymbolDisplayPart {
+        text: string;
+        kind: string;
     }
 
     /**
@@ -534,7 +512,13 @@ declare module 'typescript-project-services' {
         /**
          * list of proposed entries for code completion
          */
-        entries: CompletionEntry[];
+        entries: {
+            name: string;
+            kind: string;
+            kindModifiers: string;
+            displayParts: SymbolDisplayPart[];
+            documentation: SymbolDisplayPart[];
+        }[]
     }
 
 
@@ -547,5 +531,5 @@ declare module 'typescript-project-services' {
      * 
      * @return a promise resolving to a list of proposals
      */
-    export function getCompletionAtPosition(fileName: string, position: Position): Promise<CompletionResult>
+    export function getCompletionAtPosition(fileName: string, position: Position, limit?: number, skip?: number): Promise<CompletionResult>
 }

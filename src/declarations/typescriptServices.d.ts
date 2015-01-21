@@ -1,4 +1,6 @@
-declare module TypeScript {
+declare module 'typescriptServices' {
+
+module TypeScript {
     var DiagnosticCode: {
         error_TS_0_1: string;
         warning_TS_0_1: string;
@@ -437,9 +439,7 @@ declare module TypeScript {
         Object_literal_s_property_0_implicitly_has_an_any_type_from_widening: string;
     };
 }
-declare var require: any;
-declare var module: any;
-declare module TypeScript {
+module TypeScript {
     class ArrayUtilities {
         static isArray(value: any): boolean;
         static sequenceEquals<T>(array1: T[], array2: T[], equals: (v1: T, v2: T) => boolean): boolean;
@@ -464,7 +464,7 @@ declare module TypeScript {
         static indexOf<T>(array: T[], predicate: (v: T) => boolean): number;
     }
 }
-declare module TypeScript {
+module TypeScript {
     interface IBitVector {
         valueAt(index: number): boolean;
         setValueAt(index: number, value: boolean): void;
@@ -474,7 +474,7 @@ declare module TypeScript {
         function getBitVector(allowUndefinedValues: boolean): IBitVector;
     }
 }
-declare module TypeScript {
+module TypeScript {
     interface IBitMatrix {
         valueAt(x: number, y: number): boolean;
         setValueAt(x: number, y: number, value: boolean): void;
@@ -484,13 +484,13 @@ declare module TypeScript {
         function getBitMatrix(allowUndefinedValues: boolean): IBitMatrix;
     }
 }
-declare module TypeScript {
+module TypeScript {
     enum Constants {
         Max31BitInteger = 1073741823,
         Min31BitInteger = -1073741824,
     }
 }
-declare module TypeScript {
+module TypeScript {
     enum AssertionLevel {
         None = 0,
         Normal = 1,
@@ -504,7 +504,7 @@ declare module TypeScript {
         static fail(message?: string): void;
     }
 }
-declare module TypeScript {
+module TypeScript {
     var LocalizedDiagnosticMessages: IIndexable<any>;
     class Location {
         private _fileName;
@@ -538,14 +538,14 @@ declare module TypeScript {
     function getLocalizedText(diagnosticKey: string, args: any[]): string;
     function getDiagnosticMessage(diagnosticKey: string, args: any[]): string;
 }
-declare module TypeScript {
+module TypeScript {
     interface DiagnosticInfo {
         category: DiagnosticCategory;
         message: string;
         code: number;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class Errors {
         static argument(argument: string, message?: string): Error;
         static argumentOutOfRange(argument: string): Error;
@@ -555,7 +555,7 @@ declare module TypeScript {
         static invalidOperation(message?: string): Error;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class Hash {
         private static FNV_BASE;
         private static FNV_PRIME;
@@ -569,7 +569,7 @@ declare module TypeScript {
         static combine(value: number, currentHash: number): number;
     }
 }
-declare module TypeScript.Collections {
+module TypeScript.Collections {
     var DefaultHashTableCapacity: number;
     class HashTable<TKey, TValue> {
         private hash;
@@ -589,13 +589,13 @@ declare module TypeScript.Collections {
     function createHashTable<TKey, TValue>(capacity?: number, hash?: (k: TKey) => number): HashTable<TKey, TValue>;
     function identityHashCode(value: any): number;
 }
-declare class Enumerator {
+class Enumerator {
     public atEnd(): boolean;
     public moveNext(): boolean;
     public item(): any;
     constructor(o: any);
 }
-declare module process {
+module process {
     var argv: string[];
     var platform: string;
     function on(event: string, handler: (arg: any) => void): void;
@@ -612,8 +612,8 @@ declare module process {
     }
     function exit(exitCode?: number): any;
 }
-declare var Buffer: new(str: string, encoding?: string) => any;
-declare module TypeScript {
+var Buffer: new(str: string, encoding?: string) => any;
+module TypeScript {
     var nodeMakeDirectoryTime: number;
     var nodeCreateBufferTime: number;
     var nodeWriteFileSyncTime: number;
@@ -645,12 +645,12 @@ declare module TypeScript {
     }
     var Environment: IEnvironment;
 }
-declare module TypeScript {
+module TypeScript {
     interface IIndexable<T> {
         [s: string]: T;
     }
 }
-declare module TypeScript {
+module TypeScript {
     module IntegerUtilities {
         function integerDivide(numerator: number, denominator: number): number;
         function integerMultiplyLow32Bits(n1: number, n2: number): number;
@@ -659,19 +659,19 @@ declare module TypeScript {
         function isHexInteger(text: string): boolean;
     }
 }
-declare module TypeScript {
+module TypeScript {
     interface Iterator<T> {
         moveNext(): boolean;
         current(): T;
     }
 }
-declare module TypeScript {
+module TypeScript {
     interface ILineAndCharacter {
         line: number;
         character: number;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class LineMap {
         private _computeLineStarts;
         private length;
@@ -692,7 +692,7 @@ declare module TypeScript {
         public getLineAndCharacterFromPosition(position: number): LineAndCharacter;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class LineAndCharacter {
         private _line;
         private _character;
@@ -701,13 +701,13 @@ declare module TypeScript {
         public character(): number;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class MathPrototype {
         static max(a: number, b: number): number;
         static min(a: number, b: number): number;
     }
 }
-declare module TypeScript.Collections {
+module TypeScript.Collections {
     var DefaultStringTableCapacity: number;
     class StringTable {
         private entries;
@@ -721,7 +721,7 @@ declare module TypeScript.Collections {
     }
     var DefaultStringTable: StringTable;
 }
-declare module TypeScript {
+module TypeScript {
     class StringUtilities {
         static isString(value: any): boolean;
         static fromCharCodeArray(array: number[]): string;
@@ -732,8 +732,8 @@ declare module TypeScript {
         static stringEquals(val1: string, val2: string): boolean;
     }
 }
-declare var global: any;
-declare module TypeScript {
+var global: any;
+module TypeScript {
     class Timer {
         public startTime: number;
         public time: number;
@@ -741,7 +741,7 @@ declare module TypeScript {
         public end(): void;
     }
 }
-declare module TypeScript {
+module TypeScript {
     enum DiagnosticCategory {
         Warning = 0,
         Error = 1,
@@ -749,10 +749,10 @@ declare module TypeScript {
         NoPrefix = 3,
     }
 }
-declare module TypeScript {
+module TypeScript {
     var diagnosticInformationMap: IIndexable<any>;
 }
-declare module TypeScript {
+module TypeScript {
     enum CharacterCodes {
         nullCharacter = 0,
         maxAsciiCharacter = 127,
@@ -847,7 +847,7 @@ declare module TypeScript {
         verticalTab = 11,
     }
 }
-declare module TypeScript {
+module TypeScript {
     interface IScriptSnapshot {
         getText(start: number, end: number): string;
         getLength(): number;
@@ -858,7 +858,7 @@ declare module TypeScript {
         function fromString(text: string): IScriptSnapshot;
     }
 }
-declare module TypeScript {
+module TypeScript {
     interface ISimpleText {
         length(): number;
         copyTo(sourceIndex: number, destination: number[], destinationIndex: number, count: number): void;
@@ -878,7 +878,7 @@ declare module TypeScript {
         toString(span?: TextSpan): string;
     }
 }
-declare module TypeScript {
+module TypeScript {
     interface ITextLine {
         start(): number;
         end(): number;
@@ -889,21 +889,21 @@ declare module TypeScript {
         lineNumber(): number;
     }
 }
-declare module TypeScript {
+module TypeScript {
     module LineMap1 {
         function fromSimpleText(text: ISimpleText): LineMap;
         function fromScriptSnapshot(scriptSnapshot: IScriptSnapshot): LineMap;
         function fromString(text: string): LineMap;
     }
 }
-declare module TypeScript.TextFactory {
+module TypeScript.TextFactory {
     function createText(value: string): IText;
 }
-declare module TypeScript.SimpleText {
+module TypeScript.SimpleText {
     function fromString(value: string): ISimpleText;
     function fromScriptSnapshot(scriptSnapshot: IScriptSnapshot): ISimpleText;
 }
-declare module TypeScript.TextUtilities {
+module TypeScript.TextUtilities {
     interface ICharacterSequence {
         charCodeAt(index: number): number;
         length: number;
@@ -913,7 +913,7 @@ declare module TypeScript.TextUtilities {
     function getLengthOfLineBreak(text: ICharacterSequence, index: number): number;
     function isAnyLineBreakCharacter(c: number): boolean;
 }
-declare module TypeScript {
+module TypeScript {
     class TextSpan {
         private _start;
         private _length;
@@ -933,7 +933,7 @@ declare module TypeScript {
         static fromBounds(start: number, end: number): TextSpan;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class TextChangeRange {
         static unchanged: TextChangeRange;
         private _span;
@@ -947,7 +947,7 @@ declare module TypeScript {
         static collapseChangesAcrossMultipleVersions(changes: TextChangeRange[]): TextChangeRange;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class CharacterInfo {
         static isDecimalDigit(c: number): boolean;
         static isOctalDigit(c: number): boolean;
@@ -957,7 +957,7 @@ declare module TypeScript {
         static isLineTerminator(ch: number): boolean;
     }
 }
-declare module TypeScript {
+module TypeScript {
     enum SyntaxConstants {
         TriviaNewLineMask = 1,
         TriviaCommentMask = 2,
@@ -969,7 +969,7 @@ declare module TypeScript {
         IsVariableWidthKeyword = -2147483648,
     }
 }
-declare class FormattingOptions {
+class FormattingOptions {
     public useTabs: boolean;
     public spacesPerTab: number;
     public indentSpaces: number;
@@ -977,7 +977,7 @@ declare class FormattingOptions {
     constructor(useTabs: boolean, spacesPerTab: number, indentSpaces: number, newLineCharacter: string);
     static defaultOptions: FormattingOptions;
 }
-declare module TypeScript.Indentation {
+module TypeScript.Indentation {
     function columnForEndOfToken(token: ISyntaxToken, syntaxInformationMap: SyntaxInformationMap, options: FormattingOptions): number;
     function columnForStartOfToken(token: ISyntaxToken, syntaxInformationMap: SyntaxInformationMap, options: FormattingOptions): number;
     function columnForStartOfFirstTokenInLineContainingToken(token: ISyntaxToken, syntaxInformationMap: SyntaxInformationMap, options: FormattingOptions): number;
@@ -986,13 +986,13 @@ declare module TypeScript.Indentation {
     function indentationTrivia(column: number, options: FormattingOptions): ISyntaxTrivia;
     function firstNonWhitespacePosition(value: string): number;
 }
-declare module TypeScript {
+module TypeScript {
     enum LanguageVersion {
         EcmaScript3 = 0,
         EcmaScript5 = 1,
     }
 }
-declare module TypeScript {
+module TypeScript {
     class ParseOptions {
         private _languageVersion;
         private _allowAutomaticSemicolonInsertion;
@@ -1004,7 +1004,7 @@ declare module TypeScript {
         public allowAutomaticSemicolonInsertion(): boolean;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class PositionedElement {
         private _parent;
         private _element;
@@ -1061,7 +1061,7 @@ declare module TypeScript {
         public nextToken(includeSkippedTokens?: boolean): PositionedToken;
     }
 }
-declare module TypeScript {
+module TypeScript {
     enum SyntaxKind {
         None = 0,
         List = 1,
@@ -1331,7 +1331,7 @@ declare module TypeScript {
         LastTrivia = 8,
     }
 }
-declare module TypeScript.SyntaxFacts {
+module TypeScript.SyntaxFacts {
     function getTokenKind(text: string): SyntaxKind;
     function getText(kind: SyntaxKind): string;
     function isTokenKind(kind: SyntaxKind): boolean;
@@ -1349,7 +1349,7 @@ declare module TypeScript.SyntaxFacts {
     function isAnyDivideToken(kind: SyntaxKind): boolean;
     function isAnyDivideOrRegularExpressionToken(kind: SyntaxKind): boolean;
 }
-declare module TypeScript {
+module TypeScript {
     class Scanner implements ISlidingWindowSource {
         private slidingWindow;
         private fileName;
@@ -1416,12 +1416,12 @@ declare module TypeScript {
         static isValidIdentifier(text: ISimpleText, languageVersion: LanguageVersion): boolean;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class ScannerUtilities {
         static identifierKind(array: number[], startIndex: number, length: number): SyntaxKind;
     }
 }
-declare module TypeScript {
+module TypeScript {
     interface ISeparatedSyntaxList extends ISyntaxElement {
         childAt(index: number): ISyntaxNodeOrToken;
         toArray(): ISyntaxNodeOrToken[];
@@ -1433,11 +1433,11 @@ declare module TypeScript {
         insertChildrenInto(array: ISyntaxElement[], index: number): void;
     }
 }
-declare module TypeScript.Syntax {
+module TypeScript.Syntax {
     var emptySeparatedList: ISeparatedSyntaxList;
     function separatedList(nodes: ISyntaxNodeOrToken[]): ISeparatedSyntaxList;
 }
-declare module TypeScript {
+module TypeScript {
     interface ISlidingWindowSource {
         fetchMoreItems(argument: any, sourceIndex: number, window: any[], destinationIndex: number, spaceAvailable: number): number;
     }
@@ -1468,9 +1468,9 @@ declare module TypeScript {
         public pinCount(): number;
     }
 }
-declare module TypeScript {
+module TypeScript {
 }
-declare module TypeScript.Syntax {
+module TypeScript.Syntax {
     function emptySourceUnit(): SourceUnitSyntax;
     function getStandaloneExpression(positionedToken: PositionedToken): PositionedNodeOrToken;
     function isInModuleOrTypeContext(positionedToken: PositionedToken): boolean;
@@ -1510,7 +1510,7 @@ declare module TypeScript.Syntax {
     function hasAncestorOfKind(positionedToken: PositionedElement, kind: SyntaxKind): boolean;
     function isIntegerLiteral(expression: IExpressionSyntax): boolean;
 }
-declare module TypeScript {
+module TypeScript {
     interface ISyntaxElement {
         kind(): SyntaxKind;
         isNode(): boolean;
@@ -1585,7 +1585,7 @@ declare module TypeScript {
     interface INameSyntax extends ITypeSyntax {
     }
 }
-declare module TypeScript.Syntax {
+module TypeScript.Syntax {
     interface IFactory {
         sourceUnit(moduleElements: ISyntaxList, endOfFileToken: ISyntaxToken): SourceUnitSyntax;
         externalModuleReference(requireKeyword: ISyntaxToken, openParenToken: ISyntaxToken, stringLiteral: ISyntaxToken, closeParenToken: ISyntaxToken): ExternalModuleReferenceSyntax;
@@ -1850,19 +1850,19 @@ declare module TypeScript.Syntax {
     var normalModeFactory: IFactory;
     var strictModeFactory: IFactory;
 }
-declare module TypeScript.SyntaxFacts {
+module TypeScript.SyntaxFacts {
     function isDirectivePrologueElement(node: ISyntaxNodeOrToken): boolean;
     function isUseStrictDirective(node: ISyntaxNodeOrToken): boolean;
     function isIdentifierNameOrAnyKeyword(token: ISyntaxToken): boolean;
 }
-declare module TypeScript {
+module TypeScript {
     interface ISyntaxList extends ISyntaxElement {
         childAt(index: number): ISyntaxNodeOrToken;
         toArray(): ISyntaxNodeOrToken[];
         insertChildrenInto(array: ISyntaxElement[], index: number): void;
     }
 }
-declare module TypeScript.Syntax {
+module TypeScript.Syntax {
     class EmptySyntaxList implements ISyntaxList {
         public kind(): SyntaxKind;
         public isNode(): boolean;
@@ -1891,7 +1891,7 @@ declare module TypeScript.Syntax {
     var emptyList: ISyntaxList;
     function list(nodes: ISyntaxNodeOrToken[]): ISyntaxList;
 }
-declare module TypeScript {
+module TypeScript {
     class SyntaxNode implements ISyntaxNodeOrToken {
         private _data;
         constructor(parsedInStrictMode: boolean);
@@ -1939,14 +1939,14 @@ declare module TypeScript {
         public trailingTriviaWidth(): number;
     }
 }
-declare module TypeScript {
+module TypeScript {
     interface ISyntaxNodeOrToken extends ISyntaxElement {
         withLeadingTrivia(leadingTrivia: ISyntaxTriviaList): ISyntaxNodeOrToken;
         withTrailingTrivia(trailingTrivia: ISyntaxTriviaList): ISyntaxNodeOrToken;
         accept(visitor: ISyntaxVisitor): any;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class SourceUnitSyntax extends SyntaxNode {
         public moduleElements: ISyntaxList;
         public endOfFileToken: ISyntaxToken;
@@ -3799,7 +3799,7 @@ declare module TypeScript {
         public isTypeScriptSpecific(): boolean;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class SyntaxRewriter implements ISyntaxVisitor {
         public visitToken(token: ISyntaxToken): ISyntaxToken;
         public visitNode(node: SyntaxNode): SyntaxNode;
@@ -3893,7 +3893,7 @@ declare module TypeScript {
         public visitDebuggerStatement(node: DebuggerStatementSyntax): any;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class SyntaxDedenter extends SyntaxRewriter {
         private dedentationAmount;
         private minimumIndent;
@@ -3910,7 +3910,7 @@ declare module TypeScript {
         static dedentNode(node: ISyntaxNode, dedentFirstToken: boolean, dedentAmount: number, minimumIndent: number, options: FormattingOptions): ISyntaxNode;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class SyntaxIndenter extends SyntaxRewriter {
         private indentationAmount;
         private options;
@@ -3927,7 +3927,7 @@ declare module TypeScript {
         static indentNodes(nodes: SyntaxNode[], indentFirstToken: boolean, indentAmount: number, options: FormattingOptions): SyntaxNode[];
     }
 }
-declare module TypeScript.Syntax {
+module TypeScript.Syntax {
     class VariableWidthTokenWithNoTrivia implements ISyntaxToken {
         private _fullText;
         public tokenKind: SyntaxKind;
@@ -4320,7 +4320,7 @@ declare module TypeScript.Syntax {
         public isUnaryExpression(): boolean;
     }
 }
-declare module TypeScript {
+module TypeScript {
     interface ISyntaxToken extends ISyntaxNodeOrToken, INameSyntax, IPrimaryExpressionSyntax {
         tokenKind: SyntaxKind;
         text(): string;
@@ -4347,7 +4347,7 @@ declare module TypeScript {
         trailingTrivia?: ISyntaxTrivia[];
     }
 }
-declare module TypeScript.Syntax {
+module TypeScript.Syntax {
     function isExpression(token: ISyntaxToken): boolean;
     function realizeToken(token: ISyntaxToken): ISyntaxToken;
     function convertToIdentifierName(token: ISyntaxToken): ISyntaxToken;
@@ -4359,7 +4359,7 @@ declare module TypeScript.Syntax {
     function token(kind: SyntaxKind, info?: ITokenInfo): ISyntaxToken;
     function identifier(text: string, info?: ITokenInfo): ISyntaxToken;
 }
-declare module TypeScript {
+module TypeScript {
     class SyntaxTokenReplacer extends SyntaxRewriter {
         private token1;
         private token2;
@@ -4370,7 +4370,7 @@ declare module TypeScript {
         public visitSeparatedList(list: ISeparatedSyntaxList): ISeparatedSyntaxList;
     }
 }
-declare module TypeScript {
+module TypeScript {
     interface ISyntaxTrivia {
         kind(): SyntaxKind;
         isWhitespace(): boolean;
@@ -4382,7 +4382,7 @@ declare module TypeScript {
         skippedToken(): ISyntaxToken;
     }
 }
-declare module TypeScript.Syntax {
+module TypeScript.Syntax {
     function deferredTrivia(kind: SyntaxKind, text: ISimpleText, fullStart: number, fullWidth: number): ISyntaxTrivia;
     function trivia(kind: SyntaxKind, text: string): ISyntaxTrivia;
     function skippedTokenTrivia(token: ISyntaxToken): ISyntaxTrivia;
@@ -4396,7 +4396,7 @@ declare module TypeScript.Syntax {
     var carriageReturnLineFeedTrivia: ISyntaxTrivia;
     function splitMultiLineCommentTriviaIntoMultipleLines(trivia: ISyntaxTrivia): string[];
 }
-declare module TypeScript {
+module TypeScript {
     interface ISyntaxTriviaList {
         count(): number;
         syntaxTriviaAt(index: number): ISyntaxTrivia;
@@ -4411,12 +4411,12 @@ declare module TypeScript {
         collectTextElements(elements: string[]): void;
     }
 }
-declare module TypeScript.Syntax {
+module TypeScript.Syntax {
     var emptyTriviaList: ISyntaxTriviaList;
     function triviaList(trivia: ISyntaxTrivia[]): ISyntaxTriviaList;
     var spaceTriviaList: ISyntaxTriviaList;
 }
-declare module TypeScript {
+module TypeScript {
     class SyntaxUtilities {
         static isAngleBracket(positionedElement: PositionedElement): boolean;
         static getToken(list: ISyntaxList, kind: SyntaxKind): ISyntaxToken;
@@ -4426,7 +4426,7 @@ declare module TypeScript {
         static isAmbientDeclarationSyntax(positionNode: PositionedNode): boolean;
     }
 }
-declare module TypeScript {
+module TypeScript {
     interface ISyntaxVisitor {
         visitToken(token: ISyntaxToken): any;
         visitSourceUnit(node: SourceUnitSyntax): any;
@@ -4605,7 +4605,7 @@ declare module TypeScript {
         public visitDebuggerStatement(node: DebuggerStatementSyntax): any;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class SyntaxWalker implements ISyntaxVisitor {
         public visitToken(token: ISyntaxToken): void;
         public visitNode(node: SyntaxNode): void;
@@ -4702,7 +4702,7 @@ declare module TypeScript {
         public visitDebuggerStatement(node: DebuggerStatementSyntax): void;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class PositionTrackingWalker extends SyntaxWalker {
         private _position;
         public visitToken(token: ISyntaxToken): void;
@@ -4710,7 +4710,7 @@ declare module TypeScript {
         public skip(element: ISyntaxElement): void;
     }
 }
-declare module TypeScript {
+module TypeScript {
     interface ITokenInformation {
         previousToken: ISyntaxToken;
         nextToken: ISyntaxToken;
@@ -4740,14 +4740,14 @@ declare module TypeScript {
         private isFirstTokenInLineWorker(information);
     }
 }
-declare module TypeScript {
+module TypeScript {
     class SyntaxNodeInvariantsChecker extends SyntaxWalker {
         private tokenTable;
         static checkInvariants(node: SyntaxNode): void;
         public visitToken(token: ISyntaxToken): void;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class DepthLimitedWalker extends PositionTrackingWalker {
         private _depth;
         private _maximumDepth;
@@ -4755,11 +4755,11 @@ declare module TypeScript {
         public visitNode(node: SyntaxNode): void;
     }
 }
-declare module TypeScript.Parser {
+module TypeScript.Parser {
     function parse(fileName: string, text: ISimpleText, isDeclaration: boolean, options: ParseOptions): SyntaxTree;
     function incrementalParse(oldSyntaxTree: SyntaxTree, textChangeRange: TextChangeRange, newText: ISimpleText): SyntaxTree;
 }
-declare module TypeScript {
+module TypeScript {
     class SyntaxTree {
         private _sourceUnit;
         private _isDeclaration;
@@ -4780,7 +4780,7 @@ declare module TypeScript {
         public structuralEquals(tree: SyntaxTree): boolean;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class Unicode {
         static unicodeES3IdentifierStart: number[];
         static unicodeES3IdentifierPart: number[];
@@ -4791,7 +4791,7 @@ declare module TypeScript {
         static isIdentifierPart(code: number, languageVersion: LanguageVersion): boolean;
     }
 }
-declare module TypeScript {
+module TypeScript {
     module CompilerDiagnostics {
         var debug: boolean;
         interface IDiagnosticWriter {
@@ -4821,7 +4821,7 @@ declare module TypeScript {
     }
     function timeFunction(logger: ILogger, funcDescription: string, func: () => any): any;
 }
-declare module TypeScript {
+module TypeScript {
     class Document {
         private _compiler;
         private _semanticInfoChain;
@@ -4868,7 +4868,7 @@ declare module TypeScript {
         public _setASTForDecl(decl: PullDecl, ast: AST): void;
     }
 }
-declare module TypeScript {
+module TypeScript {
     function hasFlag(val: number, flag: number): boolean;
     enum TypeRelationshipFlags {
         SuccessfulComparison = 0,
@@ -4886,7 +4886,7 @@ declare module TypeScript {
         Asynchronous = 2,
     }
 }
-declare module TypeScript {
+module TypeScript {
     function createIntrinsicsObject<T>(): IIndexable<T>;
     interface IHashTable<T> {
         getAllKeys(): string[];
@@ -4921,7 +4921,7 @@ declare module TypeScript {
         public lookup(key: string): T;
     }
 }
-declare module TypeScript {
+module TypeScript {
     interface IParameters {
         length: number;
         lastParameterIsRest(): boolean;
@@ -4933,7 +4933,7 @@ declare module TypeScript {
         isOptionalAt(index: number): boolean;
     }
 }
-declare module TypeScript.ASTHelpers {
+module TypeScript.ASTHelpers {
     function scriptIsElided(sourceUnit: SourceUnit): boolean;
     function moduleIsElided(declaration: ModuleDeclaration): boolean;
     function enumIsElided(declaration: EnumDeclaration): boolean;
@@ -4966,7 +4966,7 @@ declare module TypeScript.ASTHelpers {
     function getNameOfIdenfierOrQualifiedName(name: AST): string;
     function getModuleNames(name: AST, result?: Identifier[]): Identifier[];
 }
-declare module TypeScript {
+module TypeScript {
     class AstWalkOptions {
         public goChildren: boolean;
         public stopWalking: boolean;
@@ -4981,7 +4981,7 @@ declare module TypeScript {
     }
     function getAstWalkerFactory(): AstWalkerFactory;
 }
-declare module TypeScript {
+module TypeScript {
     class Base64VLQFormat {
         static encode(inValue: number): string;
         static decode(inString: string): {
@@ -4990,7 +4990,7 @@ declare module TypeScript {
         };
     }
 }
-declare module TypeScript {
+module TypeScript {
     class SourceMapPosition {
         public sourceLine: number;
         public sourceColumn: number;
@@ -5038,7 +5038,7 @@ declare module TypeScript {
         public emitSourceMapping(): void;
     }
 }
-declare module TypeScript {
+module TypeScript {
     enum EmitContainer {
         Prog = 0,
         Module = 1,
@@ -5266,7 +5266,7 @@ declare module TypeScript {
     function getLastConstructor(classDecl: ClassDeclaration): ConstructorDeclaration;
     function getTrimmedTextLines(comment: Comment): string[];
 }
-declare module TypeScript {
+module TypeScript {
     class MemberName {
         public prefix: string;
         public suffix: string;
@@ -5292,7 +5292,7 @@ declare module TypeScript {
         constructor();
     }
 }
-declare module TypeScript {
+module TypeScript {
     function stripStartAndEndQuotes(str: string): string;
     function isSingleQuoted(str: string): boolean;
     function isDoubleQuoted(str: string): boolean;
@@ -5315,7 +5315,7 @@ declare module TypeScript {
     function convertToDirectoryPath(dirPath: string): string;
     function normalizePath(path: string): string;
 }
-declare module TypeScript {
+module TypeScript {
     interface IFileReference extends ILineAndCharacter {
         path: string;
         isResident: boolean;
@@ -5323,7 +5323,7 @@ declare module TypeScript {
         length: number;
     }
 }
-declare module TypeScript {
+module TypeScript {
     interface IPreProcessedFileInfo {
         referencedFiles: IFileReference[];
         importedFiles: IFileReference[];
@@ -5335,7 +5335,7 @@ declare module TypeScript {
     function getParseOptions(settings: ImmutableCompilationSettings): ParseOptions;
     function getReferencedFiles(fileName: string, sourceText: IScriptSnapshot): IFileReference[];
 }
-declare module TypeScript {
+module TypeScript {
     interface IResolvedFile {
         path: string;
         referencedFiles: string[];
@@ -5371,7 +5371,7 @@ declare module TypeScript {
         private isSameFile(filePath1, filePath2);
     }
 }
-declare module TypeScript {
+module TypeScript {
     class TextWriter {
         private name;
         private writeByteOrderMark;
@@ -5449,7 +5449,7 @@ declare module TypeScript {
         private emitDeclarationsForSourceUnit(sourceUnit);
     }
 }
-declare module TypeScript {
+module TypeScript {
     class BloomFilter {
         private bitArray;
         private hashFunctionCount;
@@ -5465,14 +5465,14 @@ declare module TypeScript {
         static isEquivalent(array1: boolean[], array2: boolean[]): boolean;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class IdentifierWalker extends SyntaxWalker {
         public list: IIndexable<boolean>;
         constructor(list: IIndexable<boolean>);
         public visitToken(token: ISyntaxToken): void;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class CompilationSettings {
         public propagateEnumConstants: boolean;
         public removeComments: boolean;
@@ -5540,7 +5540,7 @@ declare module TypeScript {
         public toCompilationSettings(): any;
     }
 }
-declare module TypeScript {
+module TypeScript {
     enum PullElementFlags {
         None = 0,
         Exported = 1,
@@ -5609,7 +5609,7 @@ declare module TypeScript {
         SomeInstantiatableType = 8216,
     }
 }
-declare module TypeScript {
+module TypeScript {
     class PullDecl {
         public kind: PullElementKind;
         public name: string;
@@ -5703,7 +5703,7 @@ declare module TypeScript {
         public getDecls(): PullDecl[];
     }
 }
-declare module TypeScript {
+module TypeScript {
     var pullSymbolID: number;
     var sentinelEmptyArray: any[];
     class PullSymbol {
@@ -6109,7 +6109,7 @@ declare module TypeScript {
         externallyVisible = 2,
     }
 }
-declare module TypeScript {
+module TypeScript {
     class EnclosingTypeWalkerState {
         public _hasSetEnclosingType: boolean;
         public _currentSymbols: PullSymbol[];
@@ -6157,7 +6157,7 @@ declare module TypeScript {
         public setEnclosingTypeWalkerState(enclosingTypeWalkerState: EnclosingTypeWalkerState): void;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class CandidateInferenceInfo {
         public typeParameter: PullTypeParameterSymbol;
         public _inferredTypeAfterFixing: PullTypeSymbol;
@@ -6287,7 +6287,7 @@ declare module TypeScript {
         }): void;
     }
 }
-declare module TypeScript {
+module TypeScript {
     interface IPullTypeCollection {
         getLength(): number;
         getTypeAtIndex(index: number): PullTypeSymbol;
@@ -6757,7 +6757,7 @@ declare module TypeScript {
     };
     function isTypesOnlyLocation(ast: AST): boolean;
 }
-declare module TypeScript {
+module TypeScript {
     var declCacheHit: number;
     var declCacheMiss: number;
     var symbolCacheHit: number;
@@ -6846,12 +6846,12 @@ declare module TypeScript {
         public addDuplicateIdentifierDiagnosticFromAST(ast: AST, identifier: string, additionalLocationAST: AST): void;
     }
 }
-declare module TypeScript {
+module TypeScript {
     module DeclarationCreator {
         function create(document: Document, semanticInfoChain: SemanticInfoChain, compilationSettings: ImmutableCompilationSettings): PullDecl;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class PullSymbolBinder {
         private semanticInfoChain;
         private declsBeingBound;
@@ -6895,7 +6895,7 @@ declare module TypeScript {
         private bindSingleDeclToPullSymbol(decl);
     }
 }
-declare module TypeScript {
+module TypeScript {
     module PullHelpers {
         function diagnosticFromDecl(decl: PullDecl, diagnosticKey: string, _arguments?: any[], additionalLocations?: Location[]): Diagnostic;
         function resolveDeclaredSymbolToUseType(symbol: PullSymbol): void;
@@ -6935,7 +6935,7 @@ declare module TypeScript {
         }
     }
 }
-declare module TypeScript {
+module TypeScript {
     class WrapsTypeParameterCache {
         private _wrapsTypeParameterCache;
         public getWrapsTypeParameter(typeParameterArgumentMap: TypeArgumentMap): number;
@@ -6957,7 +6957,7 @@ declare module TypeScript {
         function twoTypesAreInstantiationsOfSameNamedGenericType(type1: PullTypeSymbol, type2: PullTypeSymbol): boolean;
     }
 }
-declare module TypeScript {
+module TypeScript {
     var fileResolutionTime: number;
     var fileResolutionIOTime: number;
     var fileResolutionScanImportsTime: number;
@@ -7090,7 +7090,7 @@ declare module TypeScript {
     }
     function compareDataObjects(dst: any, src: any): boolean;
 }
-declare module TypeScript {
+module TypeScript {
     enum GenerativeTypeClassification {
         Unknown = 0,
         Open = 1,
@@ -7221,7 +7221,7 @@ declare module TypeScript {
         public _getResolver(): PullTypeResolver;
     }
 }
-declare module TypeScript {
+module TypeScript {
     class SyntaxTreeToAstVisitor implements ISyntaxVisitor {
         private fileName;
         public lineMap: LineMap;
@@ -7336,7 +7336,7 @@ declare module TypeScript {
         public visitDebuggerStatement(node: DebuggerStatementSyntax): DebuggerStatement;
     }
 }
-declare module TypeScript {
+module TypeScript {
     interface IASTSpan {
         _start: number;
         _end: number;
@@ -8100,7 +8100,7 @@ declare module TypeScript {
         public structuralEquals(ast: Comment, includingPosition: boolean): boolean;
     }
 }
-declare module TypeScript.Services {
+module TypeScript.Services {
     enum EndOfLineState {
         Start = 0,
         InMultiLineCommentTrivia = 1,
@@ -8143,12 +8143,12 @@ declare module TypeScript.Services {
         constructor(length: number, classification: TokenClass);
     }
 }
-declare module TypeScript.Services {
+module TypeScript.Services {
     interface ILanguageServicesDiagnostics {
         log(content: string): void;
     }
 }
-declare module TypeScript.Services {
+module TypeScript.Services {
     interface ILanguageServiceHost extends ILogger, IReferenceResolverHost {
         getCompilationSettings(): CompilationSettings;
         getScriptFileNames(): string[];
@@ -8352,7 +8352,7 @@ declare module TypeScript.Services {
         static message: string;
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     interface ITextSnapshot {
         getText(span: TextSpan): string;
         getLineNumberFromPosition(position: number): number;
@@ -8370,7 +8370,7 @@ declare module TypeScript.Services.Formatting {
         private getLineFromLineNumberWorker(lineNumber);
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     interface ITextSnapshotLine {
         snapshot(): ITextSnapshot;
         start(): SnapshotPoint;
@@ -8402,7 +8402,7 @@ declare module TypeScript.Services.Formatting {
         public getText(): string;
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     class SnapshotPoint {
         public snapshot: ITextSnapshot;
         public position: number;
@@ -8411,7 +8411,7 @@ declare module TypeScript.Services.Formatting {
         public add(offset: number): SnapshotPoint;
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     class FormattingContext {
         private snapshot;
         public formattingRequestKind: FormattingRequestKind;
@@ -8436,7 +8436,7 @@ declare module TypeScript.Services.Formatting {
         public BlockIsOnOneLine(node: IndentationNodeContext): boolean;
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     class FormattingManager {
         private syntaxTree;
         private snapshot;
@@ -8452,7 +8452,7 @@ declare module TypeScript.Services.Formatting {
         private formatSpan(span, formattingRequestKind);
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     enum FormattingRequestKind {
         FormatDocument = 0,
         FormatSelection = 1,
@@ -8462,7 +8462,7 @@ declare module TypeScript.Services.Formatting {
         FormatOnPaste = 5,
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     class Rule {
         public Descriptor: RuleDescriptor;
         public Operation: RuleOperation;
@@ -8471,7 +8471,7 @@ declare module TypeScript.Services.Formatting {
         public toString(): string;
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     enum RuleAction {
         Ignore = 0,
         Space = 1,
@@ -8479,7 +8479,7 @@ declare module TypeScript.Services.Formatting {
         Delete = 3,
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     class RuleDescriptor {
         public LeftTokenRange: Shared.TokenRange;
         public RightTokenRange: Shared.TokenRange;
@@ -8491,13 +8491,13 @@ declare module TypeScript.Services.Formatting {
         static create4(left: Shared.TokenRange, right: Shared.TokenRange): RuleDescriptor;
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     enum RuleFlags {
         None = 0,
         CanDeleteNewLines = 1,
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     class RuleOperation {
         public Context: RuleOperationContext;
         public Action: RuleAction;
@@ -8507,7 +8507,7 @@ declare module TypeScript.Services.Formatting {
         static create2(context: RuleOperationContext, action: RuleAction): RuleOperation;
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     class RuleOperationContext {
         private customContextChecks;
         constructor(...funcs: {
@@ -8518,7 +8518,7 @@ declare module TypeScript.Services.Formatting {
         public InContext(context: FormattingContext): boolean;
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     class Rules {
         public getRuleName(rule: Rule): any;
         [name: string]: any;
@@ -8640,7 +8640,7 @@ declare module TypeScript.Services.Formatting {
         static IsVoidOpContext(context: FormattingContext): boolean;
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     class RulesMap {
         public map: RulesBucket[];
         public mapRowLength: number;
@@ -8673,7 +8673,7 @@ declare module TypeScript.Services.Formatting {
         public AddRule(rule: Rule, specificTokens: boolean, constructionState: RulesBucketConstructionState[], rulesBucketIndex: number): void;
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     class RulesProvider {
         private logger;
         private globalRules;
@@ -8688,7 +8688,7 @@ declare module TypeScript.Services.Formatting {
         private createActiveRules(options);
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     class TextEditInfo {
         public position: number;
         public length: number;
@@ -8697,7 +8697,7 @@ declare module TypeScript.Services.Formatting {
         public toString(): string;
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     module Shared {
         interface ITokenAccess {
             GetTokens(): SyntaxKind[];
@@ -8756,14 +8756,14 @@ declare module TypeScript.Services.Formatting {
         }
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     class TokenSpan extends TextSpan {
         private _kind;
         constructor(kind: SyntaxKind, start: number, length: number);
         public kind(): SyntaxKind;
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     class IndentationNodeContext {
         private _node;
         private _parent;
@@ -8788,14 +8788,14 @@ declare module TypeScript.Services.Formatting {
         public update(parent: IndentationNodeContext, node: SyntaxNode, fullStart: number, indentationAmount: number, childIndentationAmountDelta: number): void;
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     class IndentationNodeContextPool {
         private nodes;
         public getNode(parent: IndentationNodeContext, node: SyntaxNode, fullStart: number, indentationLevel: number, childIndentationLevelDelta: number): IndentationNodeContext;
         public releaseNode(node: IndentationNodeContext, recursive?: boolean): void;
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     class IndentationTrackingWalker extends SyntaxWalker {
         public options: FormattingOptions;
         private _position;
@@ -8823,7 +8823,7 @@ declare module TypeScript.Services.Formatting {
         private forceRecomputeIndentationOfParent(tokenStart, newLineAdded);
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     class MultipleTokenIndenter extends IndentationTrackingWalker {
         private _edits;
         constructor(textSpan: TextSpan, sourceUnit: SourceUnitSyntax, snapshot: ITextSnapshot, indentFirstToken: boolean, options: FormattingOptions);
@@ -8837,7 +8837,7 @@ declare module TypeScript.Services.Formatting {
         private recordIndentationEditsForSegment(segment, fullStart, indentationColumns, whiteSpaceColumnsInFirstSegment);
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     class SingleTokenIndenter extends IndentationTrackingWalker {
         private indentationAmount;
         private indentationPosition;
@@ -8846,7 +8846,7 @@ declare module TypeScript.Services.Formatting {
         public indentToken(token: ISyntaxToken, indentationAmount: number, commentIndentationAmount: number): void;
     }
 }
-declare module TypeScript.Services.Formatting {
+module TypeScript.Services.Formatting {
     class Formatter extends MultipleTokenIndenter {
         private previousTokenSpan;
         private previousTokenParent;
@@ -8867,8 +8867,8 @@ declare module TypeScript.Services.Formatting {
         private RecordRuleEdits(rule, t1, t2);
     }
 }
-declare var debugObjectHost: any;
-declare module TypeScript.Services {
+var debugObjectHost: any;
+module TypeScript.Services {
     interface ICoreServicesHost {
         logger: ILogger;
     }
@@ -8882,7 +8882,7 @@ declare module TypeScript.Services {
         public collectGarbage(): void;
     }
 }
-declare module TypeScript.Services {
+module TypeScript.Services {
     class SyntaxTreeCache {
         private _host;
         private _hostCache;
@@ -8928,7 +8928,7 @@ declare module TypeScript.Services {
         public canEmitDeclarations(fileName: string): boolean;
     }
 }
-declare module TypeScript.Services {
+module TypeScript.Services {
     class CompletionHelpers {
         private static getSpan(ast);
         private static symbolDeclarationIntersectsPosition(symbol, fileName, position);
@@ -8941,14 +8941,14 @@ declare module TypeScript.Services {
         static getValidCompletionEntryDisplayName(displayName: string): string;
     }
 }
-declare module TypeScript.Services {
+module TypeScript.Services {
     class KeywordCompletions {
         private static keywords;
         private static keywordCompletions;
         static getKeywordCompltions(): ResolvedCompletionEntry[];
     }
 }
-declare module TypeScript.Services {
+module TypeScript.Services {
     interface IPartiallyWrittenTypeArgumentListInformation {
         genericIdentifer: PositionedToken;
         lessThanToken: PositionedToken;
@@ -8965,7 +8965,7 @@ declare module TypeScript.Services {
         private static moveBackUpTillMatchingTokenKind(token, tokenKind, matchingTokenKind);
     }
 }
-declare module TypeScript.Services {
+module TypeScript.Services {
     interface CachedCompletionEntryDetails extends CompletionEntryDetails {
         isResolved(): boolean;
     }
@@ -8999,7 +8999,7 @@ declare module TypeScript.Services {
         constructor(fileName: string, position: number, entries: IdentiferNameHashTable<CachedCompletionEntryDetails>);
     }
 }
-declare module TypeScript.Services {
+module TypeScript.Services {
     class LanguageService implements ILanguageService {
         public host: ILanguageServiceHost;
         private logger;
@@ -9073,14 +9073,14 @@ declare module TypeScript.Services {
         public getSyntaxTree(fileName: string): SyntaxTree;
     }
 }
-declare module TypeScript.Services {
+module TypeScript.Services {
     class FindReferenceHelpers {
         static compareSymbolsForLexicalIdentity(firstSymbol: PullSymbol, secondSymbol: PullSymbol): boolean;
         private static checkSymbolsForDeclarationEquality(firstSymbol, secondSymbol);
         private static declarationsAreSameOrParents(firstDecl, secondDecl);
     }
 }
-declare module TypeScript.Services {
+module TypeScript.Services {
     interface IScriptSnapshotShim {
         getText(start: number, end: number): string;
         getLength(): number;
@@ -9221,7 +9221,7 @@ declare module TypeScript.Services {
         public getMemoryInfo(dummy: any): string;
     }
 }
-declare module TypeScript.Services {
+module TypeScript.Services {
     class OutliningElementsCollector extends DepthLimitedWalker {
         private static MaximumDepth;
         private inObjectLiteralExpression;
@@ -9242,7 +9242,7 @@ declare module TypeScript.Services {
         static collectElements(node: SourceUnitSyntax): TextSpan[];
     }
 }
-declare module TypeScript.Services {
+module TypeScript.Services {
     class Indenter {
         static getIndentation(node: SourceUnitSyntax, soruceText: IScriptSnapshot, position: number, editorOptions: EditorOptions): number;
         private static belongsToBracket(sourceText, token, position);
@@ -9251,10 +9251,10 @@ declare module TypeScript.Services {
         private static getListItemIndentation(list, elementIndex);
     }
 }
-declare module TypeScript.Services.Breakpoints {
+module TypeScript.Services.Breakpoints {
     function getBreakpointLocation(syntaxTree: SyntaxTree, askedPos: number): SpanInfo;
 }
-declare module TypeScript.Services {
+module TypeScript.Services {
     class GetScriptLexicalStructureWalker extends PositionTrackingWalker {
         private fileName;
         private nameStack;
@@ -9306,7 +9306,7 @@ declare module TypeScript.Services {
         public visitLabeledStatement(node: LabeledStatementSyntax): void;
     }
 }
-declare module TypeScript.Services {
+module TypeScript.Services {
     function copyDataObject(dst: any, src: any): any;
     class TypeScriptServicesFactory implements IShimFactory {
         private _shims;
@@ -9321,7 +9321,7 @@ declare module TypeScript.Services {
         public unregisterShim(shim: IShim): void;
     }
 }
-declare module TypeScript.Services {
+module TypeScript.Services {
     class BraceMatcher {
         static getMatchSpans(syntaxTree: SyntaxTree, position: number): TextSpan[];
         private static getMatchingCloseBrace(currentToken, position, result);
@@ -9329,4 +9329,8 @@ declare module TypeScript.Services {
         private static getMatchingCloseBraceTokenKind(positionedElement);
         private static getMatchingOpenBraceTokenKind(positionedElement);
     }
+}
+
+export = TypeScript;
+
 }

@@ -1,0 +1,26 @@
+
+.dropdown-menu a .ts-code-hint .ts-hint-details {
+    display: none;
+    font-size: 11px;
+    color: #0035DD;
+    position: relative;
+    left: 5px;
+}
+
+.dropdown-menu a .ts-code-hint .ts-hint-doc {
+    display: none;
+    font-size: 11px;
+    color: #A21B1B;
+    padding-left: 14px;
+}
+
+
+.dropdown-menu a.highlight .ts-code-hint .ts-hint-details {
+    display: inline-block;
+    max-width: 500px;
+}
+
+.dropdown-menu a.highlight .ts-code-hint .ts-hint-doc {
+    display: block;
+    max-width: 500px;
+}

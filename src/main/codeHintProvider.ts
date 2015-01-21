@@ -18,13 +18,20 @@
 
 import ServiceConsumer = require('./serviceConsumer');
 import TypeScriptProjectService = require('typescript-project-services');
+import ts = require('typescript');
 
 
 
 var HINT_TEMPLATE = [
-    '<span class="cm-s-default">',
-    '   <span style="display: inline-block" class="{{classType}}">',
+    '<span class="cm-s-default ts-code-hint">',
+    '   <span class="{{classType}}">',
     '       <span style="font-weight: bold">{{match}}</span>{{suffix}}',
+    '   </span>',
+    '   <span class="ts-hint-details">',
+    '       {{details}}',
+    '   </span>',
+    '   <span class="ts-hint-doc">',
+    '       {{doc}}',
     '   </span>',
     '</span>'
 ].join('\n');
@@ -53,7 +60,7 @@ class CodeHintProvider extends ServiceConsumer implements brackets.CodeHintProvi
         }
         return false;
     }
-    
+   
     getHints(implicitChar: string): JQueryDeferred<brackets.HintResult> {
         var currentFileName: string = this.editor.document.file.fullPath, 
             position = this.editor.getCursorPos(),
@@ -73,39 +80,8 @@ class CodeHintProvider extends ServiceConsumer implements brackets.CodeHintProvi
                                 match: string,
                                 suffix: string,
                                 classType = '';
-                            //TODO
-                            /*switch (entry.kind) {
-                                case CompletionKind.KEYWORD:
-                                    switch (entry.name) {
-                                        case 'static':
-                                        case 'public':
-                                        case 'private':
-                                        case 'export':
-                                        case 'get':
-                                        case 'set':
-                                            classType = 'cm-qualifier';
-                                            break;
-                                        case 'class':
-                                        case 'function':
-                                        case 'module':
-                                        case 'var':
-                                            classType = 'cm-def';
-                                            break;
-                                        default:
-                                            classType = 'cm-keyword';
-                                            break;
-                                    }
-                                    break;
-                                case CompletionKind.METHOD:
-                                case CompletionKind.FUNCTION:
-                                    text += entry.type ?  entry.type : ''; 
-                                    break;
-                                default:
-                                    text += entry.type ? ' - ' + entry.type : ''; 
-                                    break;
-                            }*/
-
-                            // highlight the matched portion of each hint
+                            
+                            
                             if (result.match) {
                                 match = text.slice(0, result.match.length);
                                 suffix  = text.slice(result.match.length);
@@ -115,14 +91,16 @@ class CodeHintProvider extends ServiceConsumer implements brackets.CodeHintProvi
                                 suffix = text;
                             }
 
-
                             var jqueryObj = $(Mustache.render(HINT_TEMPLATE, {
                                 match: match,
                                 suffix: suffix,
-                                classType: classType
+                                classType: classType,
+                                details: entry.displayParts && entry.displayParts.map(part => part.text).join(''),
+                                doc: entry.documentation && entry.documentation.map(part => part.text).join(''),
                             })); 
                             jqueryObj.data('entry', entry);
                             jqueryObj.data('match', result.match);
+                            
                             return jqueryObj;
 
                         }),

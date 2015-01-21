@@ -6,8 +6,11 @@ define(function (require, exports, module) {
     
     require(['text!config.json'], function (configText) {
         var AppInit = brackets.getModule('utils/AppInit'),
+            ExtensionUtils   = brackets.getModule('utils/ExtensionUtils'),
             config = JSON.parse(configText),
             baseUrl = config.isDebug ? './built/' : './bin/';
+        
+        ExtensionUtils.loadStyleSheet(module, 'style.css');
 
 
         require([baseUrl + 'main'], function (init) {
