@@ -201,8 +201,8 @@ function createTypeScriptMode(options: CodeMirror.EditorConfiguration, spec: any
             if (lineDescriptor.eolState !== ts.EndOfLineState.Start) {
                 return CodeMirror.Pass;
             }
-            var text = lineDescriptor.text + '\n' + (textAfter || '');
-            var position = text.length;
+            var text = lineDescriptor.text + '\n' + (textAfter || 'fakeIndent');
+            var position = textAfter ? text.length: text.length - 9;
             var sourceFile = ts.createSourceFile(Math.random()+ '.ts', text, ts.ScriptTarget.Latest, Math.random() + '');
             setParent(sourceFile);
             var indent = indenter.getIndentation(position, sourceFile,  {

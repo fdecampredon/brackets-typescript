@@ -980,7 +980,7 @@ declare module brackets {
     //--------------------------------------------------------------------------
     interface CommandManager {
         execute(id: string, args: any): JQueryPromise<any>;
-        register(name: string, id: string, callback: () => void): void;
+        register(name: string, id: string, callback: () => void): { setEnabled(enabled: boolean): void };
     }
     
   

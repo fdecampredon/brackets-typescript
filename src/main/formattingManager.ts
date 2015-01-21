@@ -24,8 +24,8 @@ var EditorManager = brackets.getModule('editor/EditorManager'),
 
 
 export function format() {
-    var editor = EditorManager.getCurrentFullEditor();
-    if (!editor) {
+    var editor = EditorManager.getActiveEditor();
+    if (!editor || editor.getModeForSelection() !== 'typescript') {
         return;
     }
     var useTabs = Editor.getUseTabChar();

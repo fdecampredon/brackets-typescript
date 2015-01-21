@@ -91,20 +91,76 @@ function init(config: { logLevel: string; typeScriptLocation: string; workerLoca
     //    quickFindDefinitionProvider = new TypeScriptQuickFindDefitionProvider();
     //    QuickOpen.addQuickOpenPlugin(quickFindDefinitionProvider);
     
-    //Register formatting command
-    CommandManager.register(FormattingManager.FORMAT_LABEL, FormattingManager.FORMAT_COMMAND_ID, FormattingManager.format);
-    var contextMenu = Menus.getContextMenu(Menus.ContextMenuIds.EDITOR_MENU);
-    contextMenu.addMenuItem(FormattingManager.FORMAT_COMMAND_ID, [{
-        key: 'Ctrl-Shift-I'
-    },{
-        key: 'Cmd-Shift-I',
-        platform: 'mac'
-    }]);
-
+    initCommands()
+   
     initServices(config.workerLocation, config.typeScriptLocation, config.logLevel);
 
     $(ProjectManager).on('beforeProjectClose beforeAppClose', disposeServices);
     $(ProjectManager).on('projectOpen',() => initServices(config.workerLocation, config.typeScriptLocation, config.logLevel));
+    
+    
+}
+
+
+type CommandDescriptor = {
+    command: {
+        setEnabled(enabled: boolean): void
+    };
+    menuDescriptor: {
+        commandId: string;
+        keys: {key: string; platform?: string}[]
+    };
+    hasMenu: boolean;
+}
+
+function initCommands() {
+    var typescriptCommands: CommandDescriptor[] = [{
+        command: CommandManager.register(FormattingManager.FORMAT_LABEL, FormattingManager.FORMAT_COMMAND_ID, FormattingManager.format),
+        menuDescriptor: {
+            commandId: FormattingManager.FORMAT_COMMAND_ID,
+            keys: [{
+                key: 'Ctrl-Shift-I'
+            }, {
+                key: 'Cmd-Shift-I',
+                platform: 'mac'
+            }]
+        },
+        hasMenu: false
+    }];
+    var divider: any;
+    
+    
+    
+    function handleEditorChange() {
+        var contextMenu = Menus.getContextMenu(Menus.ContextMenuIds.EDITOR_MENU);
+        var editor = EditorManager.getActiveEditor();
+        if (!editor || editor.getModeForSelection() !== 'typescript') {
+            if (divider) {
+                contextMenu.removeMenuDivider(divider.id);
+                divider = null;
+            }
+            typescriptCommands.forEach(descriptor => {
+                descriptor.command.setEnabled(false);
+                if (descriptor.hasMenu) {
+                    contextMenu.removeMenuItem(descriptor.menuDescriptor.commandId);
+                }
+                descriptor.hasMenu = false;
+            });
+        } else {
+            if (!divider) {
+                divider = contextMenu.addMenuDivider();
+            }
+            typescriptCommands.forEach(descriptor => {
+                descriptor.command.setEnabled(true);
+                if (!descriptor.hasMenu) {
+                    contextMenu.addMenuItem(descriptor.menuDescriptor.commandId, descriptor.menuDescriptor.keys);
+                }
+                descriptor.hasMenu = true;
+            });
+        }
+    }
+    handleEditorChange();
+    $(EditorManager).on('activeEditorChange', handleEditorChange); 
 }
 
 
@@ -126,6 +182,7 @@ function initServices(workerLocation: string, typeScriptLocation: string, logLev
     bridge = new WorkerBridge(worker);
     preferencesManager = new TypeScriptPreferencesManager(PreferencesManager);
 
+    
     bridge.init({
         console: console,
         workingSet: workingSet,
