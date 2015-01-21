@@ -46,7 +46,7 @@ var LanguageManager = brackets.getModule('language/LanguageManager'),
     QuickOpen = brackets.getModule('search/QuickOpen'),
     PreferencesManager = brackets.getModule('preferences/PreferencesManager'),
     CommandManager = brackets.getModule('command/CommandManager'),
-    CodeMirror: typeof CodeMirror = brackets.getModule('thirdparty/CodeMirror2/lib/codemirror'),
+    codeMirror: typeof CodeMirror = brackets.getModule('thirdparty/CodeMirror2/lib/codemirror'),
     Menus = brackets.getModule('command/Menus');
 
 var tsErrorReporter: TypeScriptErrorReporter,
@@ -66,7 +66,7 @@ var fileSystem: FileSystem,
     bridge: WorkerBridge;
 
 function init(config: { logLevel: string; typeScriptLocation: string; workerLocation: string; }) {
-    CodeMirror.defineMode('typescript', typeScriptModeFactory); 
+    codeMirror.defineMode('typescript', typeScriptModeFactory); 
 
     //Register the language extension
     LanguageManager.defineLanguage('typescript', {

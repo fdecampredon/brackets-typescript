@@ -14,6 +14,7 @@
 
 'use strict';
 
+declare var global: any;
 // inject global in the worker
 global.window = self;
 

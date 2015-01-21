@@ -20,157 +20,49 @@
 
 
 declare var require: any;
-var TypeScript: typeof TypeScript = require('typescriptServices');
+import ts = require('typescript');
+import indenter = require('./smartIndenter');
 
 
 
-class FormattingOptions {
-    constructor(public useTabs: boolean,
-                public spacesPerTab: number,
-                public indentSpaces: number,
-                public newLineCharacter: string) {
-    }
-
-    public static defaultOptions = new FormattingOptions(
-        /*useTabs:*/ false, 
-        /*spacesPerTab:*/ 4, 
-        /*indentSpaces:*/ 4, 
-        /*newLineCharacter*/ '\r\n'
-    );
-}
-
-import Services = TypeScript.Services;
-import Formatting = TypeScript.Services.Formatting;
-
-class Token {
+interface Token {
 	string: string;
-	classification: Services.TokenClass;
+	classification: ts.TokenClass;
 	length: number;
 	position: number;
 }
 
 
-class LineDescriptor {
-	tokenMap: { [position: number]: Token };
-	eolState: Services.EndOfLineState = Services.EndOfLineState.Start;
-    text: string = '';
-
-	clone(): LineDescriptor {
-		var clone: LineDescriptor = new LineDescriptor();
-		clone.tokenMap = this.tokenMap;
-		clone.eolState = this.eolState;
-		clone.text =  this.text;
-		return clone;
-	}
+interface LineDescriptor {
+    tokenMap: { [position: number]: Token };
+    eolState: ts.EndOfLineState;
+    text: string;
 }
 
+function createLineDescriptor() {
+    return {
+        tokenMap: {},
+        eolState: ts.EndOfLineState.Start,
+        text: ''
+    }
+}
 
-
-class TypeScriptMode implements CodeMirror.CodeMirrorMode<LineDescriptor> {
-	private options: CodeMirror.EditorConfiguration;
-
-	lineComment = '//';
-	blockCommentStart = '/*';
-	blockCommentEnd  = '*/';
-	electricChars =  ':{}[]()';
-
-	constructor(options: CodeMirror.EditorConfiguration) {
-		this.options = options;
-	}
-
-	startState() {
-		return new LineDescriptor();
-	}
-
-	copyState(lineDescriptor: LineDescriptor) {
-		return lineDescriptor.clone();
-	}
-    
-	token(stream: CodeMirror.CodeMirrorStream, lineDescriptor: LineDescriptor) {
-		if (stream.sol()) {
-			this.initializeLineDescriptor(lineDescriptor, stream.string);
-		}
-
-		var token = lineDescriptor.tokenMap[stream.pos];
-		if (token) {
-			var textBefore: string  = stream.string.substr(0, stream.pos);
-			for (var i = 0; i < token.length; i++) {
-				stream.next();
-			}
-			return getStyleForToken(token, textBefore);
-		} else {
-			stream.skipToEnd();
-		}
-
-		return null;
-	}
-
-
-	indent(lineDescriptor: LineDescriptor , textAfter: string): number {
-		if (lineDescriptor.eolState !== Services.EndOfLineState.Start) {
-            //strange bug preven CodeMirror.Pass
-            return <number>(<any>CodeMirror).Pass;
-		}
-        var text = lineDescriptor.text + '\n' + (textAfter || 'fakeIdent'),
-            position = textAfter ? text.length : text.length - 9,
-            syntaxTree = this.getSyntaxTree(text),
-            options = new FormattingOptions(!this.options.indentWithTabs, this.options.tabSize, this.options.indentUnit, '\n'),
-            textSnapshot =  new Formatting.TextSnapshot(TypeScript.SimpleText.fromString(text)),
-            indent = Formatting.SingleTokenIndenter.getIndentationAmount(
-                position, 
-                syntaxTree.sourceUnit(), 
-                textSnapshot, 
-                options
-            );
-        
-        if (indent === null) {
-            //strange bug preven CodeMirror.Pass
-            return <number>(<any>CodeMirror).Pass;
-        }
-        return indent;
-	}
-
-
-	private initializeLineDescriptor(lineDescriptor: LineDescriptor, text: string) {
-		var classificationResult = getClassificationsForLine(text, lineDescriptor.eolState),
-			tokens = classificationResult.tokens;
-        
-        if (lineDescriptor.text) {
-            lineDescriptor.text += '\n';
-        }
-        lineDescriptor.text += text;
-        lineDescriptor.eolState = classificationResult.eolState;
-		lineDescriptor.tokenMap = {};
-
-		for (var i = 0, l = tokens.length; i < l; i++) {
-			lineDescriptor.tokenMap[tokens[i].position] = tokens[i];
-		}
-        
-       
-	}
-    
-    private getSyntaxTree(text: string) {
-        return TypeScript.Parser.parse(
-            'script', 
-            TypeScript.SimpleText.fromString(text), 
-            false, 
-            new TypeScript.ParseOptions(TypeScript.LanguageVersion.EcmaScript5, true)
-        );
+function cloneLineDescriptor(lineDescriptor: LineDescriptor): LineDescriptor {
+    return {
+        tokenMap: lineDescriptor.tokenMap,
+        eolState: lineDescriptor.eolState,
+        text: lineDescriptor.text
     }
 }
 
 
 
-var classifier: Services.Classifier = new Services.TypeScriptServicesFactory().createClassifier({
-    information: () => false,
-    debug: () => false,
-    warning: () => false,
-    error: () => false,
-    fatal: () => false,
-    log: string => console.log(string)
+
+var classifier: ts.Classifier = ts.createClassifier({
+    log: () => void 0
 });
 
-function getClassificationsForLine(text: string, eolState: Services.EndOfLineState ) {
+function getClassificationsForLine(text: string, eolState: ts.EndOfLineState ) {
 	var classificationResult = classifier.getClassificationsForLine(text, eolState),
 		currentPosition = 0,
 		tokens: Token[]  = [];
@@ -194,7 +86,7 @@ function getClassificationsForLine(text: string, eolState: Services.EndOfLineSta
 }
 
 function getStyleForToken(token: Token, textBefore: string): string {
-	var TokenClass = Services.TokenClass;
+	var TokenClass = ts.TokenClass;
 	switch (token.classification) {
 		case TokenClass.NumberLiteral:
 			return 'number';
@@ -245,8 +137,89 @@ function getStyleForToken(token: Token, textBefore: string): string {
 	}
 }
 
-function typeScriptModeFactory(options: CodeMirror.EditorConfiguration, spec: any): CodeMirror.CodeMirrorMode<any> {
-	return new TypeScriptMode(options);
+function initializeLineDescriptor(lineDescriptor: LineDescriptor, text: string) {
+    var classificationResult = getClassificationsForLine(text, lineDescriptor.eolState),
+        tokens = classificationResult.tokens;
+
+    if (lineDescriptor.text) {
+        lineDescriptor.text += '\n';
+    }
+    lineDescriptor.text += text;
+    lineDescriptor.eolState = classificationResult.eolState;
+    lineDescriptor.tokenMap = {};
+
+    for (var i = 0, l = tokens.length; i < l; i++) {
+        lineDescriptor.tokenMap[tokens[i].position] = tokens[i];
+    }
+}
+function setParent(parent: ts.Node) {
+    parent.getChildren().forEach(node => {
+        if (!node.parent) {
+            node.parent = parent;
+        }
+        setParent(node);
+    })
 }
 
-export = typeScriptModeFactory;
+function createTypeScriptMode(options: CodeMirror.EditorConfiguration, spec: any): CodeMirror.CodeMirrorMode<any> {
+    return {
+        lineComment: '//',
+        blockCommentStart: '/*',
+        blockCommentEnd: '*/',
+        electricChars: ':{}[]()',
+        
+        startState() {
+            return createLineDescriptor();
+        },
+        
+        copyState(lineDescriptor: LineDescriptor) {
+            return cloneLineDescriptor(lineDescriptor);
+        },
+
+        token(stream: CodeMirror.CodeMirrorStream, lineDescriptor: LineDescriptor) {
+            if (stream.sol()) {
+                initializeLineDescriptor(lineDescriptor, stream.string);
+            }
+
+            var token = lineDescriptor.tokenMap[stream.pos];
+            if (token) {
+                var textBefore: string  = stream.string.substr(0, stream.pos);
+                for (var i = 0; i < token.length; i++) {
+                    stream.next();
+                }
+                return getStyleForToken(token, textBefore);
+            } else {
+                stream.skipToEnd();
+
+            }
+
+            return null;
+        },
+
+
+        indent(lineDescriptor: LineDescriptor , textAfter: string): number {
+            if (lineDescriptor.eolState !== ts.EndOfLineState.Start) {
+                return CodeMirror.Pass;
+            }
+            var text = lineDescriptor.text + '\n' + (textAfter || '');
+            var position = text.length;
+            var sourceFile = ts.createSourceFile(Math.random()+ '.ts', text, ts.ScriptTarget.Latest, Math.random() + '');
+            setParent(sourceFile);
+            var indent = indenter.getIndentation(position, sourceFile,  {
+                IndentSize: options.indentUnit,
+                TabSize: options.tabSize,
+                NewLineCharacter: '\n',
+                ConvertTabsToSpaces: !options.indentWithTabs
+            });
+
+            if (indent === null) {
+                return CodeMirror.Pass;
+            }
+            return indent;
+        }
+    }
+
+
+}
+
+export = createTypeScriptMode;

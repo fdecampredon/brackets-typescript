@@ -93,13 +93,6 @@ module.exports = function (grunt) {
                     'built/main.js': ['tmp/main/index.js']
                 },
                 options : {
-                    shim: {
-                        typescriptServices: {
-                            path: 'third_party/typescript/typescriptServices.js',
-                            exports: 'TypeScript'
-                        }
-                    },
-                    noParse: ['third_party/typescript/typescriptServices.js'],
                     standalone: 'bracketsTypescript'
                 }
             },
