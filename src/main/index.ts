@@ -39,7 +39,7 @@ import ServiceConsumer = require('./serviceConsumer');
 // brackets dependency
 var LanguageManager = brackets.getModule('language/LanguageManager'),
     BracketsFileSystem = brackets.getModule('filesystem/FileSystem'),
-    DocumentManager = brackets.getModule('document/DocumentManager'), 
+    DocumentManager = brackets.getModule('document/DocumentManager'),
     ProjectManager = brackets.getModule('project/ProjectManager'),
     CodeHintManager = brackets.getModule('editor/CodeHintManager'),
     CodeInspection = brackets.getModule('language/CodeInspection'),
@@ -66,12 +66,12 @@ function init(config: { logLevel: string; typeScriptLocation: string; workerLoca
 
     //Register the language extension
     LanguageManager.defineLanguage('typescript', {
-	    name: 'TypeScript',
-	    mode: 'typescript',
-	    fileExtensions: ['ts'],
-	    blockComment: ['/*', '*/'],
-	    lineComment: ['//']
-	});
+        name: 'TypeScript',
+        mode: 'typescript',
+        fileExtensions: ['ts'],
+        blockComment: ['/*', '*/'],
+        lineComment: ['//']
+    });
     
     // Register code hint
     CodeHintManager.registerHintProvider(CodeHintProvider, ['typescript'], 0);
@@ -84,12 +84,12 @@ function init(config: { logLevel: string; typeScriptLocation: string; workerLoca
     
       
     //Register error provider
-    CodeInspection.register('typescript', TypeScriptErrorReporter); 
+    CodeInspection.register('typescript', TypeScriptErrorReporter);
     CodeInspection.register('json', TypeScriptConfigErrorReporter);
     
     //Register quickFindDefinitionProvider
-//    quickFindDefinitionProvider = new TypeScriptQuickFindDefitionProvider();
-//    QuickOpen.addQuickOpenPlugin(quickFindDefinitionProvider);
+    //    quickFindDefinitionProvider = new TypeScriptQuickFindDefitionProvider();
+    //    QuickOpen.addQuickOpenPlugin(quickFindDefinitionProvider);
     
     //Register formatting command
     CommandManager.register(FormattingManager.FORMAT_LABEL, FormattingManager.FORMAT_COMMAND_ID, FormattingManager.format);
@@ -97,9 +97,9 @@ function init(config: { logLevel: string; typeScriptLocation: string; workerLoca
     contextMenu.addMenuItem(FormattingManager.FORMAT_COMMAND_ID);
 
     initServices(config.workerLocation, config.typeScriptLocation, config.logLevel);
-    
+
     $(ProjectManager).on('beforeProjectClose beforeAppClose', disposeServices);
-    $(ProjectManager).on('projectOpen', () => initServices(config.workerLocation, config.typeScriptLocation, config.logLevel));
+    $(ProjectManager).on('projectOpen',() => initServices(config.workerLocation, config.typeScriptLocation, config.logLevel));
 }
 
 
@@ -109,7 +109,7 @@ function disposeServices() {
     fileSystem.dispose();
     workingSet.dispose();
     preferencesManager.dispose();
-    
+
     ServiceConsumer.reset();
 }
 
@@ -120,7 +120,7 @@ function initServices(workerLocation: string, typeScriptLocation: string, logLev
     worker = new Worker(workerLocation);
     bridge = new WorkerBridge(worker);
     preferencesManager = new TypeScriptPreferencesManager(PreferencesManager);
-    
+
     bridge.init({
         console: console,
         workingSet: workingSet,
@@ -131,8 +131,8 @@ function initServices(workerLocation: string, typeScriptLocation: string, logLev
         }
     }).then(tsProjectService => {
         ServiceConsumer.setService(tsProjectService);
-//        quickFindDefinitionProvider.setService(proxy.lexicalStructureService);
-//        formattingManager.setService(proxy.formattingService);
+        //        quickFindDefinitionProvider.setService(proxy.lexicalStructureService);
+        //        formattingManager.setService(proxy.formattingService);
     });
 }
 

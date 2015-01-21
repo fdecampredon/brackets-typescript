@@ -39,5 +39,10 @@ bridge.init(projectService).then(proxy => {
             workingSet: proxy.workingSet,
             projectConfigs: <any>result[1]
         });     
+        proxy.preferencesManager.configChanged(() => {
+            proxy.preferencesManager.getProjectsConfig().then((config: any) => {
+                projectService.updateProjectConfigs(config);
+            })
+        })
     })
 });
