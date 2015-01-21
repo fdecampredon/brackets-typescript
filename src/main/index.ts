@@ -24,7 +24,7 @@ import inlineEditorProvider = require('./inlineEditorProvider');
 import jumpToDefProvider = require('./jumpToDefProvider');
 //import TypeScriptQuickFindDefitionProvider = require('./quickFindDefinition');
 import CodeHintProvider = require('./codeHintProvider');
-//import FormattingManager = require('./formattingManager');
+import FormattingManager = require('./formattingManager');
 import typeScriptModeFactory = require('./mode');
 import ServiceConsumer = require('./serviceConsumer');
 
@@ -52,7 +52,6 @@ var LanguageManager = brackets.getModule('language/LanguageManager'),
 
 //    ,
 //    quickFindDefinitionProvider: TypeScriptQuickFindDefitionProvider,
-//    formattingManager: FormattingManager;
 //    
     
  
@@ -93,11 +92,10 @@ function init(config: { logLevel: string; typeScriptLocation: string; workerLoca
 //    QuickOpen.addQuickOpenPlugin(quickFindDefinitionProvider);
     
     //Register formatting command
-//    formattingManager = new FormattingManager();
-//    CommandManager.register(FormattingManager.FORMAT_LABEL, FormattingManager.FORMAT_COMMAND_ID, formattingManager.format);
-//    var contextMenu = Menus.getContextMenu(Menus.ContextMenuIds.EDITOR_MENU);
-//    contextMenu.addMenuItem(FormattingManager.FORMAT_COMMAND_ID);
-//    
+    CommandManager.register(FormattingManager.FORMAT_LABEL, FormattingManager.FORMAT_COMMAND_ID, FormattingManager.format);
+    var contextMenu = Menus.getContextMenu(Menus.ContextMenuIds.EDITOR_MENU);
+    contextMenu.addMenuItem(FormattingManager.FORMAT_COMMAND_ID);
+
     initServices(config.workerLocation, config.typeScriptLocation, config.logLevel);
     
     $(ProjectManager).on('beforeProjectClose beforeAppClose', disposeServices);

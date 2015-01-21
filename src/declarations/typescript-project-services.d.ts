@@ -402,7 +402,7 @@ declare module 'typescript-project-services' {
     
     export function dispose():void;
     
-
+    export function updateProjectConfigs(configs:  { [projectId: string]: TypeScriptProjectConfig; }): Promise<void>;
     /**
      * Represent definition info of a symbol
      */
@@ -478,8 +478,8 @@ declare module 'typescript-project-services' {
 
 
     export interface TextEdit {
-        pos: Position;
-        endPos: Position;
+        start: number;
+        end: number;
         newText: string;
     }
 
