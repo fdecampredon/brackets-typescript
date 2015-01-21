@@ -23,6 +23,22 @@ import projectService = require('typescript-project-services');
 import WorkerBridge = require('../main/workerBridge');
 import Promise = require('bluebird');
 
+(<any>Promise).setScheduler((function(){
+    var queuedFn: () => void = void 0;
+
+    var channel = new global.MessageChannel();
+    channel.port1.onmessage = function Promise$_Scheduler() {
+            var fn = queuedFn;
+            queuedFn = void 0;
+            fn();
+    };
+
+    return function Promise$_Scheduler(fn: () => void) {
+        queuedFn = fn;
+        channel.port2.postMessage(null);
+    };
+})())
+
 var bridge = new WorkerBridge(<any>self);
 
 //expose the worker services
