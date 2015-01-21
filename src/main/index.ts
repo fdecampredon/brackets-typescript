@@ -20,12 +20,13 @@ import TypeScriptPreferencesManager = require('./preferencesManager');
 import WorkerBridge = require('./workerBridge');
 import TypeScriptErrorReporter = require('./errorReporter');
 import TypeScriptConfigErrorReporter = require('./configErrorReporter');
-import TypeScriptQuickEditProvider = require('./quickEdit');
-import TypeScriptQuickJumpProvider = require('./quickJump');
+import inlineEditorProvider = require('./inlineEditorProvider');
+import jumpToDefProvider = require('./jumpToDefProvider');
 //import TypeScriptQuickFindDefitionProvider = require('./quickFindDefinition');
 import CodeHintProvider = require('./codeHintProvider');
 //import FormattingManager = require('./formattingManager');
 import typeScriptModeFactory = require('./mode');
+import ServiceConsumer = require('./serviceConsumer');
 
 
 
@@ -49,10 +50,6 @@ var LanguageManager = brackets.getModule('language/LanguageManager'),
     codeMirror: typeof CodeMirror = brackets.getModule('thirdparty/CodeMirror2/lib/codemirror'),
     Menus = brackets.getModule('command/Menus');
 
-var tsErrorReporter: TypeScriptErrorReporter,
-    quickEditProvider: TypeScriptQuickEditProvider,
-    codeHintProvider: CodeHintProvider,
-    quickJumpProvider: TypeScriptQuickJumpProvider
 //    ,
 //    quickFindDefinitionProvider: TypeScriptQuickFindDefitionProvider,
 //    formattingManager: FormattingManager;
@@ -78,22 +75,18 @@ function init(config: { logLevel: string; typeScriptLocation: string; workerLoca
 	});
     
     // Register code hint
-    codeHintProvider = new CodeHintProvider();
-    CodeHintManager.registerHintProvider(codeHintProvider, ['typescript'], 0);
+    CodeHintManager.registerHintProvider(CodeHintProvider, ['typescript'], 0);
     
     // Register quickEdit
-    quickEditProvider = new TypeScriptQuickEditProvider();
-    EditorManager.registerInlineEditProvider(quickEditProvider.typeScriptInlineEditorProvider);   
+    EditorManager.registerInlineEditProvider(inlineEditorProvider); 
     
     //Register quickJump
-    quickJumpProvider = new TypeScriptQuickJumpProvider();
-    EditorManager.registerJumpToDefProvider(quickJumpProvider.handleJumpToDefinition);
+    EditorManager.registerJumpToDefProvider(jumpToDefProvider);
     
       
     //Register error provider
-    tsErrorReporter = new TypeScriptErrorReporter();
-    CodeInspection.register('typescript', tsErrorReporter); 
-    CodeInspection.register('json', new TypeScriptConfigErrorReporter());
+    CodeInspection.register('typescript', TypeScriptErrorReporter); 
+    CodeInspection.register('json', TypeScriptConfigErrorReporter);
     
     //Register quickFindDefinitionProvider
 //    quickFindDefinitionProvider = new TypeScriptQuickFindDefitionProvider();
@@ -119,12 +112,7 @@ function disposeServices() {
     workingSet.dispose();
     preferencesManager.dispose();
     
-//    formattingManager.reset();
-    tsErrorReporter.reset();
-    codeHintProvider.reset();
-    quickEditProvider.reset();
-    quickJumpProvider.reset();
-//    quickFindDefinitionProvider.reset();
+    ServiceConsumer.reset();
 }
 
 
@@ -144,10 +132,7 @@ function initServices(workerLocation: string, typeScriptLocation: string, logLev
             return typeScriptLocation;
         }
     }).then(tsProjectService => {
-        tsErrorReporter.setService(tsProjectService);
-        codeHintProvider.setService(tsProjectService);
-        quickEditProvider.setService(tsProjectService);
-        quickJumpProvider.setService(tsProjectService);
+        ServiceConsumer.setService(tsProjectService);
 //        quickFindDefinitionProvider.setService(proxy.lexicalStructureService);
 //        formattingManager.setService(proxy.formattingService);
     });

@@ -45,66 +45,61 @@ var Type = {
 
 
 
+
 /**
- * TypeScript Inspection Provider
+ * name of the error reporter
  */
-class TypeScriptConfigErrorReporter implements brackets.InspectionProvider {
-    
-    /**
-     * name of the error reporter
-     */
-    name = 'TypeScript Configuration';
-    
-    /**
-     * scan file
-     */
-    scanFile(content: string, path: string): { errors: brackets.LintingError[];  aborted: boolean; } {
-        if (!isBracketsPreferenceFile(path)) {
-            return null;
-        }
-        var data: any;
-        try {
-            data = JSON.parse(content);
-        } catch (e) {
-            return {
-                errors: [],
-                aborted: true
-            };
-        }
-        
-        var typescript = data.typescript;
-        if (!data.typescript) {
-            return {
-                errors: [],
-                aborted: false
-            };
-        }
-        
-        var errors: string[] = [];
-        if (typescript.projects && typescript.sources) {
-            errors.push('You cannot have sources and projects at the same level');
-        }
-        
-        validateSection(null, typescript, !typescript.projects, errors);
-        
-        if (typescript.projects) {
-            if (typeof typescript.projects !== 'object') {
-                errors.push('invalid section projects, it must be an object');
-            } 
-            Object.keys(typescript.projects).forEach(key => {
-               validateSection(key + ': ', typescript.projects[key], true, errors); 
-            });
-        }
-        
+export var name = 'TypeScript Configuration';
+
+/**
+ * scan file
+ */
+export function scanFile(content: string, path: string): { errors: brackets.LintingError[];  aborted: boolean; } {
+    if (!isBracketsPreferenceFile(path)) {
+        return null;
+    }
+    var data: any;
+    try {
+        data = JSON.parse(content);
+    } catch (e) {
         return {
-            errors: errors.map(message => ({
-                message: message,
-                type: Type.ERROR,
-                pos: {line: -1, ch: -1}
-            })),
+            errors: [],
+            aborted: true
+        };
+    }
+
+    var typescript = data.typescript;
+    if (!data.typescript) {
+        return {
+            errors: [],
             aborted: false
         };
     }
+
+    var errors: string[] = [];
+    if (typescript.projects && typescript.sources) {
+        errors.push('You cannot have sources and projects at the same level');
+    }
+
+    validateSection(null, typescript, !typescript.projects, errors);
+
+    if (typescript.projects) {
+        if (typeof typescript.projects !== 'object') {
+            errors.push('invalid section projects, it must be an object');
+        } 
+        Object.keys(typescript.projects).forEach(key => {
+           validateSection(key + ': ', typescript.projects[key], true, errors); 
+        });
+    }
+
+    return {
+        errors: errors.map(message => ({
+            message: message,
+            type: Type.ERROR,
+            pos: {line: -1, ch: -1}
+        })),
+        aborted: false
+    };
 }
 
 function validateSection(sectionName: string, config: any, mustHaveSources: boolean, errors: string[] ) {
@@ -130,4 +125,3 @@ function validateSection(sectionName: string, config: any, mustHaveSources: bool
       
 }
 
-export = TypeScriptConfigErrorReporter;

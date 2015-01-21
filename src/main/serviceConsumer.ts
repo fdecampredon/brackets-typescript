@@ -17,51 +17,40 @@
 import Promise = require('bluebird');
 import TypeScriptProjectService = require('typescript-project-services');
 
+
 /**
- * a class implementing logic to stack operations until a service 
- * has been injected
+ * callback that resolve the internal promise 
  */
-class ServiceConsumer   {
-    
-    /**
-     * callback that resolve the internal promise 
-     */
-    private serviceResolver: (t: typeof TypeScriptProjectService) => void;
-    
-    /**
-     * internal promise 
-     */
-    private promise: Promise<typeof TypeScriptProjectService>;
-    
-    /**
-     * constructor
-     */
-    constructor() {
-        this.reset();
-    }
-    
-    /**
-     * inject the service
-     * 
-     * @param service the injected service
-     */
-    setService(service: typeof TypeScriptProjectService) {
-        this.serviceResolver(service);
-    }
-    
-    /**
-     * @return a promise that will be resolved when the service get injected
-     */
-    getService(): Promise<typeof TypeScriptProjectService> {
-        return this.promise;    
-    }
-    
-    /**
-     * reset the injection
-     */
-    reset() {
-        this.promise = new Promise(resolve => this.serviceResolver = resolve);
-    }
+var serviceResolver: (t: typeof TypeScriptProjectService) => void;
+
+/**
+ * internal promise 
+ */
+var promise: Promise<typeof TypeScriptProjectService>;
+
+
+/**
+ * inject the service
+ * 
+ * @param service the injected service
+ */
+export function setService(service: typeof TypeScriptProjectService) {
+    serviceResolver(service);
 }
 
-export = ServiceConsumer;
+/**
+ * @return a promise that will be resolved when the service get injected
+ */
+export function getService(): Promise<typeof TypeScriptProjectService> {
+    return promise;    
+}
+
+/**
+ * reset the injection
+ */
+export function reset() {
+    promise = new Promise(resolve => serviceResolver = resolve);
+}
+
+reset();
+

@@ -29,38 +29,34 @@ import immediate = require('./immediate');
 /**
  * TypeScript Inspection Provider
  */
-class TypeScriptErrorReporter extends ServiceConsumer implements brackets.InspectionProvider {
     
-    /**
-     * name of the error reporter
-     */
-    name = 'TypeScript';
+/**
+ * name of the error reporter
+ */
+export var name = 'TypeScript';
     
     /**
      * scan file
      */
-    scanFileAsync(content: string, path: string): JQueryPromise<{ errors: brackets.LintingError[];  aborted: boolean }> {
-        return $.Deferred(deferred => {
-            immediate.setImmediate(() => {
-                this.getService().then(service => {
-                    service.getErrorsForFile(path).then(
-                        result => {
-                            deferred.resolve({
-                                errors: result,
-                                aborted: false
-                            });
-                        },
-                        () => {
-                            deferred.resolve({ 
-                                errors: [], 
-                                aborted : false
-                            });
-                        }
-                    );
-                });    
-            });
-        }).promise();
-    }
+export function scanFileAsync(content: string, path: string): JQueryPromise<{ errors: brackets.LintingError[];  aborted: boolean }> {
+    return $.Deferred(deferred => {
+        immediate.setImmediate(() => {
+            ServiceConsumer.getService().then(service => {
+                service.getErrorsForFile(path).then(
+                    result => {
+                        deferred.resolve({
+                            errors: result,
+                            aborted: false
+                        });
+                    }, () => {
+                        deferred.resolve({ 
+                            errors: [], 
+                            aborted : false
+                        });
+                    }
+                );
+            });    
+        });
+    }).promise();
 }
 
-export = TypeScriptErrorReporter;

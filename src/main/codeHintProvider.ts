@@ -37,99 +37,92 @@ var HINT_TEMPLATE = [
 ].join('\n');
 
 
+
+var editor: brackets.Editor;
+
 /**
- * basic implementation
+ * return true if hints can be calculated for te current editor
+ * 
+ * @param editor the editor
+ * @param implicitChar determine whether the hinting request is explicit or implicit, 
+ * null if implicit, contains the last character inserted
  */
-class CodeHintProvider extends ServiceConsumer implements brackets.CodeHintProvider {
-    
-    
-    private editor: brackets.Editor;
-    
-    /**
-     * return true if hints can be calculated for te current editor
-     * 
-     * @param editor the editor
-     * @param implicitChar determine whether the hinting request is explicit or implicit, 
-     * null if implicit, contains the last character inserted
-     */
-    hasHints(editor: brackets.Editor, implicitChar: string): boolean {
-        //TODO we should find a better test here that limits more the implicit request
-        if (!implicitChar || /[\w.\($_]/.test(implicitChar)) {
-            this.editor = editor;
-            return true;  
-        }
-        return false;
+export function hasHints(hostEditor: brackets.Editor, implicitChar: string): boolean {
+    //TODO we should find a better test here that limits more the implicit request
+    if (!implicitChar || /[\w.\($_]/.test(implicitChar)) {
+        editor = hostEditor;
+        return true;  
     }
-   
-    getHints(implicitChar: string): JQueryDeferred<brackets.HintResult> {
-        var currentFileName: string = this.editor.document.file.fullPath, 
-            position = this.editor.getCursorPos(),
-            deferred = $.Deferred();
-        if (!this.hasHints(this.editor, implicitChar)) {
-            deferred.resolve({
-                hints: [],
-                selectInitial: false 
-            });
-        } else {
+    return false;
+}
 
-            this.getService().then(service => {
-                service.getCompletionAtPosition(currentFileName, position).then(result => {
-                    deferred.resolve({
-                        hints: result.entries.map(entry => {
-                            var text = entry.name,
-                                match: string,
-                                suffix: string,
-                                classType = '';
-                            
-                            
-                            if (result.match) {
-                                match = text.slice(0, result.match.length);
-                                suffix  = text.slice(result.match.length);
+export function getHints(implicitChar: string): JQueryDeferred<brackets.HintResult> {
+    var currentFileName: string = editor.document.file.fullPath, 
+        position = editor.getCursorPos(),
+        deferred = $.Deferred();
+    if (!hasHints(editor, implicitChar)) {
+        deferred.resolve({
+            hints: [],
+            selectInitial: false 
+        });
+    } else {
 
-                            } else {
-                                match = '';
-                                suffix = text;
-                            }
+        ServiceConsumer.getService().then(service => {
+            service.getCompletionAtPosition(currentFileName, position).then(result => {
+                deferred.resolve({
+                    hints: result.entries.map(entry => {
+                        var text = entry.name,
+                            match: string,
+                            suffix: string,
+                            classType = '';
 
-                            var jqueryObj = $(Mustache.render(HINT_TEMPLATE, {
-                                match: match,
-                                suffix: suffix,
-                                classType: classType,
-                                details: entry.displayParts && entry.displayParts.map(part => part.text).join(''),
-                                doc: entry.documentation && entry.documentation.map(part => part.text).join(''),
-                            })); 
-                            jqueryObj.data('entry', entry);
-                            jqueryObj.data('match', result.match);
-                            
-                            return jqueryObj;
 
-                        }),
-                        selectInitial: !!implicitChar
-                    });
-                }).catch(error => deferred.reject(error));
-            });
-        }
-        return deferred;
+                        if (result.match) {
+                            match = text.slice(0, result.match.length);
+                            suffix  = text.slice(result.match.length);
+
+                        } else {
+                            match = '';
+                            suffix = text;
+                        }
+
+                        var jqueryObj = $(Mustache.render(HINT_TEMPLATE, {
+                            match: match,
+                            suffix: suffix,
+                            classType: classType,
+                            details: entry.displayParts && entry.displayParts.map(part => part.text).join(''),
+                            doc: entry.documentation && entry.documentation.map(part => part.text).join(''),
+                        })); 
+                        jqueryObj.data('entry', entry);
+                        jqueryObj.data('match', result.match);
+
+                        return jqueryObj;
+
+                    }),
+                    selectInitial: !!implicitChar
+                });
+            }).catch(error => deferred.reject(error));
+        });
     }
-    
-    
-    
-    insertHint($hintObj: JQuery): void {
-        var entry: any= $hintObj.data('entry'),
-            match: string = $hintObj.data('match'), 
-            position = this.editor.getCursorPos(),
-            startPos = !match ? 
-                position : 
-                {
-                    line : position.line,
-                    ch : position.ch - match.length
-                }
-            ;
-        
-        
-        this.editor.document.replaceRange(entry.name, startPos, position);
-    }
+    return deferred;
 }
 
 
-export = CodeHintProvider;
+
+export function insertHint($hintObj: JQuery): void {
+    var entry: any= $hintObj.data('entry'),
+        match: string = $hintObj.data('match'), 
+        position = editor.getCursorPos(),
+        startPos = !match ? 
+            position : 
+            {
+                line : position.line,
+                ch : position.ch - match.length
+            }
+        ;
+
+
+    editor.document.replaceRange(entry.name, startPos, position);
+}
+
+
