@@ -94,7 +94,12 @@ function init(config: { logLevel: string; typeScriptLocation: string; workerLoca
     //Register formatting command
     CommandManager.register(FormattingManager.FORMAT_LABEL, FormattingManager.FORMAT_COMMAND_ID, FormattingManager.format);
     var contextMenu = Menus.getContextMenu(Menus.ContextMenuIds.EDITOR_MENU);
-    contextMenu.addMenuItem(FormattingManager.FORMAT_COMMAND_ID);
+    contextMenu.addMenuItem(FormattingManager.FORMAT_COMMAND_ID, [{
+        key: 'Ctrl-Shift-I'
+    },{
+        key: 'Cmd-Shift-I',
+        platform: 'mac'
+    }]);
 
     initServices(config.workerLocation, config.typeScriptLocation, config.logLevel);
 
