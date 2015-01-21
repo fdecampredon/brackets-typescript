@@ -39,7 +39,7 @@ export function format() {
         InsertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis: false,
         PlaceOpenBraceOnNewLineForFunctions: false,
         PlaceOpenBraceOnNewLineForControlBlocks: false,
-        
+
         IndentSize: Editor.getSpaceUnits(),
         TabSize: Editor.getTabSize(),
         NewLineCharacter: '\n',
@@ -59,11 +59,15 @@ export function format() {
             if (EditorManager.getCurrentFullEditor() !== editor) {
                 return;
             }
-            editor.document.setText(
-                textEdits.reduce((text, edit) => {
-                    return text.substr(0, edit.start) + edit.newText + text.substr(edit.end);
-                }, editor.document.getText())
-            );
+            var pos = editor.getCursorPos();
+            var scrollPos = editor.getScrollPos();
+            var newText = textEdits.reduce((text, edit) => {
+                return text.substr(0, edit.start) + edit.newText + text.substr(edit.end);
+            }, editor.document.getText());
+            
+            editor.document.setText(newText);
+            editor.setCursorPos(pos.line, pos.ch, false, false);
+            editor.setScrollPos(scrollPos.x, scrollPos.y);
         });
     });
 };

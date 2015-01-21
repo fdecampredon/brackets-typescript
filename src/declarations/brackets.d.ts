@@ -765,12 +765,14 @@ declare module brackets {
         _codeMirror: CodeMirror.Editor;
         document: Document;
         getCursorPos(): CodeMirror.Position;
+        getScrollPos(): {x: number; y: number};
         getModeForSelection(): string;
         getSelection(boolean: boolean): {
             start: CodeMirror.Position;
             end: CodeMirror.Position
         };
         setCursorPos(line: number, ch: number, center: boolean, expandTabs: boolean): void ;
+        setScrollPos(x:number, y:number): void;
     }
     
     
