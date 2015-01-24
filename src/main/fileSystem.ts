@@ -139,7 +139,7 @@ class FileSystem implements IFileSystem {
      */
     reset(): void {
         this.initialized = false;
-        this.filesContent = Object.create(null);
+        this.filesContent.clear();
         this.filesPath.length = 0;
         this.init();
         this._projectFilesChanged.dispatch([{
