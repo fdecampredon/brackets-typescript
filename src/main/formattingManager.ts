@@ -49,20 +49,24 @@ export function format() {
         startPos = currentRange ? currentRange.start : undefined,
         endPos = currentRange ? currentRange.end : undefined;
 
-    if (startPos && endPos && startPos.line === endPos.line && startPos.ch === endPos.ch) {
-        startPos = endPos = undefined;
-    }
 
 
     ServiceConsumer.getService().then(service => {
-        service.getFormatingForFile(editor.document.file.fullPath, options, startPos, endPos).then(textEdits => {
+        var start: number;
+        var end: number;
+        if (startPos && endPos && (startPos.line !== endPos.line || startPos.ch !== endPos.ch)) {
+            start = editor.indexFromPos(startPos);
+            end = editor.indexFromPos(endPos);
+        }
+        
+        service.getFormattingEditsForFile(editor.document.file.fullPath, options, start, end).then(textEdits => {
             if (EditorManager.getCurrentFullEditor() !== editor) {
                 return;
             }
             var pos = editor.getCursorPos();
             var scrollPos = editor.getScrollPos();
             var newText = textEdits.reduce((text, edit) => {
-                return text.substr(0, edit.start) + edit.newText + text.substr(edit.end);
+                return text.substr(0, edit.span.start) + edit.newText + text.substr(edit.span.start + edit.span.length);
             }, editor.document.getText());
             
             editor.document.setText(newText);

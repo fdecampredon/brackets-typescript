@@ -1018,7 +1018,14 @@ declare module brackets {
     
     interface CodeInspection {
         register(languageId: string, provider: InspectionProvider): void;
-        Type: { [index: string]: string}
+        Type: { 
+            ERROR: string;
+            /** Maintainability issue, probable error / bad smell, etc. */
+            WARNING: string;
+            /** Inspector unable to continue, code too complex for static analysis, etc. Not counted in error/warning tally. */
+            META: string;
+
+        }
     }
     
     

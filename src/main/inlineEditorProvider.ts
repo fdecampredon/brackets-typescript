@@ -35,13 +35,21 @@ var DocumentManager = brackets.getModule('document/DocumentManager'),
     var deferred = $.Deferred();
     ServiceConsumer.getService().then(service => {
         var fileName = hostEditor.document.file.fullPath;
-        service.getDefinitionAtPosition(fileName, pos).then(definitions => {
+        
+        service.getDefinitionAtPosition(fileName, hostEditor.indexFromPos(pos)).then(definitions => {
             if (!definitions || definitions.length === 0) {
                 deferred.reject();
             }
 
+            var codeMirror = (<any>hostEditor._codeMirror);
+            if (codeMirror) {
+                definitions = definitions.filter(definition => 
+                    definition.fileName !== fileName || 
+                    codeMirror.posFromIndex(definition.textSpan.start).line !== pos.line
+                );
+            }
 
-            definitions.filter(definition => definition.fileName !== fileName || definition.lineStart !== pos.line);
+           
             if (definitions.length === 0) {
                 deferred.reject();
             }
@@ -50,15 +58,22 @@ var DocumentManager = brackets.getModule('document/DocumentManager'),
                 ranges: brackets.MultiRangeInlineEditorRange[] = [];
 
             definitions.forEach(definition => {
-                promises.push(DocumentManager.getDocumentForPath(definition.fileName).then(doc => {
-                    ranges.push({
-                        document : doc,
-                        name: definition.name,
-                        lineStart: definition.lineStart,  
-                        lineEnd: definition.lineEnd,
-                        fileName: definition.fileName
-                    });    
-                }));
+                promises.push(
+                    DocumentManager.getDocumentForPath(definition.fileName)
+                        .then(doc => {
+                            (<any>doc)._ensureMasterEditor();
+                            var codeMirror = (<any>doc)._masterEditor._codeMirror;
+                            var lineStart = codeMirror.posFromIndex(definition.textSpan.start).line;
+                            var lineEnd = codeMirror.posFromIndex(definition.textSpan.start + definition.textSpan.length).line
+                            ranges.push({
+                                document : doc,
+                                name: definition.name,
+                                lineStart: lineStart,  
+                                lineEnd: lineEnd,
+                                fileName: definition.fileName
+                            });    
+                        })
+                );
             });
 
             return $.when.apply($, promises).then(() => {

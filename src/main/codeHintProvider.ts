@@ -51,7 +51,7 @@ export function hasHints(hostEditor: brackets.Editor, implicitChar: string): boo
     //TODO we should find a better test here that limits more the implicit request
     if (!implicitChar || /[\w.\($_]/.test(implicitChar)) {
         editor = hostEditor;
-        return true;  
+        return true;
     }
     return false;
 }
@@ -68,7 +68,9 @@ export function getHints(implicitChar: string): JQueryDeferred<brackets.HintResu
     } else {
 
         ServiceConsumer.getService().then(service => {
-            service.getCompletionAtPosition(currentFileName, position).then(result => {
+            var index = editor.indexFromPos(position)
+            
+            service.getCompletionAtPosition(currentFileName, index).then(result => {
                 deferred.resolve({
                     hints: result.entries.map(entry => {
                         var text = entry.name,

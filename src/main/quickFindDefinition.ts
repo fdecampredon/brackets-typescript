@@ -99,8 +99,8 @@ function extractQuickOpenItems(navigationBarItems: NavigationBarItem[], editor: 
     var items: QuickOpenItem[] = [];
     var current: string[] = [];
     function extracItem(item: NavigationBarItem) {
-        var start = item.positions[0].start;
-        var pos = editor._codeMirror.getDoc().posFromIndex(item.positions[0].start);
+        var start = item.spans[0].start;
+        var pos = editor._codeMirror.getDoc().posFromIndex(item.spans[0].start);
         items.push({
             text: item.text,
             index: start,

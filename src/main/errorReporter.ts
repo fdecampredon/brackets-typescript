@@ -14,10 +14,12 @@
 
 'use strict';
 
-//TODO that part of the application is not well tested and just 'work' it needs to be refactored
+var DocumentManager = brackets.getModule('document/DocumentManager');
+var CodeInspection = brackets.getModule('language/CodeInspection');
 
 import ServiceConsumer = require('./serviceConsumer');
 import immediate = require('./immediate');
+import ts = require('typescript');
 
 
 //--------------------------------------------------------------------------
@@ -25,6 +27,17 @@ import immediate = require('./immediate');
 //  TypeScriptProject
 //
 //--------------------------------------------------------------------------
+
+function diagCategoryToType(category: ts.DiagnosticCategory): string {
+    switch(category) {
+        case ts.DiagnosticCategory.Message:
+            return CodeInspection.Type.META;
+        case ts.DiagnosticCategory.Error:
+            return CodeInspection.Type.ERROR;
+        case ts.DiagnosticCategory.Warning:
+            return CodeInspection.Type.WARNING;
+    }
+}
 
 /**
  * TypeScript Inspection Provider
@@ -42,19 +55,23 @@ export function scanFileAsync(content: string, path: string): JQueryPromise<{ er
     return $.Deferred(deferred => {
         immediate.setImmediate(() => {
             ServiceConsumer.getService().then(service => {
-                service.getErrorsForFile(path).then(
-                    result => {
+                service.getDiagnosticsForFile(path)
+                    .then(diagnostics => {
+                        var document: any = DocumentManager.getOpenDocumentForPath(path);
+                        document._ensureMasterEditor();
+                        var codeMirror = document._masterEditor._codeMirror;
                         deferred.resolve({
-                            errors: result,
+                            errors: diagnostics.map(diagnostic => ({
+                                pos: codeMirror.posFromIndex(diagnostic.start),
+                                endPos: codeMirror.posFromIndex(diagnostic.start + diagnostic.length),
+                                message: diagnostic.messageText,
+                                type: diagCategoryToType(diagnostic.category)
+                            })),
                             aborted: false
                         });
-                    }, () => {
-                        deferred.resolve({ 
-                            errors: [], 
-                            aborted : false
-                        });
-                    }
-                );
+                    }, (e) => {
+                        deferred.reject(e);
+                    });
             });    
         });
     }).promise();

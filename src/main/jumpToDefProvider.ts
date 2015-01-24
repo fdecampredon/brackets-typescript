@@ -33,12 +33,18 @@ function jumpToDefProvider(editor: brackets.Editor, pos: CodeMirror.Position): J
         deferred = $.Deferred();
 
     ServiceConsumer.getService().then(service => {
-        service.getDefinitionAtPosition(fileName, pos).then(definitions => {
+        service.getDefinitionAtPosition(fileName, editor.indexFromPos(pos)).then(definitions => {
             if (!definitions || definitions.length === 0) {
                 deferred.reject();
             }
 
-            definitions.filter(definition => definition.fileName !== fileName || definition.lineStart !== pos.line);
+            var codeMirror = (<any>editor._codeMirror);
+            if (codeMirror) {
+                definitions = definitions.filter(definition => 
+                    definition.fileName !== fileName || 
+                    codeMirror.posFromIndex(definition.textSpan.start).line !== pos.line
+                );
+            }
             if (definitions.length === 0) {
                 deferred.reject();
             }
@@ -46,12 +52,12 @@ function jumpToDefProvider(editor: brackets.Editor, pos: CodeMirror.Position): J
                 if (editor.getCursorPos().line === pos.line) {
                     var def = definitions[0];
                     if (def.fileName === fileName) {
-                        editor.setCursorPos(def.lineStart, def.charStart, true, true);
+                        setPositionFromDef(editor, def.textSpan);
                         deferred.resolve(true);
                     } else {
                         CommandManager.execute(Commands.FILE_OPEN, {fullPath: def.fileName}).then(function () {
                             var editor = EditorManager.getFocusedEditor();
-                            editor.setCursorPos(def.lineStart, def.charStart, true, true);
+                            setPositionFromDef(editor, def.textSpan);
                             deferred.resolve(true);
                         }, () => deferred.reject());
                     }
@@ -63,5 +69,12 @@ function jumpToDefProvider(editor: brackets.Editor, pos: CodeMirror.Position): J
     });
     return deferred.promise();
 };
+
+
+function setPositionFromDef(editor: brackets.Editor, span: { start: number; length: number}) {
+    var codeMirror = (<any>editor._codeMirror);
+    var pos = codeMirror.posFromIndex(span.start);
+    editor.setCursorPos(pos.line, pos.ch, true, true);
+}
 
 export = jumpToDefProvider;

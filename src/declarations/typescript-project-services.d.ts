@@ -258,7 +258,7 @@ export type TypeScriptInfo = {
     typeScript: typeof ts;
     libLocation: string;
 };
-export function createProject(baseDirectory: string, config: TypeScriptProjectConfig, fileSystem: fs.IFileSystem, workingSet: ws.IWorkingSet, defaultLibLocation: string): TypeScriptProject;
+export function createProject(documentRegistry: ts.DocumentRegistry, baseDirectory: string, config: TypeScriptProjectConfig, fileSystem: fs.IFileSystem, workingSet: ws.IWorkingSet, defaultLibLocation: string): TypeScriptProject;
 
 
 }
@@ -590,10 +590,6 @@ import fs = require('typescript-project-services/lib/fileSystem');
 import ws = require('typescript-project-services/lib/workingSet');
 import project = require('typescript-project-services/lib/project');
 import console = require('typescript-project-services/lib/logger');
-export type Position = {
-    line: number;
-    ch: number;
-};
 export import Logger = console.Logger;
 export var injectLogger: typeof console.injectLogger;
 export var injectPromiseLibrary: typeof promise.injectPromiseLibrary;
@@ -630,81 +626,28 @@ export function updateProjectConfigs(configs: {
  * dispose the service
  */
 export function dispose(): void;
-/**
- * Represent definition info of a symbol
- */
-export type DefinitionInfo = {
-    /**
-     * full name of the symbol
-     */
-    name: string;
-    /**
-     * line at which the symbol definition start
-     */
-    lineStart: number;
-    /**
-     * charachter at which the symbol definition start
-     */
-    charStart: number;
-    /**
-     * line at which the symbol definition end
-     */
-    lineEnd: number;
-    /**
-     * charachter at which the symbol definition end
-     */
-    charEnd: number;
-    /**
-     * path of the file where the symbol is defined
-     */
-    fileName: string;
+export type TextSpan = {
+    start: number;
+    length: number;
 };
-/**
- * Retrieve definition info of a symbol at a given position in a given file.
- * return a promise resolving to a list of definition info.
- *
- * @param fileName the absolute path of the file
- * @param position in the file where you want to retrieve definition info
- *
- */
-export function getDefinitionAtPosition(fileName: string, position: Position): promise.Promise<DefinitionInfo[]>;
-export const enum DiagnosticCategory {
-    Warning = 0,
-    Error = 1,
-    Message = 2,
-}
-export type TSError = {
-    pos: Position;
-    endPos: Position;
-    message: string;
-    type: DiagnosticCategory;
+export type Diagnostics = {
+    fileName: string;
+    start: number;
+    length: number;
+    messageText: string;
+    category: ts.DiagnosticCategory;
+    code: number;
 };
 /**
  * Retrieve a list of errors for a given file
  * return a promise resolving to a list of errors
  *
  * @param fileName the absolute path of the file
+ * @param allErrors by default errors are checked in 3 phases, options check, syntax check,
+ *   semantic check, is allErrors is set to false, the service won't check the nex phase
+ *   if there is error in the precedent one
  */
-export function getErrorsForFile(fileName: string): promise.Promise<TSError[]>;
-export type TextEdit = {
-    start: number;
-    end: number;
-    newText: string;
-};
-/**
- * Retrieve formating information for a givent file.
- * return a promise resolving to a list of TextEdit
- *
- * @param fileName the absolute path of the file
- * @param options formation options
- * @param startPos an option start position for the formating range
- * @param endPos an optional end position for the formating range
- *
- */
-export function getFormatingForFile(fileName: string, options: ts.FormatCodeOptions, startPos?: Position, endPos?: Position): promise.Promise<TextEdit[]>;
-/**
- * Represent a completion result
- */
+export function getDiagnosticsForFile(fileName: string, allErrors?: boolean): promise.Promise<Diagnostics[]>;
 export type CompletionResult = {
     /**
      * the matched string portion
@@ -725,27 +668,84 @@ export type CompletionResult = {
  * @param skip the number of proposition this service should skip
  *
  */
-export function getCompletionAtPosition(fileName: string, position: Position, limit?: number, skip?: number): promise.Promise<CompletionResult>;
+export function getCompletionAtPosition(fileName: string, position: number, limit?: number, skip?: number): promise.Promise<CompletionResult>;
+export type QuickInfo = {
+    kind: string;
+    kindModifiers: string;
+    textSpan: TextSpan;
+    displayParts: ts.SymbolDisplayPart[];
+    documentation: ts.SymbolDisplayPart[];
+};
+export function getQuickInfoAtPosition(fileName: string, position: number): promise.Promise<QuickInfo>;
+export type SignatureHelpItems = {
+    items: ts.SignatureHelpItem[];
+    applicableSpan: TextSpan;
+    selectedItemIndex: number;
+    argumentIndex: number;
+    argumentCount: number;
+};
+export function getSignatureHelpItems(fileName: string, position: number): promise.Promise<SignatureHelpItems>;
+export type RenameInfo = {
+    canRename: boolean;
+    localizedErrorMessage: string;
+    displayName: string;
+    fullDisplayName: string;
+    kind: string;
+    kindModifiers: string;
+    triggerSpan: TextSpan;
+};
+export function getRenameInfo(fileName: string, position: number): promise.Promise<RenameInfo>;
+export function findRenameLocations(fileName: string, position: number, findInStrings: boolean, findInComments: boolean): promise.Promise<{
+    textSpan: TextSpan;
+    fileName: string;
+}[]>;
+export type DefinitionInfo = {
+    fileName: string;
+    textSpan: TextSpan;
+    kind: string;
+    name: string;
+    containerKind: string;
+    containerName: string;
+};
+export function getDefinitionAtPosition(fileName: string, position: number): promise.Promise<DefinitionInfo[]>;
+export type ReferenceEntry = {
+    textSpan: TextSpan;
+    fileName: string;
+    isWriteAccess: boolean;
+};
+export function getReferencesAtPosition(fileName: string, position: number): promise.Promise<ReferenceEntry[]>;
+export function getOccurrencesAtPosition(fileName: string, position: number): promise.Promise<ReferenceEntry[]>;
+export type NavigateToItem = {
+    name: string;
+    kind: string;
+    kindModifiers: string;
+    matchKind: string;
+    fileName: string;
+    textSpan: TextSpan;
+    containerName: string;
+    containerKind: string;
+};
+export function getNavigateToItems(fileName: string, search: string): promise.Promise<NavigateToItem[]>;
 export type NavigationBarItem = {
     text: string;
     kind: string;
     kindModifiers: string;
-    positions: {
+    spans: {
         start: number;
-        end: number;
+        length: number;
     }[];
     childItems: NavigationBarItem[];
     indent: number;
     bolded: boolean;
     grayed: boolean;
 };
-/**
- * Retrieve NavigationBarItems
- *
- * @param fileName the absolute path of the file
- *
- */
 export function getNavigationBarItems(fileName: string): promise.Promise<NavigationBarItem[]>;
+export type TextChange = {
+    span: TextSpan;
+    newText: string;
+};
+export function getFormattingEditsForFile(fileName: string, options: ts.FormatCodeOptions, start: number, end: number): promise.Promise<TextChange[]>;
+export function getEmitOutput(fileName: string): promise.Promise<ts.EmitOutput>;
 
 
 }
