@@ -773,6 +773,7 @@ declare module brackets {
         };
         setCursorPos(line: number, ch: number, center: boolean, expandTabs: boolean): void ;
         setScrollPos(x:number, y:number): void;
+        indexFromPos(pos: {line:number; ch:number}): number;
     }
     
     
@@ -1058,7 +1059,7 @@ declare module brackets {
          * Creates and registers a new QuickOpenPlugin
          */
         addQuickOpenPlugin<S>(def: QuickOpenPluginDef<S>): void;
-        highlightMatch(item: string): string;
+        highlightMatch(item: any): string;
     }
     
     
@@ -1115,7 +1116,7 @@ declare module brackets {
     
     interface StringMatcher {
         match(target: string, query: string): {
-            ranges: { text: string; matched: boolean; includesLastSegment: boolean}[];
+            stringRanges: { text: string; matched: boolean; includesLastSegment: boolean}[];
             matchGoodness: number; 
             scoreDebug: any;
         }

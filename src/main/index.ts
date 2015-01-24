@@ -22,7 +22,7 @@ import TypeScriptErrorReporter = require('./errorReporter');
 import TypeScriptConfigErrorReporter = require('./configErrorReporter');
 import inlineEditorProvider = require('./inlineEditorProvider');
 import jumpToDefProvider = require('./jumpToDefProvider');
-//import TypeScriptQuickFindDefitionProvider = require('./quickFindDefinition');
+import QuickFindDefitionProvider = require('./quickFindDefinition');
 import CodeHintProvider = require('./codeHintProvider');
 import FormattingManager = require('./formattingManager');
 import typeScriptModeFactory = require('./mode');
@@ -49,10 +49,6 @@ var LanguageManager = brackets.getModule('language/LanguageManager'),
     CommandManager = brackets.getModule('command/CommandManager'),
     codeMirror: typeof CodeMirror = brackets.getModule('thirdparty/CodeMirror2/lib/codemirror'),
     Menus = brackets.getModule('command/Menus');
-
-//    ,
-//    quickFindDefinitionProvider: TypeScriptQuickFindDefitionProvider,
-//    
     
  
 var fileSystem: FileSystem,
@@ -88,10 +84,9 @@ function init(config: { logLevel: string; typeScriptLocation: string; workerLoca
     CodeInspection.register('json', TypeScriptConfigErrorReporter);
     
     //Register quickFindDefinitionProvider
-    //    quickFindDefinitionProvider = new TypeScriptQuickFindDefitionProvider();
-    //    QuickOpen.addQuickOpenPlugin(quickFindDefinitionProvider);
+    QuickOpen.addQuickOpenPlugin(QuickFindDefitionProvider);
     
-    initCommands()
+    initCommands();
    
     initServices(config.workerLocation, config.typeScriptLocation, config.logLevel);
 
@@ -119,9 +114,9 @@ function initCommands() {
         menuDescriptor: {
             commandId: FormattingManager.FORMAT_COMMAND_ID,
             keys: [{
-                key: 'Ctrl-Shift-I'
+                key: 'Ctrl-Shift-L'
             }, {
-                key: 'Cmd-Shift-I',
+                key: 'Cmd-Shift-L',
                 platform: 'mac'
             }]
         },
@@ -193,8 +188,6 @@ function initServices(workerLocation: string, typeScriptLocation: string, logLev
         }
     }).then(tsProjectService => {
         ServiceConsumer.setService(tsProjectService);
-        //        quickFindDefinitionProvider.setService(proxy.lexicalStructureService);
-        //        formattingManager.setService(proxy.formattingService);
     });
 }
 
