@@ -20,36 +20,12 @@ import signal = require('./signal');
 import Promise = require('bluebird');
 import collections = require('./collections');
 
-import ps = require('typescript-project-services');
-import IFileSystem = ps.IFileSystem;
-import FileChangeRecord = ps.FileChangeRecord;
+import service = require('typescript-project-services');
+import IFileSystem = service.IFileSystem;
+import FileChangeRecord = service.FileChangeRecord;
+import FileChangeKind = service.FileChangeKind;
 
 
-
-/**
- * enum representing the kind change possible in the fileSysem
- */
- enum FileChangeKind {
-    /**
-     * a file has been added
-     */
-    ADD,
-    
-    /**
-     * a file has been updated
-     */
-    UPDATE,
-    
-    /**
-     * a file has been deleted
-     */
-    DELETE,
-    
-    /**
-     * the project files has been reset 
-     */
-    RESET
-}
 
 
 

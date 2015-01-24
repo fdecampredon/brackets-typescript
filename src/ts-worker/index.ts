@@ -19,7 +19,7 @@ declare var global: any;
 global.window = self;
 
 
-import projectService = require('typescript-project-services');
+import service = require('typescript-project-services');
 import WorkerBridge = require('../main/workerBridge');
 import Promise = require('bluebird');
 
@@ -37,19 +37,26 @@ import Promise = require('bluebird');
         queuedFn = fn;
         channel.port2.postMessage(null);
     };
-})())
+})());
+
+service.injectPromiseLibrary(Promise);
 
 var bridge = new WorkerBridge(<any>self);
 
 //expose the worker services
-bridge.init(projectService).then(proxy => {
-    self.console = proxy.console;
+bridge.init(service).then(proxy => {
+    var console = proxy.console;
+    service.injectLogger(
+        () => void 0, 
+        console.warn.bind(console),
+        console.error.bind(console)
+    );
     return Promise.all([
         proxy.getTypeScriptLocation(),
         proxy.preferencesManager.getProjectsConfig()
     ])
     .then(result => {
-        projectService.init({
+        service.init({
             defaultTypeScriptLocation: <any>result[0],
             fileSystem: proxy.fileSystem,
             workingSet: proxy.workingSet,
@@ -57,7 +64,7 @@ bridge.init(projectService).then(proxy => {
         });     
         proxy.preferencesManager.configChanged.add(() => {
             proxy.preferencesManager.getProjectsConfig().then((config: any) => {
-                projectService.updateProjectConfigs(config);
+                service.updateProjectConfigs(config);
             })
         })
     })

@@ -20,21 +20,12 @@ import collections = require('./collections');
 import Promise = require('bluebird');
 
 
-import ps = require('typescript-project-services');
-import IWorkingSet = ps.IWorkingSet;
-import WorkingSetChangeRecord = ps.WorkingSetChangeRecord;
-import DocumentChangeRecord = ps.DocumentChangeRecord;
-import DocumentChangeDescriptor = ps.DocumentChangeDescriptor;
-
-
-
-/**
- * enum listing the change kind that occur in a working set
- */
-enum WorkingSetChangeKind {
-    ADD,
-    REMOVE
-}
+import service = require('typescript-project-services');
+import IWorkingSet = service.IWorkingSet;
+import WorkingSetChangeRecord = service.WorkingSetChangeRecord;
+import WorkingSetChangeKind = service.WorkingSetChangeKind;
+import DocumentChangeRecord = service.DocumentChangeRecord;
+import DocumentChangeDescriptor = service.DocumentChangeDescriptor;
 
 
 

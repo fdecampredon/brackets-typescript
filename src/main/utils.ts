@@ -91,6 +91,13 @@ export function pathResolve(from: string, to: string): string {
 }
 
 
-
+export function range(start: number, end: number): number[] {
+    var length = end - start;
+    var arr = new Array<number>(length);
+    for (var i = 0, curr= start; i < length; i++, curr++) {
+        arr[i] = curr;
+    }
+    return arr;
+}
 
 
