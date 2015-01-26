@@ -1,5 +1,5 @@
 
-.dropdown-menu a .ts-code-hint .ts-hint-details {
+.ts-hint-details {
     display: none;
     font-size: 11px;
     color: #0035DD;
@@ -7,11 +7,12 @@
     left: 5px;
 }
 
-.dropdown-menu a .ts-code-hint .ts-hint-doc {
+.ts-hint-doc {
     display: none;
     font-size: 11px;
     color: #A21B1B;
-    padding-left: 14px;
+    padding-left: 32px;
+    vertical-align: baseline;
 }
 
 
@@ -24,3 +25,49 @@
     display: block;
     max-width: 500px;
 }
+
+.ts-hint-text {
+    display: inline-block;
+    vertical-align: baseline;
+}
+
+
+.ts-type-icon {
+    background-image: url('symbol-sprite.svg');
+    background-repeat: no-repeat;
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+
+.ts-type-icon.ts-method,
+.ts-type-icon.ts-function,
+.ts-type-icon.ts-constructor	{ 
+    background-position: 2px -3px; 
+}
+.ts-type-icon.ts-field,
+.ts-type-icon.ts-variable { 
+    background-position: -18px -3px; 
+}
+.ts-type-icon.ts-class { 
+    background-position: -41px -3px; 
+}
+.ts-type-icon.ts-interface { 
+    background-position: -61px -4px; 
+}
+.ts-type-icon.ts-module { 
+    background-position: -79px -4px; 
+}
+.ts-type-icon.ts-enum { 
+    background-position: -140px -3px; 
+}
+.ts-type-icon.ts-keyword	{ 
+    background-position: -161px -2px; 
+}
+.ts-type-icon.ts-reference { 
+    background-position: -281px -4px; 
+}
+
+

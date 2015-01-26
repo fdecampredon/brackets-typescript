@@ -24,7 +24,8 @@ import ts = require('typescript');
 
 var HINT_TEMPLATE = [
     '<span class="cm-s-default ts-code-hint">',
-    '   <span class="{{classType}}">',
+'       <span class="ts-type-icon {{classType}}" />',
+    '   <span class="ts-hint-text">',
     '       <span style="font-weight: bold">{{match}}</span>{{suffix}}',
     '   </span>',
     '   <span class="ts-hint-details">',
@@ -35,6 +36,8 @@ var HINT_TEMPLATE = [
     '   </span>',
     '</span>'
 ].join('\n');
+
+
 
 
 
@@ -56,6 +59,9 @@ export function hasHints(hostEditor: brackets.Editor, implicitChar: string): boo
     return false;
 }
 
+
+
+
 export function getHints(implicitChar: string): JQueryDeferred<brackets.HintResult> {
     var currentFileName: string = editor.document.file.fullPath, 
         position = editor.getCursorPos(),
@@ -76,9 +82,11 @@ export function getHints(implicitChar: string): JQueryDeferred<brackets.HintResu
                         var text = entry.name,
                             match: string,
                             suffix: string,
-                            classType = '';
-
-
+                            classType = getClassTypeForEntry(entry.kind);
+                        
+                        
+                        
+ 
                         if (result.match) {
                             match = text.slice(0, result.match.length);
                             suffix  = text.slice(result.match.length);
@@ -128,3 +136,63 @@ export function insertHint($hintObj: JQuery): void {
 }
 
 
+
+
+function getClassTypeForEntry(kind: string) {
+    switch (kind) {
+        case ts.ScriptElementKind.primitiveType:
+        case ts.ScriptElementKind.keyword:
+            return "ts-keyword";
+
+     
+        case ts.ScriptElementKind.memberVariableElement:
+        case ts.ScriptElementKind.memberGetAccessorElement:
+        case ts.ScriptElementKind.memberSetAccessorElement:
+            return "ts-field";
+            
+        case ts.ScriptElementKind.constElement: 
+        case ts.ScriptElementKind.letElement: 
+        case ts.ScriptElementKind.variableElement:
+        case ts.ScriptElementKind.localVariableElement:
+        case ts.ScriptElementKind.parameterElement:
+            return "ts-variable";
+            
+        case ts.ScriptElementKind.functionElement:
+        case ts.ScriptElementKind.constructSignatureElement:
+        case ts.ScriptElementKind.callSignatureElement:
+        case ts.ScriptElementKind.localFunctionElement:
+            return "ts-function";
+            
+        case ts.ScriptElementKind.memberFunctionElement:
+            return "ts-method";
+            
+        case ts.ScriptElementKind.constructorImplementationElement:
+            return "ts-constructor"
+            
+        case ts.ScriptElementKind.moduleElement:
+            return "ts-module";
+            
+        case ts.ScriptElementKind.classElement:
+            return "ts-class";
+            
+        case ts.ScriptElementKind.interfaceElement:
+        case ts.ScriptElementKind.typeElement:
+            return "ts-interface";
+            
+        case ts.ScriptElementKind.enumElement:
+            return "ts-enum";
+   
+        case ts.ScriptElementKind.alias:
+            return "ts-reference";
+            
+        case ts.ScriptElementKind.unknown:
+        case ts.ScriptElementKind.indexSignatureElement:
+        case ts.ScriptElementKind.typeParameterElement:
+        case ts.ScriptElementKind.scriptElement:
+        case ts.ScriptElementKind.label:
+        default:
+            return "";
+            
+        
+    }
+}
