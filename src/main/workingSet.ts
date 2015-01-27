@@ -220,7 +220,7 @@ class WorkingSet implements IWorkingSet  {
                 removed: change.removed ? change.removed.join('\n') : ''
             }));
         
-        var validChanges = changes.some(change => !change.from || !change.to);
+        var validChanges = !changes.some(change => !change.from || !change.to);
             
         if (changeList.length > 0) {
             this.documentEdited.dispatch({
