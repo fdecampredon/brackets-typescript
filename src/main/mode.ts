@@ -14,53 +14,34 @@
 
 'use strict';
 
-// TODO If we could not depends of TypeScript here, or at least extract just the part we are interested in
-// We could avoid bundling the entire TypeScript Service with use
-// see : https://github.com/fdecampredon/brackets-typescript/issues/13
 
-
-declare var require: any;
 import ts = require('typescript');
-import indenter = require('./smartIndenter');
 
-
-
-interface Token {
+type Token  = {
 	string: string;
 	classification: ts.TokenClass;
 	length: number;
 	position: number;
 }
 
+type BracketsStackItem = { 
+    indent: number ; brackets: string[] 
+}
 
 interface LineDescriptor {
     tokenMap: { [position: number]: Token };
     eolState: ts.EndOfLineState;
-    text: string;
-}
-
-function createLineDescriptor() {
-    return {
-        tokenMap: {},
-        eolState: ts.EndOfLineState.Start,
-        text: ''
-    }
-}
-
-function cloneLineDescriptor(lineDescriptor: LineDescriptor): LineDescriptor {
-    return {
-        tokenMap: lineDescriptor.tokenMap,
-        eolState: lineDescriptor.eolState,
-        text: lineDescriptor.text
-    }
+    indent: number;
+    nextLineIndent: number;
+    bracketsStack: BracketsStackItem[]
 }
 
 
+function last<T>(arr: T[]) {
+    return arr[arr.length -1];
+}
 
-
-var classifier: ts.Classifier = ts.createClassifier({
-    log: () => void 0
-});
+var classifier: ts.Classifier = ts.createClassifier({ log: () => void 0 });
 
 function getClassificationsForLine(text: string, eolState: ts.EndOfLineState ) {
 	var classificationResult = classifier.getClassificationsForLine(text, eolState),
@@ -137,28 +118,111 @@ function getStyleForToken(token: Token, textBefore: string): string {
 	}
 }
 
-function initializeLineDescriptor(lineDescriptor: LineDescriptor, text: string) {
-    var classificationResult = getClassificationsForLine(text, lineDescriptor.eolState),
-        tokens = classificationResult.tokens;
 
-    if (lineDescriptor.text) {
-        lineDescriptor.text += '\n';
+var openingBrackets = ['{', '(', '[', '<'];
+var closingBrackets = ['}', ')', ']', '>'];
+
+function isOpening(bracket: string) {
+    return openingBrackets.indexOf(bracket) !== -1;
+}
+
+function isClosing(bracket: string) {
+    return closingBrackets.indexOf(bracket) !== -1;
+}
+
+
+function isPair(opening: string, closing: string) {
+    return openingBrackets.indexOf(opening) === closingBrackets.indexOf(closing);
+}
+
+
+function getLineDescriptorInfo(text: string, eolState: ts.EndOfLineState, indent: number, bracketsStack: BracketsStackItem[]) {
+    bracketsStack = bracketsStack.map(item => ({
+        indent: item.indent,
+        brackets: item.brackets.slice()
+    }));
+    
+    var classificationResult = getClassificationsForLine(text, eolState);
+    var tokens = classificationResult.tokens;
+    var tokenMap: { [position: number]: Token } = {};
+    
+    var openedBrackets: string[] = [];
+    var closedBrackets: string[] = []
+
+    function openBracket(openedBracket: string) {
+        openedBrackets.push(openedBracket);
     }
-    lineDescriptor.text += text;
-    lineDescriptor.eolState = classificationResult.eolState;
-    lineDescriptor.tokenMap = {};
+
+    function closeBracket(closedBracket: string) {
+        var openedBracket = last(openedBrackets)
+        if (openedBracket) {
+            if (isPair(openedBracket, closedBracket)) {
+                openedBrackets.pop();
+            }
+        } else {
+            closedBrackets.push(closedBracket)
+        }
+    }
+
 
     for (var i = 0, l = tokens.length; i < l; i++) {
-        lineDescriptor.tokenMap[tokens[i].position] = tokens[i];
-    }
-}
-function setParent(parent: ts.Node) {
-    parent.getChildren().forEach(node => {
-        if (!node.parent) {
-            node.parent = parent;
+        var token = tokens[i];
+        tokenMap[token.position] = token;
+        if (token.classification === ts.TokenClass.Punctuation) {
+            if (isClosing(token.string)) {
+                closeBracket(token.string);
+            } else if (isOpening(token.string)) {
+                openBracket(token.string);
+            }
         }
-        setParent(node);
-    })
+    }
+
+
+    
+    if(closedBrackets.length) {
+        var newStack: string[][] = [];
+        for (var i = bracketsStack.length -1; i >=0; i--) {
+            var item = bracketsStack[i];
+            var brackets = item.brackets;
+
+            var hasPair = false;
+            while (
+                isPair(last(brackets), closedBrackets[0]) && 
+                brackets.length && item.brackets.length
+            ) {
+                brackets.pop();
+                closedBrackets.shift();
+                hasPair = true;
+            }
+            
+            if (hasPair) {
+                indent = item.indent;
+            }
+
+            if (!brackets.length) {
+                bracketsStack.pop();
+            } else {
+                // in this case we had closing token that are not pair with our openingStack 
+                // error
+                break;
+            }
+        } 
+    }
+                    
+    if (openedBrackets.length) {
+        bracketsStack.push({ 
+            indent: indent,
+            brackets: openedBrackets 
+        });
+    } 
+    
+    return {
+        eolState: classificationResult.eolState,
+        tokenMap: tokenMap,
+        indent: indent,
+        bracketsStack: bracketsStack,
+        hasOpening: !!openedBrackets.length
+    }
 }
 
 function createTypeScriptMode(options: CodeMirror.EditorConfiguration, spec: any): CodeMirror.CodeMirrorMode<any> {
@@ -168,17 +232,35 @@ function createTypeScriptMode(options: CodeMirror.EditorConfiguration, spec: any
         blockCommentEnd: '*/',
         electricChars: ':{}[]()',
         
-        startState() {
-            return createLineDescriptor();
+        startState(): LineDescriptor {
+            return {
+                tokenMap: {},
+                eolState: ts.EndOfLineState.Start,
+                indent: 0,
+                nextLineIndent: 0,
+                bracketsStack: []
+            };
         },
         
         copyState(lineDescriptor: LineDescriptor) {
-            return cloneLineDescriptor(lineDescriptor);
+            return {
+                tokenMap: lineDescriptor.tokenMap,
+                eolState: lineDescriptor.eolState,
+                indent: lineDescriptor.indent,
+                nextLineIndent: lineDescriptor.nextLineIndent,
+                bracketsStack: lineDescriptor.bracketsStack
+            }
         },
 
         token(stream: CodeMirror.CodeMirrorStream, lineDescriptor: LineDescriptor) {
             if (stream.sol()) {
-                initializeLineDescriptor(lineDescriptor, stream.string);
+                var info = getLineDescriptorInfo(stream.string, lineDescriptor.eolState, lineDescriptor.nextLineIndent, lineDescriptor.bracketsStack);
+                
+                lineDescriptor.eolState = info.eolState;
+                lineDescriptor.tokenMap = info.tokenMap;
+                lineDescriptor.bracketsStack = info.bracketsStack;
+                lineDescriptor.indent = info.indent;
+                lineDescriptor.nextLineIndent = info.hasOpening ? info.indent + 1 : info.indent;
             }
 
             var token = lineDescriptor.tokenMap[stream.pos];
@@ -201,25 +283,15 @@ function createTypeScriptMode(options: CodeMirror.EditorConfiguration, spec: any
             if (lineDescriptor.eolState !== ts.EndOfLineState.Start) {
                 return CodeMirror.Pass;
             }
-            var text = lineDescriptor.text + '\n' + (textAfter || 'fakeIndent');
-            var position = textAfter ? text.length: text.length - 9;
-            var sourceFile = ts.createSourceFile(Math.random()+ '.ts', text, ts.ScriptTarget.Latest, Math.random() + '');
-            setParent(sourceFile);
-            var indent = indenter.getIndentation(position, sourceFile,  {
-                IndentSize: options.indentUnit,
-                TabSize: options.tabSize,
-                NewLineCharacter: '\n',
-                ConvertTabsToSpaces: !options.indentWithTabs
-            });
-
-            if (indent === null) {
-                return CodeMirror.Pass;
-            }
-            return indent;
+            
+            var indent = lineDescriptor.nextLineIndent;
+            if (textAfter) {
+                indent = getLineDescriptorInfo(textAfter, lineDescriptor.eolState, lineDescriptor.nextLineIndent, lineDescriptor.bracketsStack).indent;
+            } 
+         
+            return indent * options.indentUnit
         }
     }
-
-
 }
 
 export = createTypeScriptMode;
