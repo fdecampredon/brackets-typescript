@@ -17,10 +17,127 @@
 import Promise = require('bluebird');
 import ps = require('typescript-project-services');
 import TypeScriptProjectConfig = ps.TypeScriptProjectConfig;
-import tsUtils = require('./typeScriptUtils');
+import ts = require('typescript');
 import utils = require('./utils');
 import collections = require('./collections');
 import signal = require('./signal');
+
+
+type RawConfig = {
+    //---------------------------------------------
+    //  Brackets-Typescript Specific settings
+    //---------------------------------------------
+    
+    /**
+     * Array of minimatch pattern string representing 
+     * sources of a project
+     */
+    sources?: string[];
+    
+    /**
+     * Path to an alternative typescriptCompiler
+     */
+    typescriptPath?: string;
+    
+    
+    //---------------------------------------------
+    //  Compiler Settings
+    //---------------------------------------------
+    
+    /**
+     * should the project include the default typescript library file
+     */
+    noLib?: boolean;
+    /**
+     * 
+     */
+    target?: string;
+    
+    /**
+     * Specify ECMAScript target version: 'ES3' (default), or 'ES5'
+     */
+    module?: string;
+    
+    /**
+     * Specifies the location where debugger should locate TypeScript files instead of source locations.
+     */
+    sourceRoot?: string;
+    
+    /**
+     *  Warn on expressions and declarations with an implied 'any' type.
+     */
+    noImplicitAny?: boolean;
+
+}
+
+
+var targetMap: {[index: string]: ts.ScriptTarget } = {
+    es3 : ts.ScriptTarget.ES3,
+    es5 : ts.ScriptTarget.ES5,
+    es6 : ts.ScriptTarget.ES6,
+    latest : ts.ScriptTarget.Latest
+}
+
+var moduleMap: {[index: string]: ts.ModuleKind } = {
+    commonjs : ts.ModuleKind.CommonJS,
+    amd : ts.ModuleKind.AMD,
+    none : ts.ModuleKind.None
+}
+
+/**
+ * helper function that valid a config file
+ * @param config the config object to validate
+ */
+function validateTypeScriptProjectConfig(config: RawConfig): boolean {
+    if (!config) {
+        return false;
+    }    
+    if (config.target && ['es3', 'es5', 'es6', 'latest' ].indexOf(config.target.toLowerCase()) === -1) {
+        return false;
+    }
+    if (config.module && ['none', 'amd', 'commonjs'].indexOf(config.module.toLowerCase()) === -1) {
+        return false;
+    }
+    if (config.sourceRoot && typeof config.sourceRoot !== 'string') {
+        return false;
+    }
+    if (!config.sources || !Array.isArray(config.sources) || !config.sources.every(pattern => typeof pattern === 'string')) {
+        return false;
+    }
+    return true;
+}
+
+
+/**
+ * Default configuration for typescript project
+ */
+var typeScriptProjectConfigDefault: RawConfig = {
+    noLib: false,
+    target: 'es3',
+    module: 'none',
+    noImplicitAny: false
+};
+
+
+
+function rawConfigToTypeScriptProjectConfig(raw: RawConfig): TypeScriptProjectConfig {
+    
+    var compilerOptions: ts.CompilerOptions = {
+        noLib: raw.noLib,
+        target: targetMap[raw.target],
+        module: moduleMap[raw.module],
+        sourceRoot: raw.sourceRoot,
+        noImplicitAny: raw.noImplicitAny
+    };
+    
+    
+    return { 
+        sources: raw.sources, 
+        typescriptPath: raw.typescriptPath,
+        compilationSettings: compilerOptions
+    };
+}
+
 
 /**
  * Implementation of the ITypescriptPreferenceManager
@@ -48,7 +165,7 @@ class TypescriptPreferenceManager {
      */
     getProjectsConfig() {
         if (!this.projectConfigs) {
-            this.projectConfigs = this.retriveProjectsConfig();
+            this.projectConfigs = this.retrieveProjectsConfig();
         }
         return Promise.cast(this.projectConfigs.toObject()); 
     }
@@ -63,7 +180,7 @@ class TypescriptPreferenceManager {
     /**
      * retrieve project configs from preferences
      */
-    private retriveProjectsConfig(): collections.StringMap<TypeScriptProjectConfig>  {
+    private retrieveProjectsConfig(): collections.StringMap<TypeScriptProjectConfig>  {
         var result = new collections.StringMap<TypeScriptProjectConfig>();
         
         var data = this.prefManager.get('typescript', this.prefManager.CURRENT_PROJECT);
@@ -93,19 +210,17 @@ class TypescriptPreferenceManager {
         }
         
         Object.keys(configs).forEach(projectId => {
-            var config: TypeScriptProjectConfig = utils.assign({ },  tsUtils.typeScriptProjectConfigDefault, configs[projectId]);
-            if (!tsUtils.validateTypeScriptProjectConfig(config)) {
-//                if (logger.warning()) {
-//                    logger.log('invalid config file for brackets-typescript config file');
-//                }
+            var config: TypeScriptProjectConfig = utils.assign({ },  typeScriptProjectConfigDefault, configs[projectId]);
+            if (!validateTypeScriptProjectConfig(config)) {
                 console.warn('invalid config file for brackets-typescript config file')
             } else {
-                result.set(projectId, config);
+                result.set(projectId, rawConfigToTypeScriptProjectConfig(config));
             }
         });
         
         return result;
     }
+    
     
     /**
      * handle change in preferences

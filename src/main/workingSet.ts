@@ -219,12 +219,14 @@ class WorkingSet implements IWorkingSet  {
                 text: change.text && change.text.join('\n'),
                 removed: change.removed ? change.removed.join('\n') : ''
             }));
+        
+        var validChanges = changes.some(change => !change.from || !change.to);
             
         if (changeList.length > 0) {
             this.documentEdited.dispatch({
                 path: document.file.fullPath,
-                changeList: changeList,
-                documentText: document.getText()
+                changeList: validChanges? changeList: null,
+                documentText: validChanges? null: document.getText()
             });
         }   
     };

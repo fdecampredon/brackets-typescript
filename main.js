@@ -16,7 +16,7 @@ define(function (require, exports, module) {
         require([baseUrl + 'main'], function (init) {
             var initConfig = {
                 logLevel: config.logLevel,
-                typeScriptLocation: require.toUrl('./third_party/typescript/'),
+                typeScriptLocation: require.toUrl('./third_party/typescript/lib.d.ts'),
                 workerLocation: require.toUrl(baseUrl + 'worker.js')
             };
             
