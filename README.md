@@ -46,7 +46,7 @@ To configure your project simply create a brackets configuration file (a file na
 }
 ```
 
-###Supported Options:
+### Supported Options:
 
 * `sources` (`string[]`) , **mandatory**: An array of '[minimatch](https://github.com/isaacs/minimatch)' pattern strings describing the sources of your project.
 
