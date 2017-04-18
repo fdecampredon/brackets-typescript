@@ -1,4 +1,4 @@
-#v0.2.0
+# v0.2.0
 
 * Full refactoring of internal code
 * TypeScript Language service now runs in a webworker [#1](https://github.com/fdecampredon/brackets-typescript/issues/1)
